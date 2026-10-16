@@ -31,5 +31,5 @@ Warp runs on the CPU on macOS; pass `--device cuda:0` on a machine with an NVIDI
 ## Development
 
 ```sh
-uv run ruff format . && uv run ruff check . && uv run pytest
+just check && just test   # just fmt to auto-fix
 ```
