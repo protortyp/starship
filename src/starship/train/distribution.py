@@ -44,6 +44,11 @@ class BernoulliDistribution(Distribution):
         return self._distribution.entropy().sum(dim=-1)
 
     @property
+    def entropy_per_head(self) -> torch.Tensor:
+        """Entropy of each thruster's on/off decision, shape (..., output_dim)."""
+        return self._distribution.entropy()
+
+    @property
     def params(self) -> tuple[torch.Tensor, ...]:
         return (self._distribution.logits,)
 
