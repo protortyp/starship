@@ -141,9 +141,7 @@ def test_shaping_telescopes_over_an_episode():
     w = env.reward_config
     assert term.status[0] == CRASHED
     terminal = -(w.crash_penalty + w.crash_speed_weight * float(np.linalg.norm(term.vel[0])))
-    shaping = potential(env, term.pos[0], term.vel[0], float(term.theta[0])) - potential(
-        env, start.pos[0], start.vel[0], float(start.theta[0])
-    )
+    shaping = -potential(env, start.pos[0], start.vel[0], float(start.theta[0]))
     assert total == pytest.approx(shaping + terminal, rel=1e-3)
 
 
@@ -153,9 +151,7 @@ def test_landing_reward_includes_fuel_bonus():
     w = env.reward_config
     assert term.status[0] == LANDED
     assert term.fuel[0] == env.config.rocket.fuel_mass
-    shaping = potential(env, term.pos[0], term.vel[0], 0.0) - potential(
-        env, start.pos[0], start.vel[0], 0.0
-    )
+    shaping = -potential(env, start.pos[0], start.vel[0], 0.0)
     assert total == pytest.approx(shaping + w.landed_reward + w.fuel_bonus, rel=1e-4)
 
 
@@ -164,7 +160,6 @@ def test_crash_penalty_grows_with_impact_speed():
         env = make_env(world=ZERO_G_VACUUM, spawn=SpawnConfig(y=30.0, vy=vy, theta=0.0))
         return run_episode(env, lambda _: np.zeros(1, dtype=np.int32))[0]
 
-    # Shaping also rewards losing altitude, but the speed term and impact penalty dominate.
     assert crash_total(-50.0) < crash_total(-10.0) < 0.0
 
 
@@ -172,9 +167,7 @@ def test_timeout_is_penalized():
     env = make_env(world=ZERO_G_VACUUM, spawn=SpawnConfig(vy=0.0), max_time=1.0)
     total, start, term = run_episode(env, lambda _: np.zeros(1, dtype=np.int32))
     assert term.status[0] == TIMEOUT
-    shaping = potential(env, term.pos[0], term.vel[0], float(term.theta[0])) - potential(
-        env, start.pos[0], start.vel[0], float(start.theta[0])
-    )
+    shaping = -potential(env, start.pos[0], start.vel[0], float(start.theta[0]))
     assert total == pytest.approx(shaping - env.reward_config.timeout_penalty, rel=1e-4)
 
 
@@ -187,3 +180,25 @@ def test_shaping_discounts_the_next_potential():
     phi0 = potential(env, s0.pos[0], s0.vel[0], float(s0.theta[0]))
     phi1 = potential(env, s1.pos[0], s1.vel[0], float(s1.theta[0]))
     assert reward == pytest.approx(0.9 * phi1 - phi0, rel=1e-4)
+
+
+def test_discounted_shaping_return_is_independent_of_the_trajectory():
+    """With a zero terminal potential, sum_t gamma^t F_t = -potential(start) for any actions."""
+    gamma = 0.99
+    totals = []
+    for action in (0, 1, 4):
+        env = make_env(gamma=gamma, spawn=SpawnConfig(y=300.0, vy=-40.0))
+        env.reset()
+        start = env.sim.snapshot()
+        discounted, scale = 0.0, 1.0
+        for _ in range(env.config.max_steps):
+            result = env.step(np.full(1, action, dtype=np.int32))
+            discounted += scale * float(
+                result.reward.numpy()[0] - result.terminal_reward.numpy()[0]
+            )
+            scale *= gamma
+            if result.terminated.numpy()[0] or result.truncated.numpy()[0]:
+                break
+        totals.append(discounted)
+    expected = -potential(env, start.pos[0], start.vel[0], float(start.theta[0]))
+    assert totals == pytest.approx([expected] * 3, rel=1e-3)

@@ -3,9 +3,10 @@
 reward = gamma * potential(s') - potential(s) + terminal reward
 
 The potential scores how close the rocket is to a good touchdown: near the pad, slow, and (only
-near the ground) upright. Shaping in this form, with gamma equal to the learner's discount, leaves
-the optimal policy unchanged and cannot be farmed. The end state is the actual
-terminal state, not a zero potential, so crashing early never pays off the remaining distance.
+near the ground) upright. With gamma equal to the learner's discount and a zero potential after the
+episode ends, the discounted shaping sums to -potential(start) for every trajectory, so it guides
+learning without changing which behavior is optimal; only the terminal reward decides that. A
+nonzero terminal potential would instead pay (1 - gamma) * |potential| per step for staying alive.
 """
 
 from dataclasses import dataclass
@@ -103,10 +104,9 @@ def reward_kernel(
     current = potential(p, rp, s.pos[tid], s.vel[tid], s.theta[tid])
     terminal[tid] = 0.0
     if term.done[tid] != 0:
-        final = potential(p, rp, term.pos[tid], term.vel[tid], term.theta[tid])
         end = terminal_reward(p, rp, term.status[tid], term.vel[tid], term.fuel[tid])
         terminal[tid] = end
-        reward[tid] = rp.gamma * final - last_potential[tid] + end
+        reward[tid] = -last_potential[tid] + end
     elif s.status[tid] == STATUS_FLYING:
         reward[tid] = rp.gamma * current - last_potential[tid]
     else:
