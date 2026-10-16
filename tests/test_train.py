@@ -101,6 +101,8 @@ def test_training_logs_metrics_and_exports_usable_policies(tmp_path):
     assert 0.0 < runner.last_metrics["policy/ess"] <= 1.0
     assert runner.last_metrics["eval/env/episodes"] == 16
     assert (tmp_path / "policy_1.pt").exists()
+    assert (tmp_path / "policy_best.pt").exists()
+    assert "eval/best_landed" in runner.last_metrics
     assert list(tmp_path.glob("events.out.tfevents.*"))
 
     sim = runner.env.env.sim
