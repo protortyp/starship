@@ -11,7 +11,7 @@ from starship.train.encoding import (
     ObsConfig,
     episode_end_kernel,
     make_obs_scales,
-    observe_kernel,
+    observe,
 )
 from starship.train.reward import (
     RewardConfig,
@@ -114,19 +114,4 @@ class RocketEnv:
         return StepResult(self.obs, self.reward, self.final_obs, self.terminated, self.truncated)
 
     def _observe(self) -> None:
-        s = self.sim.state
-        wp.launch(
-            observe_kernel,
-            dim=self.num_envs,
-            inputs=[
-                self.sim.params,
-                self._scales,
-                s.pos,
-                s.vel,
-                s.theta,
-                s.omega,
-                s.fuel,
-                self.obs,
-            ],
-            device=self.device,
-        )
+        observe(self.sim, self._scales, self.obs)

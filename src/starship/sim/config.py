@@ -46,7 +46,7 @@ STATUS_NAMES = {
 }
 
 
-@dataclass(frozen=True)
+@dataclass
 class RocketConfig:
     dry_mass: float = 100_000.0
     fuel_mass: float = 30_000.0
@@ -106,14 +106,14 @@ class RocketConfig:
         return self.length * self.diameter
 
 
-@dataclass(frozen=True)
+@dataclass
 class WorldConfig:
     gravity: float = G0
     # Sea-level air density; set to 0 to simulate vacuum.
     sea_level_density: float = 1.225
 
 
-@dataclass(frozen=True)
+@dataclass
 class SpawnConfig:
     """Initial state: each component is drawn uniformly from value +/- noise."""
 
@@ -141,7 +141,7 @@ class SpawnConfig:
         )
 
 
-@dataclass(frozen=True)
+@dataclass
 class LandingConfig:
     """Touchdown is a successful landing only if every limit is satisfied."""
 
@@ -152,7 +152,7 @@ class LandingConfig:
     max_angular_rate: float = 0.2
 
 
-@dataclass(frozen=True)
+@dataclass
 class SimConfig:
     rocket: RocketConfig = field(default_factory=RocketConfig)
     world: WorldConfig = field(default_factory=WorldConfig)

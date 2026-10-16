@@ -21,7 +21,7 @@ STATUS_CRASHED = wp.constant(CRASHED)
 STATUS_OUT_OF_BOUNDS = wp.constant(OUT_OF_BOUNDS)
 
 
-@dataclass(frozen=True)
+@dataclass
 class RewardConfig:
     distance_weight: float = 10.0  # per km to the pad center
     speed_weight: float = 0.2  # per m/s

@@ -17,6 +17,9 @@ uv run starship-view                          # fly it yourself (W/A/D or arrow 
 uv run starship-view --controller heuristic --envs 64
 uv run starship-rerun --spawn-noise 1         # stream 64 envs to Rerun: follow view, overview, telemetry
 uv run starship-rerun --save out/run.rrd      # or record to a file, open with `uv run rerun out/run.rrd`
+uv run starship-train                         # PPO (rsl_rl), Hydra overrides e.g. num_envs=8192 iterations=1000
+uv run tensorboard --logdir logs              # training curves
+uv run starship-view --policy logs/<run>/policy.pt   # watch a trained policy (also starship-rerun/-demo)
 ```
 
 Warp runs on the CPU on macOS; pass `--device cuda:0` on a machine with an NVIDIA GPU.
@@ -26,7 +29,7 @@ Warp runs on the CPU on macOS; pass `--device cuda:0` on a machine with an NVIDI
 - `src/starship/sim/`: configuration, Warp kernels and the batched `Simulator`
 - `src/starship/control/`: scripted baseline controllers
 - `src/starship/render/`: pygame viewer and Rerun recording
-- `src/starship/train/`: batched `RocketEnv` with auto-reset and device-side observation encoding; policy training upcoming
+- `src/starship/train/`: batched `RocketEnv`, observation encoding, reward, rsl_rl adapter and Hydra training config
 
 ## Development
 

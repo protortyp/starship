@@ -10,7 +10,7 @@ from pathlib import Path
 
 import numpy as np
 
-from starship.control import HeuristicController, IdleController, RandomController
+from starship.control import CONTROLLER_NAMES, make_controller
 from starship.sim import FLYING, LEFT, MAIN, RIGHT, Simulator, StateSnapshot
 
 FPS = 60
@@ -36,20 +36,10 @@ class KeyboardController:
         return np.full(len(s.status), action, dtype=np.int32)
 
 
-def make_controller(name: str, sim: Simulator):
-    return {
-        "keyboard": KeyboardController,
-        "heuristic": lambda: HeuristicController(sim.config),
-        "random": RandomController,
-        "idle": IdleController,
-    }[name]()
-
-
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument(
-        "--controller", choices=("keyboard", "heuristic", "random", "idle"), default="keyboard"
-    )
+    parser.add_argument("--controller", choices=("keyboard", *CONTROLLER_NAMES), default="keyboard")
+    parser.add_argument("--policy", default=None, help="policy.pt from starship-train")
     parser.add_argument("--envs", type=int, default=1, help="parallel envs (others drawn faint)")
     parser.add_argument("--device", default=None, help="Warp device, e.g. cpu or cuda:0")
     parser.add_argument("--speed", type=float, default=1.0)
@@ -76,7 +66,13 @@ def main() -> None:
     clock = pygame.time.Clock()
 
     sim = Simulator(args.envs, device=args.device)
-    controller = make_controller(args.controller, sim)
+    if args.policy and args.controller == "keyboard":
+        args.controller = "policy"
+    controller = (
+        KeyboardController()
+        if args.controller == "keyboard"
+        else make_controller(args.controller, sim, args.policy)
+    )
     viewer = Viewer(sim.config, args.width, args.height)
     policy_dt = sim.config.policy_dt
 

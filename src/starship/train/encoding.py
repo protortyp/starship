@@ -12,18 +12,22 @@ Features, in order:
 """
 
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
 
 import warp as wp
 
 from starship.sim.config import TIMEOUT, Params
 from starship.sim.physics import Terminal, lowest_point
 
+if TYPE_CHECKING:
+    from starship.sim import Simulator
+
 OBS_DIM = 8
 
 STATUS_TIMEOUT = wp.constant(TIMEOUT)
 
 
-@dataclass(frozen=True)
+@dataclass
 class ObsConfig:
     """Scales chosen so the base scenario's features stay roughly within [-3, 3]."""
 
@@ -84,6 +88,17 @@ def observe_kernel(
 ):
     tid = wp.tid()
     encode(p, scales, pos[tid], vel[tid], theta[tid], omega[tid], fuel[tid], obs, tid)
+
+
+def observe(sim: "Simulator", scales: ObsScales, out: wp.array) -> None:
+    """Encode the simulator's current state into `out`, shape (num_envs, OBS_DIM)."""
+    s = sim.state
+    wp.launch(
+        observe_kernel,
+        dim=sim.num_envs,
+        inputs=[sim.params, scales, s.pos, s.vel, s.theta, s.omega, s.fuel, out],
+        device=sim.device,
+    )
 
 
 @wp.kernel

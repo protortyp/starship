@@ -11,3 +11,4 @@ build/
 .claude
 .DS_Store
 .direnv/
+/logs/
