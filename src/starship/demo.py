@@ -29,7 +29,8 @@ def telemetry(s: StateSnapshot, env: int, t: float, action: int) -> str:
     return (
         f"t={t:6.1f}s  x={x:8.1f}  y={y:7.1f}  vx={vx:7.1f}  vy={vy:7.1f}  "
         f"theta={math.degrees(s.theta[env]):7.1f}deg  omega={s.omega[env]:6.2f}  "
-        f"thrusters={describe_action(action)}  {STATUS_NAMES[int(s.status[env])]}"
+        f"fuel={s.fuel[env] / 1000:5.1f}t  thrusters={describe_action(action)}  "
+        f"{STATUS_NAMES[int(s.status[env])]}"
     )
 
 

@@ -2,7 +2,7 @@
 
 GPU-parallel 2D rocket landing simulator built on [NVIDIA Warp](https://github.com/NVIDIA/warp), meant as a reinforcement learning environment.
 
-A 60 t, 30 m × 9 m rocket spawns lying flat at 3 km, falling at ~70 m/s. It has three on/off thrusters: the main engine, plus left and right thrusters at the nose. It has to flip upright and land on the pad at the origin. The physics covers gravity, crossflow drag (belly-flop ≈ 71 m/s terminal velocity vs. ≈ 142 m/s nose-first), ISA air density, and rotational air damping. Thousands of envs step in parallel in one Warp kernel.
+A Starship-like upper stage spawns lying flat at 3 km, falling at ~90 m/s. It is 50 m long and 9 m wide, with 100 t dry mass, 30 t of landing propellant and one Raptor. It has three on/off thrusters (main engine plus left/right nose thrusters, all burning from the same tank) and has to flip upright and land on the pad at the origin. The physics covers gravity, mass that drops as fuel burns, crossflow drag (belly-flop ≈ 82 m/s terminal velocity vs. ≈ 160 m/s nose-first), ISA air density, and rotational air damping. The RL env adds an 8-feature observation and a stage 1 landing reward. Thousands of envs step in parallel in one Warp kernel.
 
 ## Setup
 
