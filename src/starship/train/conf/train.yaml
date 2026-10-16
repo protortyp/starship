@@ -10,6 +10,9 @@ iterations: 500
 eval_interval: 25
 eval_envs: 256
 
+reward:
+  gamma: ${runner.algorithm.gamma}
+
 runner:
   num_steps_per_env: 32
   save_interval: 50
@@ -25,8 +28,8 @@ runner:
     learning_rate: 1.0e-3
     schedule: adaptive
     desired_kl: 0.01
-    # ~10 s horizon at 20 Hz; the flip and landing burn span the last ~15 s of an episode.
-    gamma: 0.995
+    # ~100 s horizon at 10 Hz, so terminal rewards reach the start of a ~40 s episode.
+    gamma: 0.999
     lam: 0.95
     entropy_coef: 0.01
     clip_param: 0.2
