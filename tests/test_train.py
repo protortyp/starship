@@ -158,3 +158,17 @@ def test_bernoulli_kl_is_finite_for_saturated_logits():
     ).sum()
     stable = dist.kl_divergence((torch.tensor([[0.3, -1.2]]),), (torch.tensor([[-0.4, 2.0]]),))
     assert stable.item() == pytest.approx(reference.item(), rel=1e-5)
+
+
+def test_training_resumes_from_checkpoint(tmp_path):
+    cfg = compose_cfg(*SHORT_EPISODES)
+    first = make_runner(cfg, tmp_path / "a")
+    first.learn(2)
+    resumed = make_runner(cfg, tmp_path / "b")
+    resumed.load(str(tmp_path / "a" / "model_1.pt"))
+    for a, b in zip(
+        first.alg.get_policy().parameters(), resumed.alg.get_policy().parameters(), strict=True
+    ):
+        assert torch.equal(a, b)
+    resumed.learn(1)
+    assert resumed.current_learning_iteration == 2

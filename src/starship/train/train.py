@@ -45,6 +45,9 @@ def main(cfg: DictConfig) -> None:
         eval_env=eval_env,
         eval_interval=cfg.eval_interval,
     )
+    if cfg.checkpoint:
+        runner.load(cfg.checkpoint)
+        print(f"continuing from {cfg.checkpoint}")
     runner.learn(cfg.iterations)
     print(f"policy exported to {out_dir}/policy.pt")
 
