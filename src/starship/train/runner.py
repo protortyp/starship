@@ -49,6 +49,7 @@ class StarshipRunner(OnPolicyRunner):
         device: str,
         eval_env: RslRocketEnv | None = None,
         eval_interval: int = 25,
+        verbose: bool = True,
     ):
         # rsl_rl's own logger stays disabled; this runner writes its own TensorBoard metrics.
         super().__init__(env, train_cfg, log_dir=None, device=device)
@@ -60,6 +61,7 @@ class StarshipRunner(OnPolicyRunner):
         self.tracker = EpisodeTracker(env)
         self.total_env_steps = 0
         self.last_metrics: dict[str, float] = {}
+        self.verbose = verbose
 
     def _sync(self) -> None:
         if torch.device(self.device).type == "cuda":
@@ -121,7 +123,8 @@ class StarshipRunner(OnPolicyRunner):
             for key, value in metrics.items():
                 self.writer.add_scalar(key, value, self.total_env_steps)
             self.last_metrics = metrics
-            self._print(it, start_it + num_learning_iterations, metrics)
+            if self.verbose:
+                self._print(it, start_it + num_learning_iterations, metrics)
 
         self.save_all(self.current_learning_iteration)
         self.writer.flush()

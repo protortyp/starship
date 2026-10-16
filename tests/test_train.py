@@ -133,3 +133,14 @@ def test_episode_tracker_summarizes_finished_episodes():
     assert summary["train/env/duty/main"] == 0.0
     assert summary["train/env/return"] == pytest.approx(returns.mean().item(), rel=1e-4)
     assert tracker.summarize("train/env") == {}
+
+
+def test_bench_measures_throughput():
+    from starship.train.bench import measure
+
+    cfg = compose_cfg()
+    result = measure(cfg, 32, warmup=1, iters=1)
+    assert result["num_envs"] == 32
+    assert result["batch_size"] == 32 * 8
+    assert result["train_fps"] > 0
+    assert result["collect_fps"] > result["train_fps"]
