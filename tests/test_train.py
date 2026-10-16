@@ -164,8 +164,11 @@ def test_training_resumes_from_checkpoint(tmp_path):
     cfg = compose_cfg(*SHORT_EPISODES)
     first = make_runner(cfg, tmp_path / "a")
     first.learn(2)
+    cfg.runner.algorithm.learning_rate = 1.234e-4
+    cfg.runner.algorithm.schedule = "fixed"
     resumed = make_runner(cfg, tmp_path / "b")
     resumed.load(str(tmp_path / "a" / "model_1.pt"))
+    assert resumed.alg.optimizer.param_groups[0]["lr"] == pytest.approx(1.234e-4)
     for a, b in zip(
         first.alg.get_policy().parameters(), resumed.alg.get_policy().parameters(), strict=True
     ):
