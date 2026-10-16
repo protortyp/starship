@@ -6,6 +6,7 @@ readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
     "numpy>=2.5.4",
+    "pygame-ce>=2.5.8",
     "warp-lang>=1.18.0",
 ]
 
