@@ -158,9 +158,9 @@ class SimConfig:
     world: WorldConfig = field(default_factory=WorldConfig)
     spawn: SpawnConfig = field(default_factory=SpawnConfig)
     landing: LandingConfig = field(default_factory=LandingConfig)
-    # Physics timestep; each policy step advances `substeps` physics steps (default 20 Hz policy).
+    # Physics timestep; each policy step advances `substeps` physics steps (default 10 Hz policy).
     dt: float = 0.01
-    substeps: int = 5
+    substeps: int = 10
     max_time: float = 120.0
     max_abs_x: float = 5000.0
     max_y: float = 6000.0

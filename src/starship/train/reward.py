@@ -1,10 +1,10 @@
 """Stage 1 reward: learn to land.
 
-reward = potential(s') - potential(s) + terminal reward
+reward = gamma * potential(s') - potential(s) + terminal reward
 
 The potential scores how close the rocket is to a good touchdown: near the pad, slow, and (only
-near the ground) upright. Per-step shaping is the change in potential, so its sum over an episode
-depends only on the start and end states and cannot be farmed. The end state is the actual
+near the ground) upright. Shaping in this form, with gamma equal to the learner's discount, leaves
+the optimal policy unchanged and cannot be farmed. The end state is the actual
 terminal state, not a zero potential, so crashing early never pays off the remaining distance.
 """
 
@@ -24,6 +24,8 @@ STATUS_TIMEOUT = wp.constant(TIMEOUT)
 
 @dataclass
 class RewardConfig:
+    # Must match the learner's discount factor for the shaping to be policy-invariant.
+    gamma: float = 0.999
     distance_weight: float = 10.0  # per km to the pad center
     speed_weight: float = 0.2  # per m/s
     tilt_weight: float = 10.0  # per rad, faded in near the ground
@@ -39,6 +41,7 @@ class RewardConfig:
 
 @wp.struct
 class RewardParams:
+    gamma: float
     distance_weight: float
     speed_weight: float
     tilt_weight: float
@@ -103,9 +106,9 @@ def reward_kernel(
         final = potential(p, rp, term.pos[tid], term.vel[tid], term.theta[tid])
         end = terminal_reward(p, rp, term.status[tid], term.vel[tid], term.fuel[tid])
         terminal[tid] = end
-        reward[tid] = final - last_potential[tid] + end
+        reward[tid] = rp.gamma * final - last_potential[tid] + end
     elif s.status[tid] == STATUS_FLYING:
-        reward[tid] = current - last_potential[tid]
+        reward[tid] = rp.gamma * current - last_potential[tid]
     else:
         reward[tid] = 0.0
     # After an auto-reset `current` is already the respawned state, the next episode's baseline.

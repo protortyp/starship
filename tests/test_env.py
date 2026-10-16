@@ -5,14 +5,18 @@ import numpy as np
 import pytest
 
 from starship.sim import CRASHED, LANDED, TIMEOUT, SimConfig, SpawnConfig, WorldConfig
-from starship.train import OBS_DIM, ObsConfig, RocketEnv
+from starship.train import OBS_DIM, ObsConfig, RewardConfig, RocketEnv
 
 ZERO_G_VACUUM = WorldConfig(gravity=0.0, sea_level_density=0.0)
 NOISY_SPAWN = SpawnConfig().with_noise(1.0)
 
 
-def make_env(num_envs=1, **overrides) -> RocketEnv:
-    return RocketEnv(num_envs, replace(SimConfig(), **overrides), device="cpu")
+def make_env(num_envs=1, gamma=1.0, **overrides) -> RocketEnv:
+    # gamma = 1 makes the shaping telescope exactly, which the episode-level checks rely on.
+    reward = RewardConfig(gamma=gamma)
+    return RocketEnv(
+        num_envs, replace(SimConfig(), **overrides), reward_config=reward, device="cpu"
+    )
 
 
 def expected_obs(env: RocketEnv, pos, vel, theta, omega, fuel) -> np.ndarray:
@@ -172,3 +176,14 @@ def test_timeout_is_penalized():
         env, start.pos[0], start.vel[0], float(start.theta[0])
     )
     assert total == pytest.approx(shaping - env.reward_config.timeout_penalty, rel=1e-4)
+
+
+def test_shaping_discounts_the_next_potential():
+    env = make_env(gamma=0.9, spawn=SpawnConfig(y=1000.0, vy=-50.0))
+    env.reset()
+    s0 = env.sim.snapshot()
+    reward = env.step(np.zeros(1, dtype=np.int32)).reward.numpy()[0]
+    s1 = env.sim.snapshot()
+    phi0 = potential(env, s0.pos[0], s0.vel[0], float(s0.theta[0]))
+    phi1 = potential(env, s1.pos[0], s1.vel[0], float(s1.theta[0]))
+    assert reward == pytest.approx(0.9 * phi1 - phi0, rel=1e-4)
