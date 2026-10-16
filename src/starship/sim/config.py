@@ -130,6 +130,21 @@ class SpawnConfig:
     theta_noise: float = 0.0
     omega_noise: float = 0.0
 
+    @classmethod
+    def near_ground(cls) -> "SpawnConfig":
+        """Upright and slow, 50-350 m up: close enough to the pad that landings are discoverable."""
+        return cls(
+            y=200.0,
+            vy=-30.0,
+            theta=0.0,
+            x_noise=50.0,
+            y_noise=150.0,
+            vx_noise=5.0,
+            vy_noise=20.0,
+            theta_noise=0.3,
+            omega_noise=0.1,
+        )
+
     def with_noise(self, scale: float) -> "SpawnConfig":
         """Preset randomization: at scale 1, +/-300 m offset, +/-10 m/s, +/-0.2 rad tilt."""
         return replace(
@@ -157,6 +172,9 @@ class SimConfig:
     rocket: RocketConfig = field(default_factory=RocketConfig)
     world: WorldConfig = field(default_factory=WorldConfig)
     spawn: SpawnConfig = field(default_factory=SpawnConfig)
+    # Curriculum: this fraction of episodes starts from `easy_spawn` instead of `spawn`.
+    easy_spawn: SpawnConfig = field(default_factory=SpawnConfig.near_ground)
+    easy_spawn_fraction: float = 0.0
     landing: LandingConfig = field(default_factory=LandingConfig)
     # Physics timestep; each policy step advances `substeps` physics steps (default 10 Hz policy).
     dt: float = 0.01
@@ -172,6 +190,31 @@ class SimConfig:
     @property
     def max_steps(self) -> int:
         return math.ceil(self.max_time / self.policy_dt)
+
+
+@wp.struct
+class SpawnParams:
+    pos: wp.vec2
+    vel: wp.vec2
+    theta: float
+    omega: float
+    pos_noise: wp.vec2
+    vel_noise: wp.vec2
+    theta_noise: float
+    omega_noise: float
+
+
+def make_spawn_params(s: SpawnConfig) -> SpawnParams:
+    sp = SpawnParams()
+    sp.pos = wp.vec2(s.x, s.y)
+    sp.vel = wp.vec2(s.vx, s.vy)
+    sp.theta = s.theta
+    sp.omega = s.omega
+    sp.pos_noise = wp.vec2(s.x_noise, s.y_noise)
+    sp.vel_noise = wp.vec2(s.vx_noise, s.vy_noise)
+    sp.theta_noise = s.theta_noise
+    sp.omega_noise = s.omega_noise
+    return sp
 
 
 @wp.struct
@@ -194,14 +237,9 @@ class Params:
     gravity: float
     sea_level_density: float
 
-    spawn_pos: wp.vec2
-    spawn_vel: wp.vec2
-    spawn_theta: float
-    spawn_omega: float
-    spawn_pos_noise: wp.vec2
-    spawn_vel_noise: wp.vec2
-    spawn_theta_noise: float
-    spawn_omega_noise: float
+    spawn: SpawnParams
+    easy_spawn: SpawnParams
+    easy_spawn_fraction: float
 
     pad_half_width: float
     max_vertical_speed: float
@@ -217,7 +255,7 @@ class Params:
 
 
 def make_params(cfg: SimConfig) -> Params:
-    r, w, s, land = cfg.rocket, cfg.world, cfg.spawn, cfg.landing
+    r, w, land = cfg.rocket, cfg.world, cfg.landing
     p = Params()
     p.dry_mass = r.dry_mass
     p.fuel_mass = r.fuel_mass
@@ -237,14 +275,9 @@ def make_params(cfg: SimConfig) -> Params:
     p.gravity = w.gravity
     p.sea_level_density = w.sea_level_density
 
-    p.spawn_pos = wp.vec2(s.x, s.y)
-    p.spawn_vel = wp.vec2(s.vx, s.vy)
-    p.spawn_theta = s.theta
-    p.spawn_omega = s.omega
-    p.spawn_pos_noise = wp.vec2(s.x_noise, s.y_noise)
-    p.spawn_vel_noise = wp.vec2(s.vx_noise, s.vy_noise)
-    p.spawn_theta_noise = s.theta_noise
-    p.spawn_omega_noise = s.omega_noise
+    p.spawn = make_spawn_params(cfg.spawn)
+    p.easy_spawn = make_spawn_params(cfg.easy_spawn)
+    p.easy_spawn_fraction = cfg.easy_spawn_fraction
 
     p.pad_half_width = land.pad_half_width
     p.max_vertical_speed = land.max_vertical_speed

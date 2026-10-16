@@ -13,6 +13,10 @@ eval_envs: 256
 reward:
   gamma: ${runner.algorithm.gamma}
 
+sim:
+  # Curriculum: start some training episodes near the ground; eval always uses the full scenario.
+  easy_spawn_fraction: 0.3
+
 runner:
   num_steps_per_env: 32
   save_interval: 50
