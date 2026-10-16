@@ -1,6 +1,5 @@
 defaults:
   - train_schema
-  - model: lstm
   - _self_
 
 experiment: landing
@@ -33,6 +32,24 @@ runner:
     clip_param: 0.2
     value_loss_coef: 1.0
     max_grad_norm: 1.0
+  actor:
+    class_name: RNNModel
+    rnn_type: lstm
+    rnn_hidden_dim: 128
+    rnn_num_layers: 1
+    hidden_dims: [128, 128]
+    activation: elu
+    obs_normalization: true
+    distribution_cfg:
+      class_name: starship.train.distribution:BernoulliDistribution
+  critic:
+    class_name: RNNModel
+    rnn_type: lstm
+    rnn_hidden_dim: 128
+    rnn_num_layers: 1
+    hidden_dims: [128, 128]
+    activation: elu
+    obs_normalization: true
 
 hydra:
   run:
