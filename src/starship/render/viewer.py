@@ -174,6 +174,7 @@ class Viewer:
             (f"vy         {vy:7.1f} m/s", TEXT),
             (f"tilt       {math.degrees(theta):7.1f} deg", TEXT),
             (f"spin       {math.degrees(s.omega[env]):7.1f} deg/s", TEXT),
+            (f"fuel       {s.fuel[env] / 1000:7.1f} t", TEXT),
             (f"status     {status}", STATUS_COLORS.get(status, TEXT)),
             (f"controller {controller_name}", TEXT_DIM),
             (f"speed      {speed:g}x{'  PAUSED' if paused else ''}", TEXT_DIM),

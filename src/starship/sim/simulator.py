@@ -19,6 +19,7 @@ class StateSnapshot:
     omega: np.ndarray
     status: np.ndarray
     steps: np.ndarray
+    fuel: np.ndarray
 
 
 @dataclass(frozen=True)
@@ -32,6 +33,7 @@ class TerminalSnapshot:
     theta: np.ndarray
     omega: np.ndarray
     steps: np.ndarray
+    fuel: np.ndarray
 
 
 class Simulator:
@@ -66,6 +68,7 @@ class Simulator:
         self.state.omega = zeros(float)
         self.state.status = zeros(wp.int32)
         self.state.steps = zeros(wp.int32)
+        self.state.fuel = zeros(float)
         self.state.rng = zeros(wp.uint32)
 
         self.terminal = Terminal()
@@ -76,6 +79,7 @@ class Simulator:
         self.terminal.theta = zeros(float)
         self.terminal.omega = zeros(float)
         self.terminal.steps = zeros(wp.int32)
+        self.terminal.fuel = zeros(float)
 
         self.actions = zeros(wp.int32)
         self._all_envs = wp.ones(num_envs, dtype=wp.int32, device=self.device)
@@ -114,11 +118,11 @@ class Simulator:
 
     def snapshot(self) -> StateSnapshot:
         s = self.state
-        arrays = (s.pos, s.vel, s.theta, s.omega, s.status, s.steps)
+        arrays = (s.pos, s.vel, s.theta, s.omega, s.status, s.steps, s.fuel)
         # On CPU devices `numpy()` aliases the Warp buffer, so copy to decouple from later steps.
         return StateSnapshot(*(a.numpy().copy() for a in arrays))
 
     def terminal_snapshot(self) -> TerminalSnapshot:
         t = self.terminal
-        arrays = (t.done, t.status, t.pos, t.vel, t.theta, t.omega, t.steps)
+        arrays = (t.done, t.status, t.pos, t.vel, t.theta, t.omega, t.steps, t.fuel)
         return TerminalSnapshot(*(a.numpy().copy() for a in arrays))
