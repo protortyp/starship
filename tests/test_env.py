@@ -162,3 +162,13 @@ def test_crash_penalty_grows_with_impact_speed():
 
     # Shaping also rewards losing altitude, but the speed term and impact penalty dominate.
     assert crash_total(-50.0) < crash_total(-10.0) < 0.0
+
+
+def test_timeout_is_penalized():
+    env = make_env(world=ZERO_G_VACUUM, spawn=SpawnConfig(vy=0.0), max_time=1.0)
+    total, start, term = run_episode(env, lambda _: np.zeros(1, dtype=np.int32))
+    assert term.status[0] == TIMEOUT
+    shaping = potential(env, term.pos[0], term.vel[0], float(term.theta[0])) - potential(
+        env, start.pos[0], start.vel[0], float(start.theta[0])
+    )
+    assert total == pytest.approx(shaping - env.reward_config.timeout_penalty, rel=1e-4)
