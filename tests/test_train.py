@@ -92,9 +92,8 @@ METRIC_GROUPS = [
 ]
 
 
-@pytest.mark.parametrize("model", ["lstm", "mlp"])
-def test_training_logs_metrics_and_exports_usable_policies(tmp_path, model):
-    cfg = compose_cfg(f"model={model}", *SHORT_EPISODES)
+def test_training_logs_metrics_and_exports_usable_policies(tmp_path):
+    cfg = compose_cfg(*SHORT_EPISODES)
     runner = make_runner(cfg, tmp_path)
     runner.learn(2)
     missing = [k for k in METRIC_GROUPS if k not in runner.last_metrics]

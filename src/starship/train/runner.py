@@ -34,7 +34,7 @@ def standalone_copy(policy: torch.nn.Module) -> torch.nn.Module:
 
 
 def export_policy(policy: torch.nn.Module, path: str | Path) -> Path:
-    """Save a standalone copy of the actor (normalizer, MLP/LSTM, distribution) as a module."""
+    """Save a standalone copy of the actor (normalizer, LSTM, head, distribution) as a module."""
     path = Path(path)
     torch.save(standalone_copy(policy).cpu().eval(), path)
     return path
