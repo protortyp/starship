@@ -324,3 +324,10 @@ def test_auto_reset_runs_many_episodes_independently():
     assert episodes.min() >= 3
     # Spawn noise desynchronizes the envs, so they complete different numbers of episodes.
     assert episodes.std() > 0
+
+
+@pytest.mark.parametrize("fraction", [0.0, 0.3, 1.0])
+def test_easy_spawn_fraction(fraction):
+    sim = make_sim(num_envs=2000, easy_spawn_fraction=fraction)
+    easy = np.abs(sim.snapshot().theta) < 1.0
+    assert easy.mean() == pytest.approx(fraction, abs=0.04)
