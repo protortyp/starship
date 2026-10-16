@@ -1,0 +1,19 @@
+# @package runner
+actor:
+  class_name: RNNModel
+  rnn_type: lstm
+  rnn_hidden_dim: 128
+  rnn_num_layers: 1
+  hidden_dims: [128, 128]
+  activation: elu
+  obs_normalization: true
+  distribution_cfg:
+    class_name: starship.train.distribution:BernoulliDistribution
+critic:
+  class_name: RNNModel
+  rnn_type: lstm
+  rnn_hidden_dim: 128
+  rnn_num_layers: 1
+  hidden_dims: [128, 128]
+  activation: elu
+  obs_normalization: true

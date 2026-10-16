@@ -31,6 +31,7 @@ class StepResult:
 
     obs: wp.array
     reward: wp.array
+    terminal_reward: wp.array
     final_obs: wp.array
     terminated: wp.array
     truncated: wp.array
@@ -63,6 +64,7 @@ class RocketEnv:
         self.obs = buffer((num_envs, OBS_DIM))
         self.final_obs = buffer((num_envs, OBS_DIM))
         self.reward = buffer(num_envs)
+        self.terminal_reward = buffer(num_envs)
         self._last_potential = buffer(num_envs)
         self.terminated = buffer(num_envs, wp.int32)
         self.truncated = buffer(num_envs, wp.int32)
@@ -107,11 +109,19 @@ class RocketEnv:
                 self.sim.terminal,
                 self._last_potential,
                 self.reward,
+                self.terminal_reward,
             ],
             device=self.device,
         )
         self._observe()
-        return StepResult(self.obs, self.reward, self.final_obs, self.terminated, self.truncated)
+        return StepResult(
+            self.obs,
+            self.reward,
+            self.terminal_reward,
+            self.final_obs,
+            self.terminated,
+            self.truncated,
+        )
 
     def _observe(self) -> None:
         observe(self.sim, self._scales, self.obs)

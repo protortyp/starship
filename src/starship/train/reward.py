@@ -88,16 +88,16 @@ def reward_kernel(
     term: Terminal,
     last_potential: wp.array(dtype=float),
     reward: wp.array(dtype=float),
+    terminal: wp.array(dtype=float),
 ):
     tid = wp.tid()
     current = potential(p, rp, s.pos[tid], s.vel[tid], s.theta[tid])
+    terminal[tid] = 0.0
     if term.done[tid] != 0:
         final = potential(p, rp, term.pos[tid], term.vel[tid], term.theta[tid])
-        reward[tid] = (
-            final
-            - last_potential[tid]
-            + terminal_reward(p, rp, term.status[tid], term.vel[tid], term.fuel[tid])
-        )
+        end = terminal_reward(p, rp, term.status[tid], term.vel[tid], term.fuel[tid])
+        terminal[tid] = end
+        reward[tid] = final - last_potential[tid] + end
     elif s.status[tid] == STATUS_FLYING:
         reward[tid] = current - last_potential[tid]
     else:

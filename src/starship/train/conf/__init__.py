@@ -17,6 +17,8 @@ class TrainConfig:
     device: str | None = None
     seed: int = 0
     iterations: int = 500
+    eval_interval: int = 25
+    eval_envs: int = 256
     sim: SimConfig = field(default_factory=SimConfig)
     obs: ObsConfig = field(default_factory=ObsConfig)
     reward: RewardConfig = field(default_factory=RewardConfig)
