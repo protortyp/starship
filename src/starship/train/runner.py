@@ -60,6 +60,7 @@ class StarshipRunner(OnPolicyRunner):
         self.eval_interval = eval_interval
         self.tracker = EpisodeTracker(env)
         self.total_env_steps = 0
+        self.next_iteration = 0
         self.last_metrics: dict[str, float] = {}
         self.verbose = verbose
 
@@ -72,7 +73,7 @@ class StarshipRunner(OnPolicyRunner):
         steps_per_env = cfg["num_steps_per_env"]
         obs = env.get_observations().to(self.device)
         alg.train_mode()
-        start_it = self.current_learning_iteration
+        start_it = self.next_iteration
         for it in range(start_it, start_it + num_learning_iterations):
             self._sync()
             t0 = time.perf_counter()
@@ -96,6 +97,7 @@ class StarshipRunner(OnPolicyRunner):
             batch = steps_per_env * env.num_envs
             self.total_env_steps += batch
             self.current_learning_iteration = it
+            self.next_iteration = it + 1
             metrics.update(self.tracker.summarize("train/env"))
             metrics["train/iteration"] = float(it)
             metrics["train/env_steps"] = float(self.total_env_steps)
@@ -128,6 +130,15 @@ class StarshipRunner(OnPolicyRunner):
 
         self.save_all(self.current_learning_iteration)
         self.writer.flush()
+
+    def load(self, path: str, load_cfg=None, strict: bool = True, map_location=None) -> dict:
+        infos = super().load(path, load_cfg, strict, map_location or self.device)
+        self.next_iteration = self.current_learning_iteration + 1
+        # Keeps TensorBoard's env-step axis continuous, assuming the same batch size as before.
+        self.total_env_steps = (
+            self.next_iteration * self.cfg["num_steps_per_env"] * self.env.num_envs
+        )
+        return infos
 
     def evaluate(self) -> dict[str, float]:
         """Run every eval env for one full episode with the deterministic policy."""
