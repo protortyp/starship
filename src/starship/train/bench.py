@@ -4,8 +4,8 @@ For each env count, runs a few real training iterations (same config as starship
 Hydra overrides) and measures throughput and peak device memory. Stops at out-of-memory or once
 throughput stops improving, and writes a JSON report to logs/bench/.
 
-    uv run starship-bench model=lstm runner.num_steps_per_env=32
-    uv run starship-bench --envs 4096,16384,65536 --iters 3 model=mlp
+    uv run starship-bench runner.num_steps_per_env=32
+    uv run starship-bench --envs 4096,16384,65536 --iters 3 runner.actor.rnn_hidden_dim=256
 """
 
 import argparse

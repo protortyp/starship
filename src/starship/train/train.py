@@ -1,6 +1,6 @@
-"""Train a landing policy with rsl_rl PPO. Configured with Hydra, e.g.
+"""Train an LSTM landing policy with rsl_rl PPO. Configured with Hydra, e.g.
 
-uv run starship-train model=mlp iterations=200 num_envs=8192 runner.algorithm.learning_rate=3e-4
+uv run starship-train iterations=200 num_envs=8192 runner.algorithm.learning_rate=3e-4
 """
 
 import hydra
