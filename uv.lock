@@ -1,0 +1,23 @@
+version = 1
+revision = 3
+requires-python = ">=3.13"
+
+[[package]]
+name = "starship"
+version = "0.1.0"
+source = { virtual = "." }
+dependencies = [
+    { name = "warp" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "warp", specifier = ">=1.0.4" }]
+
+[[package]]
+name = "warp"
+version = "1.0.4"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/5b/d8/3b6a858a3509390034fbc228858ced7dacfd3610aae5a73cba36bd0240c0/warp-1.0.4.tar.gz", hash = "sha256:bab40b58d5e82fcb549390b4793205b65792fa68a5dbfed7602dd76c7390533e", size = 6071, upload-time = "2022-03-29T06:10:39.388Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/75/ca/22c0b316e96e7e929f6dbb48f2af6e11baffe2efcb6cd96ee71af3268186/warp-1.0.4-py3-none-any.whl", hash = "sha256:6b56c39727bea5ecc5dd3088753ddea24e79fb18529ac08ac591ce03519b3226", size = 6080, upload-time = "2022-03-29T06:10:38.302Z" },
+]
