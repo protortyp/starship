@@ -26,7 +26,7 @@ Warp runs on the CPU on macOS; pass `--device cuda:0` on a machine with an NVIDI
 - `src/starship/sim/`: configuration, Warp kernels and the batched `Simulator`
 - `src/starship/control/`: scripted baseline controllers
 - `src/starship/render/`: pygame viewer and Rerun recording
-- `src/starship/train/`: RL training (upcoming)
+- `src/starship/train/`: batched `RocketEnv` with auto-reset and device-side observation encoding; policy training upcoming
 
 ## Development
 

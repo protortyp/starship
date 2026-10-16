@@ -6,7 +6,7 @@ import numpy as np
 import warp as wp
 
 from starship.sim.config import SimConfig, make_params
-from starship.sim.physics import reset_kernel, step_kernel
+from starship.sim.physics import State, Terminal, init_rng_kernel, reset_kernel, step_kernel
 
 
 @dataclass(frozen=True)
@@ -21,11 +21,25 @@ class StateSnapshot:
     steps: np.ndarray
 
 
+@dataclass(frozen=True)
+class TerminalSnapshot:
+    """Host-side copy of the terminal buffers; entries are meaningful only where `done` is set."""
+
+    done: np.ndarray
+    status: np.ndarray
+    pos: np.ndarray
+    vel: np.ndarray
+    theta: np.ndarray
+    omega: np.ndarray
+    steps: np.ndarray
+
+
 class Simulator:
     """Holds the state of `num_envs` rockets on a Warp device.
 
-    Finished environments (status != FLYING) stay frozen in their terminal state until reset, so
-    the final touchdown state can be inspected after the episode ends.
+    When an episode ends, the step that ended it sets `terminal.done` and records the final state
+    in `terminal`. With `auto_reset`, the env then respawns within the same kernel launch, so
+    rollouts never need host round-trips. Without it, finished envs stay frozen until `reset`.
     """
 
     def __init__(
@@ -34,30 +48,40 @@ class Simulator:
         config: SimConfig | None = None,
         device: str | None = None,
         seed: int = 0,
+        auto_reset: bool = False,
     ):
         self.num_envs = num_envs
         self.config = config or SimConfig()
         self.device = wp.get_device(device)
         self.params = make_params(self.config)
-        self._seed = seed
-        self._reset_count = 0
+        self.auto_reset = auto_reset
 
         def zeros(dtype):
             return wp.zeros(num_envs, dtype=dtype, device=self.device)
 
-        self.pos = zeros(wp.vec2)
-        self.vel = zeros(wp.vec2)
-        self.theta = zeros(float)
-        self.omega = zeros(float)
-        self.status = zeros(wp.int32)
-        self.steps = zeros(wp.int32)
+        self.state = State()
+        self.state.pos = zeros(wp.vec2)
+        self.state.vel = zeros(wp.vec2)
+        self.state.theta = zeros(float)
+        self.state.omega = zeros(float)
+        self.state.status = zeros(wp.int32)
+        self.state.steps = zeros(wp.int32)
+        self.state.rng = zeros(wp.uint32)
+
+        self.terminal = Terminal()
+        self.terminal.done = zeros(wp.int32)
+        self.terminal.status = zeros(wp.int32)
+        self.terminal.pos = zeros(wp.vec2)
+        self.terminal.vel = zeros(wp.vec2)
+        self.terminal.theta = zeros(float)
+        self.terminal.omega = zeros(float)
+        self.terminal.steps = zeros(wp.int32)
+
         self.actions = zeros(wp.int32)
         self._all_envs = wp.ones(num_envs, dtype=wp.int32, device=self.device)
 
+        wp.launch(init_rng_kernel, dim=num_envs, inputs=[seed, self.state.rng], device=self.device)
         self.reset()
-
-    def _state_arrays(self):
-        return [self.pos, self.vel, self.theta, self.omega, self.status, self.steps]
 
     def reset(self, mask: wp.array | np.ndarray | None = None) -> None:
         """Respawn every environment, or only those where `mask` is nonzero."""
@@ -65,13 +89,10 @@ class Simulator:
             mask = self._all_envs
         elif not isinstance(mask, wp.array):
             mask = wp.array(np.asarray(mask, dtype=np.int32), device=self.device)
-        # Each reset draws fresh spawn noise while staying reproducible for a given seed.
-        seed = self._seed * 1_000_003 + self._reset_count
-        self._reset_count += 1
         wp.launch(
             reset_kernel,
             dim=self.num_envs,
-            inputs=[self.params, seed, mask, *self._state_arrays()],
+            inputs=[self.params, mask, self.state, self.terminal],
             device=self.device,
         )
 
@@ -87,10 +108,17 @@ class Simulator:
         wp.launch(
             step_kernel,
             dim=self.num_envs,
-            inputs=[self.params, self.actions, *self._state_arrays()],
+            inputs=[self.params, int(self.auto_reset), self.actions, self.state, self.terminal],
             device=self.device,
         )
 
     def snapshot(self) -> StateSnapshot:
+        s = self.state
+        arrays = (s.pos, s.vel, s.theta, s.omega, s.status, s.steps)
         # On CPU devices `numpy()` aliases the Warp buffer, so copy to decouple from later steps.
-        return StateSnapshot(*(a.numpy().copy() for a in self._state_arrays()))
+        return StateSnapshot(*(a.numpy().copy() for a in arrays))
+
+    def terminal_snapshot(self) -> TerminalSnapshot:
+        t = self.terminal
+        arrays = (t.done, t.status, t.pos, t.vel, t.theta, t.omega, t.steps)
+        return TerminalSnapshot(*(a.numpy().copy() for a in arrays))
