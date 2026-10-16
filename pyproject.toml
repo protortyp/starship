@@ -7,6 +7,7 @@ requires-python = ">=3.13"
 dependencies = [
     "numpy>=2.5.4",
     "pygame-ce>=2.5.8",
+    "rerun-sdk>=0.39.0",
     "warp-lang>=1.18.0",
 ]
 

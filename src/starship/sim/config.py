@@ -16,7 +16,7 @@ Default vehicle sizing (back-of-envelope, roughly a scaled-down Starship upper s
 """
 
 import math
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 
 import warp as wp
 
@@ -93,6 +93,16 @@ class SpawnConfig:
     vy_noise: float = 0.0
     theta_noise: float = 0.0
     omega_noise: float = 0.0
+
+    def with_noise(self, scale: float) -> "SpawnConfig":
+        """Preset randomization: at scale 1, +/-300 m offset, +/-10 m/s, +/-0.2 rad tilt."""
+        return replace(
+            self,
+            x_noise=300.0 * scale,
+            vx_noise=10.0 * scale,
+            vy_noise=10.0 * scale,
+            theta_noise=0.2 * scale,
+        )
 
 
 @dataclass(frozen=True)
