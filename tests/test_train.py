@@ -143,3 +143,18 @@ def test_bench_measures_throughput():
     assert result["batch_size"] == 32 * 8
     assert result["train_fps"] > 0
     assert result["collect_fps"] > result["train_fps"]
+
+
+def test_bernoulli_kl_is_finite_for_saturated_logits():
+    dist = BernoulliDistribution(3)
+    old = torch.tensor([[40.0, -40.0, 0.0]])
+    new = torch.tensor([[-40.0, 40.0, 0.5]])
+    kl = dist.kl_divergence((old,), (new,))
+    assert torch.isfinite(kl).all()
+    assert kl.item() == pytest.approx(40.0 + 40.0 + 0.0310, rel=1e-3)
+    reference = torch.distributions.kl_divergence(
+        torch.distributions.Bernoulli(logits=torch.tensor([0.3, -1.2])),
+        torch.distributions.Bernoulli(logits=torch.tensor([-0.4, 2.0])),
+    ).sum()
+    stable = dist.kl_divergence((torch.tensor([[0.3, -1.2]]),), (torch.tensor([[-0.4, 2.0]]),))
+    assert stable.item() == pytest.approx(reference.item(), rel=1e-5)

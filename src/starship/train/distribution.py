@@ -4,6 +4,7 @@ import torch
 from rsl_rl.modules.distribution import Distribution
 from torch import nn
 from torch.distributions import Bernoulli
+from torch.nn import functional as F
 
 
 class BernoulliDistribution(Distribution):
@@ -58,8 +59,14 @@ class BernoulliDistribution(Distribution):
     def kl_divergence(
         self, old_params: tuple[torch.Tensor, ...], new_params: tuple[torch.Tensor, ...]
     ) -> torch.Tensor:
-        old, new = Bernoulli(logits=old_params[0]), Bernoulli(logits=new_params[0])
-        return torch.distributions.kl_divergence(old, new).sum(dim=-1)
+        # Computed from logits: torch's Bernoulli KL goes through probabilities and returns inf
+        # once a probability saturates to exactly 0 or 1 in float32.
+        old, new = old_params[0], new_params[0]
+        p = torch.sigmoid(old)
+        kl = p * (F.logsigmoid(old) - F.logsigmoid(new)) + (1.0 - p) * (
+            F.logsigmoid(-old) - F.logsigmoid(-new)
+        )
+        return kl.sum(dim=-1)
 
 
 class _ThresholdOutput(nn.Module):
