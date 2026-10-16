@@ -224,3 +224,74 @@ def test_matches_numpy_reference_under_random_actions():
         np.testing.assert_allclose(s.vel[i], vel, rtol=1e-3, atol=0.01)
         assert s.theta[i] == pytest.approx(theta, abs=1e-3)
         assert s.omega[i] == pytest.approx(omega, abs=1e-4)
+
+
+def test_spawn_components_use_independent_draws():
+    s = make_sim(num_envs=64, spawn=NOISY_SPAWN).snapshot()
+    sp = NOISY_SPAWN
+    x_unit = (s.pos[:, 0] - sp.x) / sp.x_noise
+    vx_unit = (s.vel[:, 0] - sp.vx) / sp.vx_noise
+    assert not np.allclose(x_unit, vx_unit)
+
+
+def test_successive_resets_draw_new_spawns():
+    sim = make_sim(num_envs=4, spawn=NOISY_SPAWN)
+    first = sim.snapshot()
+    sim.reset()
+    second = sim.snapshot()
+    assert not np.any(first.pos[:, 0] == second.pos[:, 0])
+
+
+def touchdown_sim(auto_reset: bool) -> Simulator:
+    spawn = SpawnConfig(y=15.5, vy=-1.0, theta=0.0)
+    return Simulator(
+        1, replace(SimConfig(), world=ZERO_G_VACUUM, spawn=spawn), "cpu", auto_reset=auto_reset
+    )
+
+
+def step_until_done(sim: Simulator, max_steps: int = 100) -> int:
+    for k in range(max_steps):
+        sim.step(0)
+        if sim.terminal_snapshot().done[0]:
+            return k + 1
+    raise AssertionError("episode did not end")
+
+
+def test_auto_reset_records_terminal_state_and_respawns():
+    sim = touchdown_sim(auto_reset=True)
+    n = step_until_done(sim)
+    term = sim.terminal_snapshot()
+    state = sim.snapshot()
+    assert term.status[0] == LANDED
+    assert term.steps[0] == n
+    assert term.pos[0, 1] == pytest.approx(0.5 * sim.config.rocket.length, abs=0.02)
+    assert state.status[0] == FLYING
+    assert state.steps[0] == 0
+    assert state.pos[0, 1] == pytest.approx(sim.config.spawn.y)
+
+    sim.step(0)
+    assert sim.terminal_snapshot().done[0] == 0
+    assert sim.snapshot().steps[0] == 1
+
+
+def test_done_is_set_only_on_the_terminating_step_without_auto_reset():
+    sim = touchdown_sim(auto_reset=False)
+    step_until_done(sim)
+    assert sim.snapshot().status[0] == LANDED
+    sim.step(0)
+    assert sim.terminal_snapshot().done[0] == 0
+    assert sim.snapshot().status[0] == LANDED
+
+
+def test_auto_reset_runs_many_episodes_independently():
+    # Falls of 100-300 m at ~50 m/s take 2-6 s, so 20 s fits at least three episodes per env.
+    spawn = SpawnConfig(y=200.0, vy=-50.0, y_noise=100.0, theta_noise=0.5)
+    sim = Simulator(32, replace(SimConfig(), spawn=spawn), "cpu", auto_reset=True)
+    episodes = np.zeros(32, dtype=int)
+    for _ in range(400):
+        sim.step(0)
+        episodes += sim.terminal_snapshot().done
+    assert (sim.snapshot().status == FLYING).all()
+    assert episodes.min() >= 3
+    # Spawn noise desynchronizes the envs, so they complete different numbers of episodes.
+    assert episodes.std() > 0

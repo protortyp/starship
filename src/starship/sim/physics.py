@@ -110,25 +110,62 @@ def touchdown_status(pos: wp.vec2, vel: wp.vec2, theta: float, omega: float, p: 
     return STATUS_CRASHED
 
 
+@wp.struct
+class State:
+    pos: wp.array(dtype=wp.vec2)
+    vel: wp.array(dtype=wp.vec2)
+    theta: wp.array(dtype=float)
+    omega: wp.array(dtype=float)
+    status: wp.array(dtype=wp.int32)
+    steps: wp.array(dtype=wp.int32)
+    # Per-env random stream, advanced on every respawn.
+    rng: wp.array(dtype=wp.uint32)
+
+
+@wp.struct
+class Terminal:
+    """State at the moment an episode ended, valid where `done` is set for the latest step."""
+
+    done: wp.array(dtype=wp.int32)
+    status: wp.array(dtype=wp.int32)
+    pos: wp.array(dtype=wp.vec2)
+    vel: wp.array(dtype=wp.vec2)
+    theta: wp.array(dtype=float)
+    omega: wp.array(dtype=float)
+    steps: wp.array(dtype=wp.int32)
+
+
+@wp.func
+def spawn(p: Params, s: State, tid: int):
+    rng = s.rng[tid]
+    s.pos[tid] = wp.vec2(
+        p.spawn_pos[0] + p.spawn_pos_noise[0] * wp.randf(rng, -1.0, 1.0),
+        p.spawn_pos[1] + p.spawn_pos_noise[1] * wp.randf(rng, -1.0, 1.0),
+    )
+    s.vel[tid] = wp.vec2(
+        p.spawn_vel[0] + p.spawn_vel_noise[0] * wp.randf(rng, -1.0, 1.0),
+        p.spawn_vel[1] + p.spawn_vel_noise[1] * wp.randf(rng, -1.0, 1.0),
+    )
+    s.theta[tid] = wrap_angle(p.spawn_theta + p.spawn_theta_noise * wp.randf(rng, -1.0, 1.0))
+    s.omega[tid] = p.spawn_omega + p.spawn_omega_noise * wp.randf(rng, -1.0, 1.0)
+    s.status[tid] = STATUS_FLYING
+    s.steps[tid] = 0
+    s.rng[tid] = rng
+
+
 @wp.kernel
 def step_kernel(
-    p: Params,
-    actions: wp.array(dtype=wp.int32),
-    pos: wp.array(dtype=wp.vec2),
-    vel: wp.array(dtype=wp.vec2),
-    theta: wp.array(dtype=float),
-    omega: wp.array(dtype=float),
-    status: wp.array(dtype=wp.int32),
-    steps: wp.array(dtype=wp.int32),
+    p: Params, auto_reset: int, actions: wp.array(dtype=wp.int32), s: State, term: Terminal
 ):
     tid = wp.tid()
-    if status[tid] != STATUS_FLYING:
+    term.done[tid] = 0
+    if s.status[tid] != STATUS_FLYING:
         return
 
-    x = pos[tid]
-    v = vel[tid]
-    th = theta[tid]
-    om = omega[tid]
+    x = s.pos[tid]
+    v = s.vel[tid]
+    th = s.theta[tid]
+    om = s.omega[tid]
     action = actions[tid]
     st = STATUS_FLYING
 
@@ -143,47 +180,42 @@ def step_kernel(
             st = touchdown_status(x, v, th, om, p)
             break
 
-    n_steps = steps[tid] + 1
+    n_steps = s.steps[tid] + 1
     if st == STATUS_FLYING:
         if wp.abs(x[0]) > p.max_abs_x or x[1] > p.max_y:
             st = STATUS_OUT_OF_BOUNDS
         elif n_steps >= p.max_steps:
             st = STATUS_TIMEOUT
 
-    pos[tid] = x
-    vel[tid] = v
-    theta[tid] = th
-    omega[tid] = om
-    status[tid] = st
-    steps[tid] = n_steps
+    s.pos[tid] = x
+    s.vel[tid] = v
+    s.theta[tid] = th
+    s.omega[tid] = om
+    s.status[tid] = st
+    s.steps[tid] = n_steps
+
+    if st != STATUS_FLYING:
+        term.done[tid] = 1
+        term.status[tid] = st
+        term.pos[tid] = x
+        term.vel[tid] = v
+        term.theta[tid] = th
+        term.omega[tid] = om
+        term.steps[tid] = n_steps
+        if auto_reset != 0:
+            spawn(p, s, tid)
 
 
 @wp.kernel
-def reset_kernel(
-    p: Params,
-    seed: int,
-    mask: wp.array(dtype=wp.int32),
-    pos: wp.array(dtype=wp.vec2),
-    vel: wp.array(dtype=wp.vec2),
-    theta: wp.array(dtype=float),
-    omega: wp.array(dtype=float),
-    status: wp.array(dtype=wp.int32),
-    steps: wp.array(dtype=wp.int32),
-):
+def reset_kernel(p: Params, mask: wp.array(dtype=wp.int32), s: State, term: Terminal):
     tid = wp.tid()
     if mask[tid] == 0:
         return
+    term.done[tid] = 0
+    spawn(p, s, tid)
 
-    rng = wp.rand_init(seed, tid)
-    pos[tid] = wp.vec2(
-        p.spawn_pos[0] + p.spawn_pos_noise[0] * wp.randf(rng, -1.0, 1.0),
-        p.spawn_pos[1] + p.spawn_pos_noise[1] * wp.randf(rng, -1.0, 1.0),
-    )
-    vel[tid] = wp.vec2(
-        p.spawn_vel[0] + p.spawn_vel_noise[0] * wp.randf(rng, -1.0, 1.0),
-        p.spawn_vel[1] + p.spawn_vel_noise[1] * wp.randf(rng, -1.0, 1.0),
-    )
-    theta[tid] = wrap_angle(p.spawn_theta + p.spawn_theta_noise * wp.randf(rng, -1.0, 1.0))
-    omega[tid] = p.spawn_omega + p.spawn_omega_noise * wp.randf(rng, -1.0, 1.0)
-    status[tid] = STATUS_FLYING
-    steps[tid] = 0
+
+@wp.kernel
+def init_rng_kernel(seed: int, rng: wp.array(dtype=wp.uint32)):
+    tid = wp.tid()
+    rng[tid] = wp.rand_init(seed, tid)
