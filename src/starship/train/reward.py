@@ -27,6 +27,9 @@ STATUS_TIMEOUT = wp.constant(TIMEOUT)
 class RewardConfig:
     # Must match the learner's discount factor for the shaping to be policy-invariant.
     gamma: float = 0.999
+    # Multiplier on rewards handed to the learner, keeping returns near the O(1-10) range that
+    # PPO's value clipping and gradient clipping assume. Env metrics stay in unscaled units.
+    learner_scale: float = 0.05
     distance_weight: float = 10.0  # per km to the pad center
     speed_weight: float = 0.2  # per m/s
     tilt_weight: float = 10.0  # per rad, faded in near the ground
@@ -57,7 +60,7 @@ class RewardParams:
 
 def make_reward_params(cfg: RewardConfig) -> RewardParams:
     rp = RewardParams()
-    for name in RewardConfig.__dataclass_fields__:
+    for name in RewardParams.vars:
         setattr(rp, name, getattr(cfg, name))
     return rp
 
