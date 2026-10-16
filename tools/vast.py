@@ -56,7 +56,7 @@ def vast(*args: str):
 
 def load_state() -> dict:
     if not STATE.exists():
-        sys.exit("no active instance; run `just vast-up` first")
+        sys.exit("no active instance; run `just vast up` first")
     return json.loads(STATE.read_text())
 
 
@@ -128,7 +128,7 @@ def wait_for_ssh(instance_id: int, timeout: float = 900.0) -> dict:
                 return state
         print(f"  waiting for instance {instance_id} (status: {status})")
         time.sleep(15)
-    sys.exit(f"instance {instance_id} not reachable after {timeout:.0f}s; check `just vast-list`")
+    sys.exit(f"instance {instance_id} not reachable after {timeout:.0f}s; check `just vast list`")
 
 
 def cmd_offers(args) -> None:
@@ -137,7 +137,7 @@ def cmd_offers(args) -> None:
 
 def cmd_up(args) -> None:
     if STATE.exists():
-        sys.exit(f"an instance is already active ({load_state()['id']}); `just vast-down` first")
+        sys.exit(f"an instance is already active ({load_state()['id']}); `just vast down` first")
     ensure_ssh_key()
     if args.offer is None:
         offers = search(args.gpu, 1, args.max_price)
@@ -195,9 +195,24 @@ def cmd_train(args) -> None:
     )
     exists = remote(state, "tmux has-session -t train 2>/dev/null", check=False).returncode == 0
     if exists:
-        sys.exit("a training session is already running; `just vast-attach` or `just vast-stop`")
+        sys.exit("a training session is already running; `just vast attach` or `just vast stop`")
     remote(state, f"tmux new-session -d -s train {shlex.quote(job)}")
     print(f"training started in tmux session 'train' (logs/train_{stamp}.log)")
+
+
+def cmd_exec(args) -> None:
+    state = load_state()
+    cmd_push(args)
+    command = " ".join(shlex.quote(a) for a in args.command)
+    result = remote(
+        state, f"cd {REMOTE_DIR} && export PATH=$HOME/.local/bin:$PATH && {command}", check=False
+    )
+    sys.exit(result.returncode)
+
+
+def cmd_bench(args) -> None:
+    args.command = ["uv", "run", "starship-bench", *args.bench_args]
+    cmd_exec(args)
 
 
 def cmd_status(args) -> None:
@@ -286,7 +301,7 @@ def cmd_down(args) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    sub = parser.add_subparsers(dest="command", required=True)
+    sub = parser.add_subparsers(dest="subcommand", required=True)
 
     def add(name, fn, help):
         p = sub.add_parser(name, help=help)
@@ -310,6 +325,10 @@ def main() -> None:
     add("setup", cmd_setup, "install uv and dependencies on the instance")
     p = add("train", cmd_train, "push and start starship-train in tmux session 'train'")
     p.add_argument("overrides", nargs="*", help="Hydra overrides, e.g. num_envs=16384")
+    p = add("exec", cmd_exec, "push and run a command in the remote repo, streaming output")
+    p.add_argument("command_args", nargs="*")
+    p = add("bench", cmd_bench, "push and run starship-bench (find the best num_envs)")
+    p.add_argument("bench_args", nargs="*", help="e.g. --envs 8192,32768 model=mlp")
     add("status", cmd_status, "instance, GPU utilization, sessions and latest training log")
     add("logs", cmd_logs, f"remote TensorBoard via SSH tunnel on localhost:{TB_LOCAL_PORT}")
     add("pull", cmd_pull, "rsync remote logs/ (events, policies) into local logs/")
@@ -319,7 +338,14 @@ def main() -> None:
     add("list", cmd_list, "all instances on the account")
     add("down", cmd_down, "destroy the active instance")
 
-    args = parser.parse_args()
+    # Unknown options belong to the remote command for exec and bench (e.g. --envs).
+    args, extra = parser.parse_known_args()
+    if args.fn is cmd_exec:
+        args.command = [*args.command_args, *extra]
+    if extra and args.fn is cmd_bench:
+        args.bench_args = [*extra, *args.bench_args]
+    elif extra and args.fn is not cmd_exec:
+        parser.error(f"unrecognized arguments: {' '.join(extra)}")
     args.fn(args)
 
 

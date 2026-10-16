@@ -20,6 +20,7 @@ uv run starship-rerun --save out/run.rrd      # or record to a file, open with `
 uv run starship-train                         # PPO + LSTM (rsl_rl); Hydra overrides e.g. model=mlp num_envs=8192
                                               # writes logs/<experiment>/<time>/: TensorBoard events, policy_<it>.pt snapshots
 just logs                                     # TensorBoard in a tmux window + browser
+uv run starship-bench model=lstm              # find the best num_envs for a config on this machine
 uv run starship-view --policy logs/<run>/policy.pt   # watch a trained policy (also starship-rerun/-demo)
 ```
 

@@ -20,6 +20,7 @@ starship-demo = "starship.demo:main"
 starship-view = "starship.render.app:main"
 starship-rerun = "starship.render.rerun_viewer:main"
 starship-train = "starship.train.train:main"
+starship-bench = "starship.train.bench:main"
 
 [dependency-groups]
 dev = [
