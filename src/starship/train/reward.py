@@ -12,13 +12,14 @@ from dataclasses import dataclass
 
 import warp as wp
 
-from starship.sim.config import CRASHED, FLYING, LANDED, OUT_OF_BOUNDS, Params
+from starship.sim.config import CRASHED, FLYING, LANDED, OUT_OF_BOUNDS, TIMEOUT, Params
 from starship.sim.physics import State, Terminal, lowest_point
 
 STATUS_FLYING = wp.constant(FLYING)
 STATUS_LANDED = wp.constant(LANDED)
 STATUS_CRASHED = wp.constant(CRASHED)
 STATUS_OUT_OF_BOUNDS = wp.constant(OUT_OF_BOUNDS)
+STATUS_TIMEOUT = wp.constant(TIMEOUT)
 
 
 @dataclass
@@ -32,6 +33,8 @@ class RewardConfig:
     crash_penalty: float = 10.0
     crash_speed_weight: float = 1.0  # extra penalty per m/s of impact speed
     out_of_bounds_penalty: float = 100.0
+    # Without this, hovering until the time limit beats any crash.
+    timeout_penalty: float = 50.0
 
 
 @wp.struct
@@ -45,6 +48,7 @@ class RewardParams:
     crash_penalty: float
     crash_speed_weight: float
     out_of_bounds_penalty: float
+    timeout_penalty: float
 
 
 def make_reward_params(cfg: RewardConfig) -> RewardParams:
@@ -77,6 +81,8 @@ def terminal_reward(p: Params, rp: RewardParams, status: int, vel: wp.vec2, fuel
         return -(rp.crash_penalty + rp.crash_speed_weight * wp.length(vel))
     if status == STATUS_OUT_OF_BOUNDS:
         return -rp.out_of_bounds_penalty
+    if status == STATUS_TIMEOUT:
+        return -rp.timeout_penalty
     return 0.0
 
 
