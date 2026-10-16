@@ -1,9 +1,42 @@
 [project]
 name = "starship"
 version = "0.1.0"
-description = "Add your description here"
+description = "GPU-parallel 2D rocket landing simulator and RL environment built on NVIDIA Warp"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
-    "warp>=1.0.4",
+    "numpy>=2.5.4",
+    "warp-lang>=1.18.0",
 ]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+    "ruff>=0.17.1",
+]
+
+[build-system]
+requires = ["uv_build>=0.10.2,<0.11"]
+build-backend = "uv_build"
+
+[tool.ruff]
+line-length = 100
+target-version = "py313"
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+    "B",   # flake8-bugbear
+    "UP",  # pyupgrade
+    "SIM", # flake8-simplify
+    "C4",  # flake8-comprehensions
+    "PT",  # flake8-pytest-style
+    "NPY", # numpy-specific rules
+    "RUF", # ruff-specific rules
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
