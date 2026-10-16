@@ -72,6 +72,11 @@ def ssh_base(state: dict) -> list[str]:
         str(SSH_KEY),
         "-p",
         str(state["ssh_port"]),
+        # Only the key file: an SSH agent (e.g. Secretive) would prompt for every connection.
+        "-o",
+        "IdentitiesOnly=yes",
+        "-o",
+        "IdentityAgent=none",
         "-o",
         "StrictHostKeyChecking=accept-new",
         "-o",
@@ -122,7 +127,16 @@ def wait_for_ssh(instance_id: int, timeout: float = 900.0) -> dict:
                 "dph": info.get("dph_total"),
             }
             probe = subprocess.run(
-                [*ssh_base(state), "-o", "ConnectTimeout=10", "true"], capture_output=True
+                [
+                    *ssh_base(state)[:-1],
+                    "-o",
+                    "ConnectTimeout=10",
+                    "-o",
+                    "BatchMode=yes",
+                    ssh_base(state)[-1],
+                    "true",
+                ],
+                capture_output=True,
             )
             if probe.returncode == 0:
                 return state
@@ -137,7 +151,12 @@ def cmd_offers(args) -> None:
 
 def cmd_up(args) -> None:
     if STATE.exists():
-        sys.exit(f"an instance is already active ({load_state()['id']}); `just vast down` first")
+        state = load_state()
+        if "ssh_host" in state:
+            sys.exit(f"an instance is already active ({state['id']}); `just vast down` first")
+        print(f"resuming setup of instance {state['id']}")
+        _finish_up(args, state["id"])
+        return
     ensure_ssh_key()
     if args.offer is None:
         offers = search(args.gpu, 1, args.max_price)
@@ -153,6 +172,10 @@ def cmd_up(args) -> None:
     )  # fmt: skip
     instance_id = created["new_contract"]
     save_state({"id": instance_id})
+    _finish_up(args, instance_id)
+
+
+def _finish_up(args, instance_id: int) -> None:
     state = wait_for_ssh(instance_id)
     save_state(state)
     print(f"instance {instance_id} is up: {state['gpu']} at ${state['dph']:.3f}/h")
@@ -338,6 +361,7 @@ def main() -> None:
     add("list", cmd_list, "all instances on the account")
     add("down", cmd_down, "destroy the active instance")
 
+    sys.stdout.reconfigure(line_buffering=True)
     # Unknown options belong to the remote command for exec and bench (e.g. --envs).
     args, extra = parser.parse_known_args()
     if args.fn is cmd_exec:
