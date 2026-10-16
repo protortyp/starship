@@ -4,16 +4,17 @@ from dataclasses import replace
 import numpy as np
 import pytest
 
-from starship.sim import CRASHED, LANDED, TIMEOUT, SimConfig, SpawnConfig, WorldConfig
+from starship.sim import CRASHED, LANDED, MAIN, TIMEOUT, SimConfig, SpawnConfig, WorldConfig
 from starship.train import OBS_DIM, ObsConfig, RewardConfig, RocketEnv
 
 ZERO_G_VACUUM = WorldConfig(gravity=0.0, sea_level_density=0.0)
 NOISY_SPAWN = SpawnConfig().with_noise(1.0)
 
 
-def make_env(num_envs=1, gamma=1.0, **overrides) -> RocketEnv:
-    # gamma = 1 makes the shaping telescope exactly, which the episode-level checks rely on.
-    reward = RewardConfig(gamma=gamma)
+def make_env(num_envs=1, gamma=1.0, fuel_cost=0.0, **overrides) -> RocketEnv:
+    # gamma = 1 and no fuel cost make the shaping telescope exactly, which the episode-level
+    # checks rely on.
+    reward = RewardConfig(gamma=gamma, fuel_cost=fuel_cost)
     return RocketEnv(
         num_envs, replace(SimConfig(), **overrides), reward_config=reward, device="cpu"
     )
@@ -202,3 +203,17 @@ def test_discounted_shaping_return_is_independent_of_the_trajectory():
         totals.append(discounted)
     expected = -potential(env, start.pos[0], start.vel[0], float(start.theta[0]))
     assert totals == pytest.approx([expected] * 3, rel=1e-3)
+
+
+def test_fuel_cost_is_charged_per_kg_burned():
+    def first_reward(fuel_cost, action):
+        env = make_env(fuel_cost=fuel_cost, world=ZERO_G_VACUUM, spawn=SpawnConfig(vy=0.0))
+        env.reset()
+        return env.step(np.full(1, action, dtype=np.int32)).reward.numpy()[0]
+
+    cfg = SimConfig()
+    burned = cfg.rocket.main_mass_flow * cfg.policy_dt
+    assert first_reward(0.01, MAIN) - first_reward(0.0, MAIN) == pytest.approx(
+        -0.01 * burned, rel=1e-3
+    )
+    assert first_reward(0.01, 0) == pytest.approx(first_reward(0.0, 0))

@@ -1,12 +1,15 @@
 """Stage 1 reward: learn to land.
 
-reward = gamma * potential(s') - potential(s) + terminal reward
+reward = gamma * potential(s') - potential(s) - fuel_cost * fuel burned + terminal reward
 
 The potential scores how close the rocket is to a good touchdown: near the pad, slow, and (only
 near the ground) upright. With gamma equal to the learner's discount and a zero potential after the
 episode ends, the discounted shaping sums to -potential(start) for every trajectory, so it guides
 learning without changing which behavior is optimal; only the terminal reward decides that. A
 nonzero terminal potential would instead pay (1 - gamma) * |potential| per step for staying alive.
+
+The fuel cost makes burning propellant to stay airborne expensive. Without it, a policy that cannot
+land yet prefers to float and crash late, because discounting shrinks a later crash penalty.
 """
 
 from dataclasses import dataclass
@@ -41,6 +44,7 @@ class RewardConfig:
     out_of_bounds_penalty: float = 100.0
     # Without this, hovering until the time limit beats any crash.
     timeout_penalty: float = 50.0
+    fuel_cost: float = 0.002  # per kg burned; a full 30 t tank is worth 60
 
 
 @wp.struct
@@ -56,6 +60,7 @@ class RewardParams:
     crash_speed_weight: float
     out_of_bounds_penalty: float
     timeout_penalty: float
+    fuel_cost: float
 
 
 def make_reward_params(cfg: RewardConfig) -> RewardParams:
@@ -100,6 +105,7 @@ def reward_kernel(
     s: State,
     term: Terminal,
     last_potential: wp.array(dtype=float),
+    last_fuel: wp.array(dtype=float),
     reward: wp.array(dtype=float),
     terminal: wp.array(dtype=float),
 ):
@@ -109,18 +115,26 @@ def reward_kernel(
     if term.done[tid] != 0:
         end = terminal_reward(p, rp, term.status[tid], term.vel[tid], term.fuel[tid])
         terminal[tid] = end
-        reward[tid] = -last_potential[tid] + end
+        burned = last_fuel[tid] - term.fuel[tid]
+        reward[tid] = -last_potential[tid] - rp.fuel_cost * burned + end
     elif s.status[tid] == STATUS_FLYING:
-        reward[tid] = rp.gamma * current - last_potential[tid]
+        burned = last_fuel[tid] - s.fuel[tid]
+        reward[tid] = rp.gamma * current - last_potential[tid] - rp.fuel_cost * burned
     else:
         reward[tid] = 0.0
-    # After an auto-reset `current` is already the respawned state, the next episode's baseline.
+    # After an auto-reset `current` and the fuel already belong to the respawned state.
     last_potential[tid] = current
+    last_fuel[tid] = s.fuel[tid]
 
 
 @wp.kernel
 def reset_potential_kernel(
-    p: Params, rp: RewardParams, s: State, last_potential: wp.array(dtype=float)
+    p: Params,
+    rp: RewardParams,
+    s: State,
+    last_potential: wp.array(dtype=float),
+    last_fuel: wp.array(dtype=float),
 ):
     tid = wp.tid()
     last_potential[tid] = potential(p, rp, s.pos[tid], s.vel[tid], s.theta[tid])
+    last_fuel[tid] = s.fuel[tid]

@@ -66,6 +66,7 @@ class RocketEnv:
         self.reward = buffer(num_envs)
         self.terminal_reward = buffer(num_envs)
         self._last_potential = buffer(num_envs)
+        self._last_fuel = buffer(num_envs)
         self.terminated = buffer(num_envs, wp.int32)
         self.truncated = buffer(num_envs, wp.int32)
 
@@ -78,7 +79,13 @@ class RocketEnv:
         wp.launch(
             reset_potential_kernel,
             dim=self.num_envs,
-            inputs=[self.sim.params, self._reward_params, self.sim.state, self._last_potential],
+            inputs=[
+                self.sim.params,
+                self._reward_params,
+                self.sim.state,
+                self._last_potential,
+                self._last_fuel,
+            ],
             device=self.device,
         )
         self._observe()
@@ -108,6 +115,7 @@ class RocketEnv:
                 self.sim.state,
                 self.sim.terminal,
                 self._last_potential,
+                self._last_fuel,
                 self.reward,
                 self.terminal_reward,
             ],
