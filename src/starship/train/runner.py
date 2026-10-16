@@ -61,6 +61,8 @@ class StarshipRunner(OnPolicyRunner):
         self.tracker = EpisodeTracker(env)
         self.total_env_steps = 0
         self.next_iteration = 0
+        # Best eval so far as (landed rate, return); runs can collapse late, so keep the peak.
+        self.best_eval: tuple[float, float] | None = None
         self.last_metrics: dict[str, float] = {}
         self.verbose = verbose
 
@@ -108,7 +110,9 @@ class StarshipRunner(OnPolicyRunner):
             t_eval = 0.0
             if self.eval_env is not None and (it + 1) % self.eval_interval == 0:
                 t_eval = time.perf_counter()
-                metrics.update(self.evaluate())
+                eval_metrics = self.evaluate()
+                self._keep_best(it, eval_metrics)
+                metrics.update(eval_metrics)
                 t_eval = time.perf_counter() - t_eval
             if (it + 1) % cfg["save_interval"] == 0:
                 self.save_all(it)
@@ -163,6 +167,19 @@ class StarshipRunner(OnPolicyRunner):
                 if not pending.any():
                     break
         return tracker.summarize("eval/env")
+
+    def _keep_best(self, it: int, m: dict[str, float]) -> None:
+        if "eval/env/rate/landed" not in m:
+            return
+        score = (m["eval/env/rate/landed"], m["eval/env/return"])
+        if self.best_eval is None or score > self.best_eval:
+            self.best_eval = score
+            self.save(str(self.log_dir / "model_best.pt"))
+            export_policy(self.alg.get_policy(), self.log_dir / "policy_best.pt")
+            (self.log_dir / "best.txt").write_text(
+                f"iteration {it}\nlanded {score[0]:.3f}\nreturn {score[1]:.2f}\n"
+            )
+        m["eval/best_landed"] = self.best_eval[0]
 
     def save_all(self, it: int) -> None:
         self.save(str(self.log_dir / f"model_{it}.pt"))
