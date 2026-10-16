@@ -39,6 +39,7 @@
               python
               pkgs.uv
               pkgs.just
+              pkgs.tmux
             ];
 
             env = {

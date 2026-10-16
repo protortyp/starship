@@ -18,7 +18,7 @@ uv run starship-view --controller heuristic --envs 64
 uv run starship-rerun --spawn-noise 1         # stream 64 envs to Rerun: follow view, overview, telemetry
 uv run starship-rerun --save out/run.rrd      # or record to a file, open with `uv run rerun out/run.rrd`
 uv run starship-train                         # PPO (rsl_rl), Hydra overrides e.g. num_envs=8192 iterations=1000
-uv run tensorboard --logdir logs              # training curves
+just logs                                     # TensorBoard in a tmux window + browser
 uv run starship-view --policy logs/<run>/policy.pt   # watch a trained policy (also starship-rerun/-demo)
 ```
 
