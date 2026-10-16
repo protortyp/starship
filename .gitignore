@@ -10,3 +10,4 @@ build/
 .direnv
 .claude
 .DS_Store
+.direnv/
