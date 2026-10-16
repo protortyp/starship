@@ -7,14 +7,8 @@ import time
 import numpy as np
 import warp as wp
 
-from starship.control import HeuristicController, IdleController, RandomController
+from starship.control import CONTROLLER_NAMES, make_controller
 from starship.sim import FLYING, LEFT, MAIN, RIGHT, STATUS_NAMES, Simulator, StateSnapshot
-
-CONTROLLERS = {
-    "heuristic": HeuristicController,
-    "random": lambda _cfg: RandomController(),
-    "idle": lambda _cfg: IdleController(),
-}
 
 
 def describe_action(action: int) -> str:
@@ -37,13 +31,16 @@ def telemetry(s: StateSnapshot, env: int, t: float, action: int) -> str:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--envs", type=int, default=4096)
-    parser.add_argument("--controller", choices=CONTROLLERS, default="heuristic")
+    parser.add_argument("--controller", choices=CONTROLLER_NAMES, default="heuristic")
+    parser.add_argument("--policy", default=None, help="policy.pt from starship-train")
     parser.add_argument("--device", default=None, help="Warp device, e.g. cpu or cuda:0")
     parser.add_argument("--print-every", type=float, default=2.0, help="sim seconds")
     args = parser.parse_args()
 
     sim = Simulator(args.envs, device=args.device)
-    controller = CONTROLLERS[args.controller](sim.config)
+    if args.policy:
+        args.controller = "policy"
+    controller = make_controller(args.controller, sim, args.policy)
     cfg = sim.config
     print(f"{args.envs} envs on {sim.device}, controller={args.controller}, env 0 telemetry:")
 

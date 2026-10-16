@@ -15,7 +15,7 @@ import numpy as np
 import rerun as rr
 import rerun.blueprint as rrb
 
-from starship.control import HeuristicController, IdleController, RandomController
+from starship.control import CONTROLLER_NAMES, make_controller
 from starship.render.geometry import hull_outline, plumes
 from starship.sim import (
     CRASHED,
@@ -157,9 +157,8 @@ def main() -> None:
     parser = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawTextHelpFormatter
     )
-    parser.add_argument(
-        "--controller", choices=("heuristic", "random", "idle"), default="heuristic"
-    )
+    parser.add_argument("--controller", choices=CONTROLLER_NAMES, default="heuristic")
+    parser.add_argument("--policy", default=None, help="policy.pt from starship-train")
     parser.add_argument("--envs", type=int, default=64)
     parser.add_argument("--spawn-noise", type=float, default=0.0, help="spawn randomization scale")
     parser.add_argument("--episodes", type=int, default=1)
@@ -170,11 +169,9 @@ def main() -> None:
 
     cfg = replace(SimConfig(), spawn=SimConfig().spawn.with_noise(args.spawn_noise))
     sim = Simulator(args.envs, cfg, device=args.device, seed=args.seed)
-    controller = {
-        "heuristic": lambda: HeuristicController(cfg),
-        "random": lambda: RandomController(args.seed),
-        "idle": IdleController,
-    }[args.controller]()
+    if args.policy:
+        args.controller = "policy"
+    controller = make_controller(args.controller, sim, args.policy, args.seed)
 
     rr.init("starship", spawn=args.save is None, default_blueprint=blueprint(cfg))
     if args.save is not None:
