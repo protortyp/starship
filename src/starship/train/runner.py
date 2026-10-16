@@ -133,7 +133,8 @@ class StarshipRunner(OnPolicyRunner):
 
     def load(self, path: str, load_cfg=None, strict: bool = True, map_location=None) -> dict:
         infos = super().load(path, load_cfg, strict, map_location or self.device)
-        # The optimizer state carries the old learning rate; the configured one should win.
+        # The checkpoint carries the old learning rate; the configured one should win.
+        self.alg.learning_rate = self.cfg["algorithm"]["learning_rate"]
         for group in self.alg.optimizer.param_groups:
             group["lr"] = self.alg.learning_rate
         self.next_iteration = self.current_learning_iteration + 1
