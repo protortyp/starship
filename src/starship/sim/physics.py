@@ -155,16 +155,19 @@ class Terminal:
 @wp.func
 def spawn(p: Params, s: State, tid: int):
     rng = s.rng[tid]
+    sp = p.spawn
+    if wp.randf(rng) < p.easy_spawn_fraction:
+        sp = p.easy_spawn
     s.pos[tid] = wp.vec2(
-        p.spawn_pos[0] + p.spawn_pos_noise[0] * wp.randf(rng, -1.0, 1.0),
-        p.spawn_pos[1] + p.spawn_pos_noise[1] * wp.randf(rng, -1.0, 1.0),
+        sp.pos[0] + sp.pos_noise[0] * wp.randf(rng, -1.0, 1.0),
+        sp.pos[1] + sp.pos_noise[1] * wp.randf(rng, -1.0, 1.0),
     )
     s.vel[tid] = wp.vec2(
-        p.spawn_vel[0] + p.spawn_vel_noise[0] * wp.randf(rng, -1.0, 1.0),
-        p.spawn_vel[1] + p.spawn_vel_noise[1] * wp.randf(rng, -1.0, 1.0),
+        sp.vel[0] + sp.vel_noise[0] * wp.randf(rng, -1.0, 1.0),
+        sp.vel[1] + sp.vel_noise[1] * wp.randf(rng, -1.0, 1.0),
     )
-    s.theta[tid] = wrap_angle(p.spawn_theta + p.spawn_theta_noise * wp.randf(rng, -1.0, 1.0))
-    s.omega[tid] = p.spawn_omega + p.spawn_omega_noise * wp.randf(rng, -1.0, 1.0)
+    s.theta[tid] = wrap_angle(sp.theta + sp.theta_noise * wp.randf(rng, -1.0, 1.0))
+    s.omega[tid] = sp.omega + sp.omega_noise * wp.randf(rng, -1.0, 1.0)
     s.status[tid] = STATUS_FLYING
     s.steps[tid] = 0
     s.fuel[tid] = p.fuel_mass
