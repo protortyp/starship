@@ -7,12 +7,14 @@ requires-python = ">=3.13"
 dependencies = [
     "numpy>=2.5.4",
     "pygame-ce>=2.5.8",
+    "rerun-sdk>=0.39.0",
     "warp-lang>=1.18.0",
 ]
 
 [project.scripts]
 starship-demo = "starship.demo:main"
 starship-view = "starship.render.app:main"
+starship-rerun = "starship.render.rerun_viewer:main"
 
 [dependency-groups]
 dev = [

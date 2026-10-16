@@ -9,3 +9,5 @@ build/
 /out/
 .direnv
 .claude
+.DS_Store
+.direnv/

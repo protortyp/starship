@@ -5,6 +5,7 @@ import math
 import numpy as np
 import pygame
 
+from starship.render.geometry import hull_outline, plumes
 from starship.sim import FLYING, LEFT, MAIN, RIGHT, STATUS_NAMES, SimConfig, StateSnapshot
 
 SKY_LOW = np.array([38, 62, 96])
@@ -125,24 +126,8 @@ class Viewer:
         pygame.draw.line(surface, PAD_MARK, (center, sy), (center, sy + thickness), 2)
 
     def _hull_points(self, pos, theta: float) -> list[tuple[float, float]]:
-        r = self.config.rocket
-        half_l, half_d = 0.5 * r.length, 0.5 * r.diameter
-        nose = 0.25 * r.length
-        a = np.array([-math.sin(theta), math.cos(theta)])
-        n = np.array([math.cos(theta), math.sin(theta)])
-        # Outline in body coordinates (along axis, along normal), tail first, with a tapered nose.
-        body = [
-            (-half_l, -half_d),
-            (half_l - nose, -half_d),
-            (half_l - 0.45 * nose, -0.8 * half_d),
-            (half_l - 0.1 * nose, -0.4 * half_d),
-            (half_l, 0.0),
-            (half_l - 0.1 * nose, 0.4 * half_d),
-            (half_l - 0.45 * nose, 0.8 * half_d),
-            (half_l - nose, half_d),
-            (-half_l, half_d),
-        ]
-        return [self.to_screen(pos + u * a + v * n) for u, v in body]
+        outline = hull_outline(np.asarray(pos)[None], np.array([theta]), self.config.rocket)[0]
+        return [self.to_screen(p) for p in outline]
 
     def _draw_rocket(self, surface: pygame.Surface, pos, theta: float) -> None:
         points = self._hull_points(pos, theta)
@@ -151,32 +136,21 @@ class Viewer:
 
     def _draw_ghosts(self, s: StateSnapshot, env: int) -> None:
         others = [i for i in range(len(s.status)) if i != env][:MAX_GHOSTS]
-        for i in others:
-            pygame.draw.polygon(self.overlay, GHOST, self._hull_points(s.pos[i], float(s.theta[i])))
-
-    def _flame(self, surface, base, direction, half_width, length) -> None:
-        side = np.array([-direction[1], direction[0]])
-        flicker = 0.85 + 0.3 * self._flicker.random()
-        for color, w, ln in ((FLAME_OUTER, 1.0, 1.0), (FLAME_INNER, 0.5, 0.6)):
-            tip = base + direction * length * ln * flicker
-            points = [base + side * half_width * w, tip, base - side * half_width * w]
-            pygame.draw.polygon(surface, color, [self.to_screen(p) for p in points])
+        if not others:
+            return
+        outlines = hull_outline(s.pos[others], s.theta[others], self.config.rocket)
+        for outline in outlines:
+            pygame.draw.polygon(self.overlay, GHOST, [self.to_screen(p) for p in outline])
 
     def _draw_flames(self, surface: pygame.Surface, s: StateSnapshot, env: int, action: int):
         if s.status[env] != FLYING:
             return
-        r = self.config.rocket
-        pos, theta = s.pos[env], float(s.theta[env])
-        a = np.array([-math.sin(theta), math.cos(theta)])
-        n = np.array([math.cos(theta), math.sin(theta)])
-        if action & MAIN:
-            self._flame(surface, pos - 0.5 * r.length * a, -a, 0.35 * r.diameter, 0.6 * r.length)
-        nozzle = pos + (r.side_arm - 0.3 * r.length) * a
-        # The left thruster pushes the rocket toward +n, so its exhaust leaves on the -n side.
-        if action & LEFT:
-            self._flame(surface, nozzle - 0.5 * r.diameter * n, -n, 1.2, 0.35 * r.length)
-        if action & RIGHT:
-            self._flame(surface, nozzle + 0.5 * r.diameter * n, n, 1.2, 0.35 * r.length)
+        flicker = 0.85 + 0.3 * self._flicker.random()
+        for outer in plumes(s.pos[env], float(s.theta[env]), action, self.config.rocket, flicker):
+            base = 0.5 * (outer[0] + outer[2])
+            inner = base + (outer - base) * np.array([[0.5], [0.6], [0.5]])
+            for color, tri in ((FLAME_OUTER, outer), (FLAME_INNER, inner)):
+                pygame.draw.polygon(surface, color, [self.to_screen(p) for p in tri])
 
     def _panel(self, surface: pygame.Surface, rect) -> None:
         panel = pygame.Surface(rect[2:], pygame.SRCALPHA)
