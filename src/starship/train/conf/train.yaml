@@ -1,5 +1,6 @@
 defaults:
   - train_schema
+  - model: lstm
   - _self_
 
 experiment: landing
@@ -7,18 +8,19 @@ num_envs: 4096
 device: null
 seed: 0
 iterations: 500
+eval_interval: 25
+eval_envs: 256
 
 runner:
   num_steps_per_env: 32
   save_interval: 50
   check_for_nan: true
-  logger: tensorboard
   multi_gpu: null
   obs_groups:
     actor: [policy]
     critic: [policy]
   algorithm:
-    class_name: PPO
+    class_name: starship.train.ppo:InstrumentedPPO
     num_learning_epochs: 5
     num_mini_batches: 4
     learning_rate: 1.0e-3
@@ -31,18 +33,6 @@ runner:
     clip_param: 0.2
     value_loss_coef: 1.0
     max_grad_norm: 1.0
-  actor:
-    class_name: MLPModel
-    hidden_dims: [128, 128]
-    activation: elu
-    obs_normalization: true
-    distribution_cfg:
-      class_name: starship.train.distribution:BernoulliDistribution
-  critic:
-    class_name: MLPModel
-    hidden_dims: [128, 128]
-    activation: elu
-    obs_normalization: true
 
 hydra:
   run:
