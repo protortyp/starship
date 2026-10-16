@@ -8,6 +8,7 @@ Features, in order:
     4  sin(theta)
     5  cos(theta)                              sin/cos avoid the wrap-around jump at +/-pi
     6  angular velocity                        omega / angular_rate_scale
+    7  fuel remaining                          fuel / fuel capacity
 """
 
 from dataclasses import dataclass
@@ -17,7 +18,7 @@ import warp as wp
 from starship.sim.config import TIMEOUT, Params
 from starship.sim.physics import Terminal, lowest_point
 
-OBS_DIM = 7
+OBS_DIM = 8
 
 STATUS_TIMEOUT = wp.constant(TIMEOUT)
 
@@ -54,6 +55,7 @@ def encode(
     vel: wp.vec2,
     theta: float,
     omega: float,
+    fuel: float,
     obs: wp.array2d(dtype=float),
     tid: int,
 ):
@@ -64,6 +66,9 @@ def encode(
     obs[tid, 4] = wp.sin(theta)
     obs[tid, 5] = wp.cos(theta)
     obs[tid, 6] = omega / scales.angular_rate
+    obs[tid, 7] = 0.0
+    if p.fuel_mass > 0.0:
+        obs[tid, 7] = fuel / p.fuel_mass
 
 
 @wp.kernel
@@ -74,10 +79,11 @@ def observe_kernel(
     vel: wp.array(dtype=wp.vec2),
     theta: wp.array(dtype=float),
     omega: wp.array(dtype=float),
+    fuel: wp.array(dtype=float),
     obs: wp.array2d(dtype=float),
 ):
     tid = wp.tid()
-    encode(p, scales, pos[tid], vel[tid], theta[tid], omega[tid], obs, tid)
+    encode(p, scales, pos[tid], vel[tid], theta[tid], omega[tid], fuel[tid], obs, tid)
 
 
 @wp.kernel
@@ -98,7 +104,15 @@ def episode_end_kernel(
     if term.done[tid] == 0:
         return
     encode(
-        p, scales, term.pos[tid], term.vel[tid], term.theta[tid], term.omega[tid], final_obs, tid
+        p,
+        scales,
+        term.pos[tid],
+        term.vel[tid],
+        term.theta[tid],
+        term.omega[tid],
+        term.fuel[tid],
+        final_obs,
+        tid,
     )
     if term.status[tid] == STATUS_TIMEOUT:
         truncated[tid] = 1

@@ -74,6 +74,7 @@ def blueprint(cfg: SimConfig) -> rrb.Blueprint:
                 rrb.TimeSeriesView(name="velocity [m/s]", origin="plots/velocity"),
                 rrb.TimeSeriesView(name="attitude [deg, deg/s]", origin="plots/attitude"),
                 rrb.TimeSeriesView(name="thrusters", origin="plots/thrusters"),
+                rrb.TimeSeriesView(name="fuel [t]", origin="plots/fuel"),
                 rrb.TimeSeriesView(name="outcomes [envs]", origin="plots/outcomes"),
             ),
             column_shares=[3, 2],
@@ -141,6 +142,7 @@ def log_step(cfg: SimConfig, s: StateSnapshot, actions: np.ndarray, trail: list)
     rr.log("plots/velocity/vy", rr.Scalars(s.vel[0, 1]))
     rr.log("plots/attitude/tilt", rr.Scalars(math.degrees(theta)))
     rr.log("plots/attitude/spin", rr.Scalars(math.degrees(s.omega[0])))
+    rr.log("plots/fuel", rr.Scalars(s.fuel[0] / 1000.0))
     a0 = int(actions[0]) if s.status[0] == FLYING else 0
     # Offsets stack the three on/off signals so they don't overlap in one plot.
     rr.log("plots/thrusters/left", rr.Scalars(2.4 + 0.8 * bool(a0 & LEFT)))

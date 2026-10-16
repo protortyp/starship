@@ -7,18 +7,22 @@ Conventions (SI units throughout):
     - Body axis a = (-sin theta, cos theta) points from tail to nose.
       Body normal n = (cos theta, sin theta) points to the rocket's right side when upright.
 
-Default vehicle sizing (back-of-envelope, roughly a scaled-down Starship upper stage):
-    - 60 t landing mass, 30 m long, 9 m diameter.
-    - Belly-flop terminal velocity at sea level: sqrt(2 m g / (rho Cd_n L D)) ~ 71 m/s.
-    - Nose-first terminal velocity: sqrt(2 m g / (rho Cd_a pi r^2)) ~ 142 m/s.
-    - Main engine thrust-to-weight ~ 2, so a full burn decelerates at ~1 g.
-    - Side thrusters can flip the vehicle by 90 deg in ~4 s with bang-bang control.
+Default vehicle: Starship upper stage during landing (public figures, approximate):
+    - 50 m long, 9 m diameter, ~100 t dry, ~30 t of landing propellant in the header tanks.
+    - Main engine: one Raptor 2 at sea level, 2.26 MN, Isp 327 s (~705 kg/s); T/W ~1.8 at spawn.
+    - Belly-flop terminal velocity at sea level: sqrt(2 m g / (rho Cd_n L D)) ~ 82 m/s, matching
+      public estimates of 80-85 m/s; nose-first it is ~160 m/s.
+    - Cancelling ~82 m/s takes an ~11 s burn, ~7.6 t of propellant, so 30 t is ~4x the minimum.
+    - Side thrusters stand in for the real flip (engine gimbal and flaps): sized to rotate the
+      vehicle by 90 deg in ~5 s, drawing from the same tank.
 """
 
 import math
 from dataclasses import dataclass, field, replace
 
 import warp as wp
+
+G0 = 9.80665
 
 # Action bitmask: each policy action is an int in [0, 8) combining these thruster flags.
 MAIN = 1
@@ -44,22 +48,54 @@ STATUS_NAMES = {
 
 @dataclass(frozen=True)
 class RocketConfig:
-    mass: float = 60_000.0
-    length: float = 30.0
+    dry_mass: float = 100_000.0
+    fuel_mass: float = 30_000.0
+    length: float = 50.0
     diameter: float = 9.0
-    main_thrust: float = 1.18e6
-    side_thrust: float = 1.2e5
+    main_thrust: float = 2.26e6
+    main_isp: float = 327.0
+    side_thrust: float = 2.8e5
+    side_isp: float = 300.0
     # Side thrusters sit at the nose; distance measured from the center of mass along the axis.
-    side_arm: float = 15.0
+    side_arm: float = 25.0
     # Crossflow drag model: separate coefficients for flow along and across the body axis.
     drag_coeff_axial: float = 0.75
     drag_coeff_normal: float = 0.7
 
+    @classmethod
+    def small(cls) -> "RocketConfig":
+        """A 30 m vehicle with the same thrust-to-weight and fuel margin as the default."""
+        return cls(
+            dry_mass=52_000.0,
+            fuel_mass=8_000.0,
+            length=30.0,
+            main_thrust=1.18e6,
+            side_thrust=1.2e5,
+            side_arm=15.0,
+        )
+
+    @property
+    def mass(self) -> float:
+        """Fully fueled mass."""
+        return self.dry_mass + self.fuel_mass
+
+    @property
+    def inertia_per_kg(self) -> float:
+        """Solid cylinder about a transverse axis; fuel is treated as uniformly distributed."""
+        r = 0.5 * self.diameter
+        return (3.0 * r * r + self.length * self.length) / 12.0
+
     @property
     def inertia(self) -> float:
-        """Moment of inertia of a solid cylinder about a transverse axis through its center."""
-        r = 0.5 * self.diameter
-        return self.mass * (3.0 * r * r + self.length * self.length) / 12.0
+        return self.mass * self.inertia_per_kg
+
+    @property
+    def main_mass_flow(self) -> float:
+        return self.main_thrust / (self.main_isp * G0)
+
+    @property
+    def side_mass_flow(self) -> float:
+        return self.side_thrust / (self.side_isp * G0)
 
     @property
     def area_axial(self) -> float:
@@ -72,7 +108,7 @@ class RocketConfig:
 
 @dataclass(frozen=True)
 class WorldConfig:
-    gravity: float = 9.80665
+    gravity: float = G0
     # Sea-level air density; set to 0 to simulate vacuum.
     sea_level_density: float = 1.225
 
@@ -84,7 +120,7 @@ class SpawnConfig:
     x: float = 0.0
     y: float = 3000.0
     vx: float = 0.0
-    vy: float = -70.0
+    vy: float = -90.0
     theta: float = 0.5 * math.pi
     omega: float = 0.0
     x_noise: float = 0.0
@@ -140,8 +176,11 @@ class SimConfig:
 
 @wp.struct
 class Params:
-    mass: float
-    inertia: float
+    dry_mass: float
+    fuel_mass: float
+    inertia_per_kg: float
+    main_mass_flow: float
+    side_mass_flow: float
     length: float
     diameter: float
     main_thrust: float
@@ -180,8 +219,11 @@ class Params:
 def make_params(cfg: SimConfig) -> Params:
     r, w, s, land = cfg.rocket, cfg.world, cfg.spawn, cfg.landing
     p = Params()
-    p.mass = r.mass
-    p.inertia = r.inertia
+    p.dry_mass = r.dry_mass
+    p.fuel_mass = r.fuel_mass
+    p.inertia_per_kg = r.inertia_per_kg
+    p.main_mass_flow = r.main_mass_flow
+    p.side_mass_flow = r.side_mass_flow
     p.length = r.length
     p.diameter = r.diameter
     p.main_thrust = r.main_thrust
