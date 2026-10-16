@@ -10,6 +10,10 @@ dependencies = [
     "warp-lang>=1.18.0",
 ]
 
+[project.scripts]
+starship-demo = "starship.demo:main"
+starship-view = "starship.render.app:main"
+
 [dependency-groups]
 dev = [
     "pytest>=9.1.1",
