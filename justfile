@@ -1,3 +1,5 @@
+set dotenv-load
+
 test:
     uv run pytest
 
@@ -24,3 +26,7 @@ logs:
         for _ in $(seq 120); do curl -sf "$url" >/dev/null && break; sleep 0.5; done
     fi
     if command -v open >/dev/null; then open "$url"; else xdg-open "$url"; fi
+
+# vast.ai GPU instances: `just vast --help`, e.g. `just vast up`, `just vast train num_envs=16384`
+vast *args:
+    uv run python tools/vast.py {{args}}

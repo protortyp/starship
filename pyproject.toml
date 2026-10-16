@@ -25,6 +25,7 @@ starship-train = "starship.train.train:main"
 dev = [
     "pytest>=9.1.1",
     "ruff>=0.17.1",
+    "vastai>=1.8.3",
 ]
 
 [build-system]
