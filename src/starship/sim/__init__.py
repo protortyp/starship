@@ -17,7 +17,7 @@ from starship.sim.config import (
     SpawnConfig,
     WorldConfig,
 )
-from starship.sim.simulator import Simulator, StateSnapshot
+from starship.sim.simulator import Simulator, StateSnapshot, TerminalSnapshot
 
 __all__ = [
     "CRASHED",
@@ -36,5 +36,6 @@ __all__ = [
     "Simulator",
     "SpawnConfig",
     "StateSnapshot",
+    "TerminalSnapshot",
     "WorldConfig",
 ]
