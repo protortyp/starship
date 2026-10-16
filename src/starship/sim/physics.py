@@ -63,11 +63,14 @@ def lowest_point(y: float, theta: float, p: Params) -> float:
 
 
 @wp.func
-def accelerations(pos: wp.vec2, vel: wp.vec2, theta: float, omega: float, action: int, p: Params):
+def accelerations(
+    pos: wp.vec2, vel: wp.vec2, theta: float, omega: float, action: int, fuel: float, p: Params
+):
     a = body_axis(theta)
     n = body_normal(theta)
+    mass = p.dry_mass + fuel
 
-    force = wp.vec2(0.0, -p.mass * p.gravity)
+    force = wp.vec2(0.0, -mass * p.gravity)
     torque = 0.0
 
     if action & ACTION_MAIN:
@@ -94,7 +97,19 @@ def accelerations(pos: wp.vec2, vel: wp.vec2, theta: float, omega: float, action
     l2 = p.length * p.length
     torque -= rho * p.drag_coeff_normal * p.diameter * l2 * l2 * omega * wp.abs(omega) / 64.0
 
-    return force / p.mass, torque / p.inertia
+    return force / mass, torque / (mass * p.inertia_per_kg)
+
+
+@wp.func
+def fuel_flow(action: int, p: Params) -> float:
+    flow = 0.0
+    if action & ACTION_MAIN:
+        flow += p.main_mass_flow
+    if action & ACTION_LEFT:
+        flow += p.side_mass_flow
+    if action & ACTION_RIGHT:
+        flow += p.side_mass_flow
+    return flow
 
 
 @wp.func
@@ -118,6 +133,7 @@ class State:
     omega: wp.array(dtype=float)
     status: wp.array(dtype=wp.int32)
     steps: wp.array(dtype=wp.int32)
+    fuel: wp.array(dtype=float)
     # Per-env random stream, advanced on every respawn.
     rng: wp.array(dtype=wp.uint32)
 
@@ -133,6 +149,7 @@ class Terminal:
     theta: wp.array(dtype=float)
     omega: wp.array(dtype=float)
     steps: wp.array(dtype=wp.int32)
+    fuel: wp.array(dtype=float)
 
 
 @wp.func
@@ -150,6 +167,7 @@ def spawn(p: Params, s: State, tid: int):
     s.omega[tid] = p.spawn_omega + p.spawn_omega_noise * wp.randf(rng, -1.0, 1.0)
     s.status[tid] = STATUS_FLYING
     s.steps[tid] = 0
+    s.fuel[tid] = p.fuel_mass
     s.rng[tid] = rng
 
 
@@ -166,16 +184,21 @@ def step_kernel(
     v = s.vel[tid]
     th = s.theta[tid]
     om = s.omega[tid]
+    fuel = s.fuel[tid]
     action = actions[tid]
     st = STATUS_FLYING
 
     for _ in range(p.substeps):
-        lin_acc, ang_acc = accelerations(x, v, th, om, action, p)
+        # An empty tank silences every thruster.
+        if fuel <= 0.0:
+            action = 0
+        lin_acc, ang_acc = accelerations(x, v, th, om, action, fuel, p)
         # Semi-implicit Euler: velocities first, then positions with the updated velocities.
         v = v + lin_acc * p.dt
         om = om + ang_acc * p.dt
         x = x + v * p.dt
         th = wrap_angle(th + om * p.dt)
+        fuel = wp.max(fuel - fuel_flow(action, p) * p.dt, 0.0)
         if lowest_point(x[1], th, p) <= 0.0:
             st = touchdown_status(x, v, th, om, p)
             break
@@ -193,6 +216,7 @@ def step_kernel(
     s.omega[tid] = om
     s.status[tid] = st
     s.steps[tid] = n_steps
+    s.fuel[tid] = fuel
 
     if st != STATUS_FLYING:
         term.done[tid] = 1
@@ -202,6 +226,7 @@ def step_kernel(
         term.theta[tid] = th
         term.omega[tid] = om
         term.steps[tid] = n_steps
+        term.fuel[tid] = fuel
         if auto_reset != 0:
             spawn(p, s, tid)
 

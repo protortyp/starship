@@ -18,6 +18,7 @@ from starship.sim import (
     SpawnConfig,
     WorldConfig,
 )
+from starship.sim.config import G0
 from tests import reference
 
 VACUUM = WorldConfig(sea_level_density=0.0)
@@ -55,36 +56,63 @@ def test_vacuum_free_fall_matches_kinematics():
         (0.0, "drag_coeff_axial", "area_axial"),
     ],
 )
-def test_falls_at_terminal_velocity(theta, cd_attr, area_attr):
-    sim = make_sim(spawn=SpawnConfig(y=5000.0, vy=0.0, theta=theta))
-    run(sim, 0, 30.0)
-    s = sim.snapshot()
-    r = sim.config.rocket
-    rho = reference.density(sim.config, float(s.pos[0, 1]))
+def test_drag_balances_gravity_at_terminal_velocity(theta, cd_attr, area_attr):
+    cfg = SimConfig()
+    r = cfg.rocket
+    y = 1000.0
+    rho = reference.density(cfg, y)
     v_terminal = math.sqrt(
-        2 * r.mass * sim.config.world.gravity / (rho * getattr(r, cd_attr) * getattr(r, area_attr))
+        2 * r.mass * cfg.world.gravity / (rho * getattr(r, cd_attr) * getattr(r, area_attr))
     )
-    assert s.status[0] == FLYING
-    # Density increases on the way down, so the rocket lags slightly behind the local value.
-    assert -s.vel[0, 1] == pytest.approx(v_terminal, rel=0.02)
+    sim = make_sim(spawn=SpawnConfig(y=y, vy=-v_terminal, theta=theta))
+    sim.step(0)
+    # Without drag the rocket would gain g * policy_dt ~ 0.5 m/s in this step.
+    assert sim.snapshot().vel[0, 1] == pytest.approx(-v_terminal, abs=0.01)
 
 
-def test_main_engine_thrusts_along_body_axis_without_torque():
+def test_main_engine_follows_rocket_equation_along_body_axis():
     theta = 0.3
     sim = make_sim(world=ZERO_G_VACUUM, spawn=SpawnConfig(vy=0.0, theta=theta))
-    t = 1.0
+    t = 2.0
     run(sim, MAIN, t)
     s = sim.snapshot()
     r = sim.config.rocket
-    expected = r.main_thrust / r.mass * t * np.array([-math.sin(theta), math.cos(theta)])
-    np.testing.assert_allclose(s.vel[0], expected, rtol=1e-5)
+    burned = r.main_mass_flow * t
+    assert s.fuel[0] == pytest.approx(r.fuel_mass - burned, rel=1e-5)
+    # Tsiolkovsky: dv = Isp g0 ln(m0 / m1); the explicit mass update lags by one substep.
+    dv = r.main_isp * G0 * math.log(r.mass / (r.mass - burned))
+    expected = dv * np.array([-math.sin(theta), math.cos(theta)])
+    np.testing.assert_allclose(s.vel[0], expected, rtol=1e-3)
     assert s.omega[0] == 0.0
     assert s.theta[0] == pytest.approx(theta)
 
 
+def test_empty_tank_disables_thrusters():
+    rocket = replace(SimConfig().rocket, fuel_mass=0.0)
+    sim = make_sim(rocket=rocket, world=ZERO_G_VACUUM, spawn=SpawnConfig(vy=0.0))
+    run(sim, MAIN | LEFT, 1.0)
+    s = sim.snapshot()
+    np.testing.assert_array_equal(s.vel[0], 0.0)
+    assert s.omega[0] == 0.0
+
+
+def test_thrust_stops_when_fuel_runs_out():
+    rocket = SimConfig().rocket
+    rocket = replace(rocket, fuel_mass=rocket.main_mass_flow * 1.0)
+    sim = make_sim(rocket=rocket, world=ZERO_G_VACUUM, spawn=SpawnConfig(vy=0.0, theta=0.0))
+    run(sim, MAIN, 1.0)
+    v_burnout = sim.snapshot().vel[0, 1]
+    run(sim, MAIN, 1.0)
+    s = sim.snapshot()
+    assert s.fuel[0] == 0.0
+    assert s.vel[0, 1] == pytest.approx(v_burnout, rel=1e-3)
+
+
 @pytest.mark.parametrize(("action", "sign"), [(LEFT, -1.0), (RIGHT, 1.0)])
 def test_side_thrusters_rotate_in_opposite_directions(action, sign):
-    sim = make_sim(world=ZERO_G_VACUUM, spawn=SpawnConfig(vy=0.0, theta=0.0))
+    # A huge Isp keeps the mass, and so the inertia, constant for a closed-form check.
+    rocket = replace(SimConfig().rocket, side_isp=1e12)
+    sim = make_sim(rocket=rocket, world=ZERO_G_VACUUM, spawn=SpawnConfig(vy=0.0, theta=0.0))
     t = 1.0
     run(sim, action, t)
     r = sim.config.rocket
@@ -108,7 +136,7 @@ def test_rotation_is_damped_by_air():
 
 
 def upright_touchdown(**spawn_overrides) -> int:
-    spawn = SpawnConfig(**{"y": 15.5, "vy": -1.0, "theta": 0.0, **spawn_overrides})
+    spawn = SpawnConfig(**{"y": 25.5, "vy": -1.0, "theta": 0.0, **spawn_overrides})
     sim = make_sim(world=ZERO_G_VACUUM, spawn=spawn)
     run(sim, 0, 2.0)
     return int(sim.snapshot().status[0])
@@ -124,7 +152,7 @@ def test_gentle_upright_touchdown_on_pad_lands():
         {"vy": -10.0},
         {"vx": 5.0},
         {"x": 40.0},
-        {"theta": math.radians(20.0), "y": 16.0},
+        {"theta": math.radians(20.0), "y": 25.5},
         {"omega": 0.5},
     ],
 )
@@ -209,21 +237,22 @@ def test_matches_numpy_reference_under_random_actions():
     actions = rng.integers(0, 8, size=(num_steps, num_envs), dtype=np.int32)
 
     s = sim.snapshot()
-    ref = [(s.pos[i], s.vel[i], s.theta[i], s.omega[i], FLYING) for i in range(num_envs)]
+    ref = [(s.pos[i], s.vel[i], s.theta[i], s.omega[i], s.fuel[i], FLYING) for i in range(num_envs)]
     for k in range(num_steps):
         sim.step(actions[k])
         ref = [
-            reference.step(sim.config, *r[:4], actions[k, i]) if r[4] == FLYING else r
+            reference.step(sim.config, *r[:5], actions[k, i]) if r[5] == FLYING else r
             for i, r in enumerate(ref)
         ]
 
     s = sim.snapshot()
-    for i, (pos, vel, theta, omega, status) in enumerate(ref):
+    for i, (pos, vel, theta, omega, fuel, status) in enumerate(ref):
         assert s.status[i] == status
         np.testing.assert_allclose(s.pos[i], pos, rtol=1e-3, atol=0.05)
         np.testing.assert_allclose(s.vel[i], vel, rtol=1e-3, atol=0.01)
         assert s.theta[i] == pytest.approx(theta, abs=1e-3)
         assert s.omega[i] == pytest.approx(omega, abs=1e-4)
+        assert s.fuel[i] == pytest.approx(fuel, rel=1e-4, abs=0.5)
 
 
 def test_spawn_components_use_independent_draws():
@@ -243,7 +272,7 @@ def test_successive_resets_draw_new_spawns():
 
 
 def touchdown_sim(auto_reset: bool) -> Simulator:
-    spawn = SpawnConfig(y=15.5, vy=-1.0, theta=0.0)
+    spawn = SpawnConfig(y=25.5, vy=-1.0, theta=0.0)
     return Simulator(
         1, replace(SimConfig(), world=ZERO_G_VACUUM, spawn=spawn), "cpu", auto_reset=auto_reset
     )
