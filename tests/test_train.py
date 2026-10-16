@@ -120,8 +120,8 @@ def test_episode_tracker_summarizes_finished_episodes():
     returns = torch.zeros(8)
     done_once = torch.zeros(8, dtype=torch.bool)
     for _ in range(200):
-        _, reward, dones, _ = env.step(torch.zeros(8, 3))
-        returns += torch.where(done_once, 0.0, reward)
+        _, _, dones, _ = env.step(torch.zeros(8, 3))
+        returns += torch.where(done_once, 0.0, env.reward)
         tracker.step(dones, record=~done_once)
         done_once |= dones.bool()
         if done_once.all():
@@ -175,3 +175,11 @@ def test_training_resumes_from_checkpoint(tmp_path):
         assert torch.equal(a, b)
     resumed.learn(1)
     assert resumed.current_learning_iteration == 2
+
+
+def test_learner_sees_scaled_rewards_while_metrics_stay_unscaled():
+    env = RslRocketEnv(RocketEnv(4, device="cpu"))
+    _, rewards, _, _ = env.step(torch.zeros(4, 3))
+    scale = env.env.reward_config.learner_scale
+    assert torch.allclose(rewards, env.reward * scale)
+    assert not torch.allclose(rewards, env.reward)

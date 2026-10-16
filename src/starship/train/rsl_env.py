@@ -45,6 +45,7 @@ class RslRocketEnv(VecEnv):
         self.final_fuel = wp.to_torch(term.fuel)
         self.final_steps = wp.to_torch(term.steps)
         self.actions = torch.zeros(self.num_envs, dtype=torch.int32, device=self.device)
+        self.learner_scale = env.reward_config.learner_scale
         self._obs = wp.to_torch(env.obs)
         self._terminated = wp.to_torch(env.terminated)
         self._truncated = wp.to_torch(env.truncated)
@@ -62,4 +63,5 @@ class RslRocketEnv(VecEnv):
         self.env.step(wp.from_torch(self.actions))
         truncated = self._truncated.bool()
         dones = self._terminated.bool() | truncated
-        return self._observations(), self.reward.clone(), dones.long(), {"time_outs": truncated}
+        rewards = self.reward * self.learner_scale
+        return self._observations(), rewards, dones.long(), {"time_outs": truncated}
