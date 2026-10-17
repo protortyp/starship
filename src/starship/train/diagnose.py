@@ -24,7 +24,7 @@ GATE_SATURATION_MAX = 0.30
 VANISHING_RATIO = 0.10
 RIGID_UPDATE_RATIO = 1e-5
 COLLAPSE_DROP = 0.30
-ENTROPY_MIN = 0.30
+ENGINE_ENTROPY_MIN = 0.05
 
 
 def find_run(target: str) -> Path:
@@ -81,11 +81,14 @@ def run_summary(run: Path, s: dict, report: dict) -> list[str]:
     if target:
         lines.append(f"- target eval landed: last {target[-1]:.2f}, best {max(target):.2f}")
     entropy = last(s, "explore/entropy")
-    lines.append(f"- policy entropy {entropy:.2f} (3 heads, max 2.08)")
-    if entropy < ENTROPY_MIN:
-        lines.append(
-            f"- WARN entropy {entropy:.2f} < {ENTROPY_MIN}: exploration has nearly stopped"
-        )
+    lines.append(f"- policy entropy {entropy:.2f} (3 Bernoulli + 8 Gaussian heads; no fixed max)")
+    for i in range(3):
+        engine_entropy = last(s, f"explore/entropy_head/engine{i}")
+        if engine_entropy < ENGINE_ENTROPY_MIN:
+            lines.append(
+                f"- WARN engine{i} entropy {engine_entropy:.2f} < {ENGINE_ENTROPY_MIN}: "
+                "engine exploration has nearly stopped"
+            )
     report["summary"] = {
         "iteration": it,
         "env_steps": steps,

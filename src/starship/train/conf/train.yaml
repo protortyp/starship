@@ -35,6 +35,7 @@ runner:
     learning_rate: 1.0e-4
     schedule: fixed
     desired_kl: 0.01
+    max_kl: null
     # ~100 s horizon at 10 Hz, so terminal rewards reach the start of a ~40 s episode.
     gamma: 0.999
     lam: 0.95
@@ -42,6 +43,7 @@ runner:
     entropy_coef: 0.002
     clip_param: 0.2
     value_loss_coef: 1.0
+    use_clipped_value_loss: false
     max_grad_norm: 1.0
     # Critic predicts returns normalized by their running mean and std. Off: it made learning
     # collapse on near-ground spawns (16% then 0% at 250 it, vs 81% without; docs/curriculum.md).

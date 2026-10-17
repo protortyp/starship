@@ -1,11 +1,13 @@
 import json
 
+import numpy as np
 import pytest
+import torch
 from omegaconf import OmegaConf
 
 from starship.train.curriculum import Curriculum, CurriculumConfig
 from starship.train.runner import StarshipRunner
-from tests.test_train import SHORT_EPISODES, compose_cfg, make_env
+from tests.test_train import SHORT_EPISODES, collect, compose_cfg, make_env
 
 
 def two_stage(promote_landed=0.9, promote_evals=2) -> CurriculumConfig:
@@ -106,3 +108,97 @@ def test_start_stage_skips_solved_stages():
     cfg.start_stage = 5
     with pytest.raises(ValueError, match="start_stage"):
         Curriculum(compose_cfg(), OmegaConf.structured(cfg))
+
+
+def assert_fresh(runner):
+    for env in (runner.env, runner.eval_env, runner.target_eval_env):
+        state = env.env.sim.snapshot()
+        np.testing.assert_array_equal(state.steps, 0)
+        np.testing.assert_allclose(state.pos[:, 2], env.cfg.spawn.altitude)
+        np.testing.assert_allclose(state.vel[:, 2], env.cfg.spawn.vertical_speed)
+    assert runner.alg.actor.get_hidden_state() is None
+    assert runner.alg.critic.get_hidden_state() is None
+    assert runner.alg.transition.observations is None
+    assert runner.alg.storage.step == 0
+    assert runner.alg.storage.saved_hidden_state_a is None
+    assert runner.alg.storage.saved_hidden_state_c is None
+    assert not runner.tracker._return.any()
+    assert runner.tracker.num_finished == 0
+
+
+def test_initial_spawns_use_curriculum_stage(tmp_path):
+    runner = make_runner(compose_cfg("num_envs=8"), tmp_path)
+    assert runner.env.cfg.spawn.altitude == 60
+    assert_fresh(runner)
+
+
+@pytest.mark.parametrize("rollback", [False, True])
+def test_checkpoint_recovery_resets_stage_and_rollout(tmp_path, rollback):
+    cfg = compose_cfg("num_envs=8")
+    runner = make_runner(cfg, tmp_path)
+    runner.curriculum.advance()
+    runner._apply_stage()
+    runner.best_eval = (1, 0.8, 10.0)
+    checkpoint = tmp_path / "model_best.pt"
+    runner.save(str(checkpoint))
+    saved = {k: v.clone() for k, v in runner.alg.actor.state_dict().items()}
+    if rollback:
+        runner.best_eval = None
+        runner.load(str(checkpoint))
+        assert runner.best_eval == (1, 0.8, 10.0)
+    runner.curriculum.stage = 0
+    runner._apply_stage()
+    collect(runner, steps=2)
+    assert runner.alg.storage.step == 2
+    assert runner.alg.actor.get_hidden_state() is not None
+    with torch.no_grad():
+        next(runner.alg.actor.parameters()).add_(1)
+    if rollback:
+        runner.curriculum.stage = 1
+        runner.rollback_drop, runner.rollback_patience = 0.5, 2
+        runner.total_env_steps, runner.next_iteration = 1234, 9
+        runner.current_learning_iteration = 8
+        runner._maybe_roll_back(8, {"eval/env/rate/landed": 0.2})
+        assert runner.rollbacks == 0
+        runner._maybe_roll_back(8, {"eval/env/rate/landed": 0.2})
+        assert runner.rollbacks == 1
+        assert (runner.total_env_steps, runner.next_iteration) == (1234, 9)
+        assert runner.current_learning_iteration == 8
+    else:
+        runner.best_eval = None
+        runner.load(str(checkpoint))
+    assert runner.best_eval == (1, 0.8, 10.0)
+    assert runner.curriculum.stage == 1
+    assert_fresh(runner)
+    for key, value in runner.alg.actor.state_dict().items():
+        torch.testing.assert_close(value, saved[key])
+    fresh_obs = runner.env.get_observations()["policy"]
+    collect(runner)
+    torch.testing.assert_close(runner.alg.storage.observations[0]["policy"], fresh_obs)
+    assert runner.alg.update()["optim/updates"] > 0
+
+
+def test_rollback_refreshes_next_training_observations(tmp_path, monkeypatch):
+    runner = make_runner(compose_cfg("num_envs=8"), tmp_path)
+    runner.best_eval = (0, 1.0, 100.0)
+    runner.save(str(tmp_path / "model_best.pt"))
+    runner.rollback_drop, runner.rollback_patience = 0.5, 1
+    runner.curriculum.promote_evals = 100
+    monkeypatch.setattr(
+        runner,
+        "evaluate",
+        lambda *args, **kwargs: {"eval/env/rate/landed": 0.0, "eval/env/return": -100.0},
+    )
+    act = runner.alg.act
+    checked = []
+
+    def check_obs(obs):
+        if runner.rollbacks and runner.alg.storage.step == 0:
+            assert_fresh(runner)
+            torch.testing.assert_close(obs["policy"], runner.env.get_observations()["policy"])
+            checked.append(True)
+        return act(obs)
+
+    monkeypatch.setattr(runner.alg, "act", check_obs)
+    runner.learn(2)
+    assert checked == [True]

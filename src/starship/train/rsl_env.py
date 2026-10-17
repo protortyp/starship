@@ -1,7 +1,5 @@
 """rsl_rl adapter; metric tensors are live device views, rollout observations are owned copies."""
 
-import math
-
 import torch
 import warp as wp
 from rsl_rl.env import VecEnv
@@ -48,8 +46,7 @@ class RslRocketEnv(VecEnv):
 
     @property
     def max_episode_length(self) -> int:
-        config = self.env.config
-        return math.ceil(config.max_time / (config.dt * config.substeps))
+        return self.env.sim.params.max_steps
 
     def set_configs(self, sim_config: SimConfig, reward_config: RewardConfig) -> None:
         self.env.set_configs(sim_config, reward_config)
@@ -72,5 +69,6 @@ class RslRocketEnv(VecEnv):
             self.get_observations(),
             self.reward.clone(),
             dones,
-            {"time_outs": self._truncated.bool()},
+            # Deadlines are penalized terminal failures, so PPO must not bootstrap them.
+            {"time_outs": torch.zeros_like(dones), "truncated": self._truncated.bool()},
         )

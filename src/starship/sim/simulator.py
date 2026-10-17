@@ -58,7 +58,7 @@ def make_params(config: SimConfig, device) -> Params:
     p = Params()
     p.dt = config.dt
     p.substeps = config.substeps
-    p.max_time = config.max_time
+    p.max_steps = max(1, round(config.max_time / (config.dt * config.substeps)))
     p.max_altitude = config.max_altitude
     p.max_offset = config.max_offset
     p.max_pitch = config.max_pitch

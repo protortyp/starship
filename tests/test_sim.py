@@ -3,10 +3,26 @@ from dataclasses import replace
 import numpy as np
 import pytest
 
-from starship.sim import CRASHED, FLYING, LANDED, SimConfig, Simulator
+from starship.sim import CRASHED, FLYING, LANDED, TIMEOUT, SimConfig, Simulator
 from starship.sim.mass import make_mass_params, sample
 
 DEVICE = "cpu"
+
+
+@pytest.mark.parametrize("deadline", [60.0, 90.0, 180.0, 0.26])
+def test_timeout_uses_integer_control_steps(deadline):
+    cfg = config(altitude=1e7, vertical_speed=0.0, pitch=0.0)
+    cfg.max_altitude = 2e7
+    cfg.max_time = deadline
+    sim = Simulator(2, cfg, device=DEVICE)
+    steps = round(deadline / (cfg.dt * cfg.substeps))
+    assert sim.params.max_steps == steps
+    for _ in range(steps - 1):
+        sim.step()
+    assert (sim.snapshot().status == FLYING).all()
+    sim.step()
+    assert (sim.snapshot().status == TIMEOUT).all()
+    assert (sim.terminal_snapshot().steps == steps).all()
 
 
 def body_axis_z(rot: np.ndarray) -> np.ndarray:

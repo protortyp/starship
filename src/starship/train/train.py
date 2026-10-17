@@ -53,6 +53,11 @@ def main(cfg: DictConfig) -> None:
     )
     if cfg.checkpoint:
         runner.load(cfg.checkpoint)
+        if runner.eval_env is not None:
+            metrics = runner.evaluate()
+            runner._keep_best(runner.current_learning_iteration, metrics)
+            for key, value in metrics.items():
+                runner.writer.add_scalar(key, value, runner.total_env_steps)
         print(f"continuing from {cfg.checkpoint}")
     runner.learn(cfg.iterations)
     print(f"policy exported to {out_dir}/policy.pt")

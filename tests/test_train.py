@@ -162,6 +162,7 @@ def test_training_resumes_from_checkpoint(tmp_path):
     cfg.runner.algorithm.schedule = "fixed"
     resumed = make_runner(cfg, tmp_path / "b")
     resumed.load(str(tmp_path / "a" / "model_1.pt"))
+    assert resumed.best_eval == first.best_eval
     assert resumed.alg.optimizer.param_groups[0]["lr"] == pytest.approx(1.234e-4)
     for a, b in zip(
         first.alg.get_policy().parameters(), resumed.alg.get_policy().parameters(), strict=True
@@ -169,3 +170,114 @@ def test_training_resumes_from_checkpoint(tmp_path):
         assert torch.equal(a, b)
     resumed.learn(1)
     assert resumed.current_learning_iteration == 2
+
+
+class CoastingPolicy(torch.nn.Module):
+    def reset(self, dones=None):
+        pass
+
+    def forward(self, obs, stochastic_output=False):
+        return torch.zeros(len(obs), ACTION_DIM)
+
+
+@pytest.mark.parametrize("deadline", [60.0, 90.0, 180.0])
+def test_evaluation_counts_every_timeout(tmp_path, monkeypatch, deadline):
+    cfg = compose_cfg(
+        "num_envs=8",
+        "sim.spawn.altitude=1e7",
+        "sim.spawn.vertical_speed=0",
+        "sim.spawn.pitch=0",
+        "sim.max_altitude=2e7",
+        f"sim.max_time={deadline}",
+    )
+    runner = make_runner(cfg, tmp_path, eval_envs=4)
+    monkeypatch.setattr(runner.alg, "get_policy", CoastingPolicy)
+    metrics = runner.evaluate()
+    assert metrics["eval/env/episodes"] == 4
+    assert metrics["eval/env/rate/timeout"] == 1
+    assert metrics["eval/env/length_s"] == pytest.approx(deadline)
+
+
+def collect(runner, steps=None):
+    alg, env = runner.alg, runner.env
+    obs = env.get_observations()
+    with torch.inference_mode():
+        for _ in range(steps or runner.cfg["num_steps_per_env"]):
+            actions = alg.act(obs)
+            obs, rewards, dones, extras = env.step(actions)
+            alg.process_env_step(obs, rewards, dones, extras)
+            runner.tracker.step(dones)
+        alg.compute_returns(obs)
+
+
+@pytest.mark.parametrize(
+    ("max_kl", "allowed_updates", "expected_updates"),
+    [(None, 1, 4), (0.01, 1, 1), (0.01, 0, 0)],
+)
+def test_kl_stops_remaining_minibatches(
+    tmp_path, monkeypatch, max_kl, allowed_updates, expected_updates
+):
+    cfg = compose_cfg(
+        "num_envs=8",
+        "runner.algorithm.num_learning_epochs=2",
+        "runner.algorithm.num_mini_batches=2",
+        "runner.algorithm.diagnostics_interval=0",
+    )
+    runner = make_runner(cfg, tmp_path)
+    alg = runner.alg
+    assert alg.max_kl is None
+    assert not alg.use_clipped_value_loss
+    alg.max_kl = max_kl
+    collect(runner)
+    log_prob = alg.actor.get_output_log_prob
+    calls = 0
+
+    def shifted_log_prob(actions):
+        nonlocal calls
+        calls += 1
+        return log_prob(actions) - (1.0 if calls > allowed_updates else 0.0)
+
+    monkeypatch.setattr(alg.actor, "get_output_log_prob", shifted_log_prob)
+    metrics = alg.update()
+    assert metrics["optim/updates"] == expected_updates
+    assert metrics["optim/kl_early_stop"] == (max_kl is not None)
+    assert metrics["policy/last_approx_kl"] > 0.01
+    assert calls == (expected_updates + 1 if max_kl is not None else expected_updates)
+    assert alg.storage.step == 0
+
+
+def test_resume_evaluates_before_learning(tmp_path, monkeypatch):
+    from types import SimpleNamespace
+
+    from starship.train import train
+
+    cfg = compose_cfg(*SHORT_EPISODES, "num_envs=8", "eval_envs=4", "device=cpu")
+    first = make_runner(cfg, tmp_path / "first")
+    checkpoint = tmp_path / "first" / "model.pt"
+    first.best_eval = (0, 0.8, 12.0)
+    first.save(str(checkpoint))
+    cfg.checkpoint = str(checkpoint)
+    out = tmp_path / "resumed"
+    monkeypatch.setattr(
+        train.HydraConfig, "get", lambda: SimpleNamespace(runtime=SimpleNamespace(output_dir=out))
+    )
+    events = []
+    evaluate = StarshipRunner.evaluate
+
+    def evaluated(self, *args, **kwargs):
+        events.append("evaluate")
+        assert self.best_eval == first.best_eval
+        return evaluate(self, *args, **kwargs)
+
+    def learn(self, iterations):
+        events.append("learn")
+        assert self.best_eval == first.best_eval
+        saved = torch.load(out / "model_best.pt", weights_only=False)
+        assert saved["infos"]["best_eval"] == first.best_eval
+        for a, b in zip(first.alg.actor.parameters(), self.alg.actor.parameters(), strict=True):
+            assert torch.equal(a, b)
+
+    monkeypatch.setattr(StarshipRunner, "evaluate", evaluated)
+    monkeypatch.setattr(StarshipRunner, "learn", learn)
+    train.main.__wrapped__(cfg)
+    assert events == ["evaluate", "learn"]

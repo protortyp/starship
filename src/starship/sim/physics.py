@@ -55,7 +55,7 @@ class SpawnParams:
 class Params:
     dt: float
     substeps: int
-    max_time: float
+    max_steps: int
     max_altitude: float
     max_offset: float
     max_pitch: float  # from vertical; beyond it the vehicle counts as tumbling
@@ -258,7 +258,7 @@ def advance(p: Params, s: State, c: Commands, tid: int):
         ):
             status = TUMBLED
             break
-    if status == FLYING and t >= p.max_time:
+    if status == FLYING and s.steps[tid] + 1 >= p.max_steps:
         status = TIMEOUT
     s.body[tid] = b
     s.engine[tid] = e

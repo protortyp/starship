@@ -47,9 +47,17 @@ class ValueNormalizer(nn.Module):
 
 class InstrumentedPPO(PPO):
     def __init__(
-        self, *args, value_normalization: bool = False, diagnostics_interval: int = 0, **kwargs
+        self,
+        *args,
+        value_normalization: bool = False,
+        diagnostics_interval: int = 0,
+        max_kl: float | None = None,
+        **kwargs,
     ):
+        if max_kl is not None and max_kl <= 0:
+            raise ValueError("max_kl must be positive or None")
         super().__init__(*args, **kwargs)
+        self.max_kl = max_kl
         # Every `diagnostics_interval` updates, log network health under plasticity/* (0 = off).
         self.diagnostics_interval = diagnostics_interval
         self._updates_done = 0
@@ -140,6 +148,8 @@ class InstrumentedPPO(PPO):
         grad_norms: dict[str, dict[str, float]] = {}
 
         num_updates = 0
+        early_stopped = False
+        last_kl = 0.0
         for batch in generator:
             if self.normalize_advantage_per_mini_batch:
                 with torch.no_grad():
@@ -179,6 +189,12 @@ class InstrumentedPPO(PPO):
 
                 log_ratio = log_prob - torch.squeeze(batch.old_actions_log_prob)
                 ratio = torch.exp(log_ratio)
+                # k3 estimator of KL(old || new) from the sampled actions.
+                approx_kl = ((ratio.detach() - 1.0) - log_ratio.detach()).mean().item()
+                last_kl = approx_kl
+                if self.max_kl is not None and approx_kl > self.max_kl:
+                    early_stopped = True
+                    break
                 advantages = torch.squeeze(batch.advantages)
                 surrogate = -advantages * ratio
                 surrogate_clipped = -advantages * torch.clamp(
@@ -228,8 +244,7 @@ class InstrumentedPPO(PPO):
                 add("loss/entropy_bonus", (-self.entropy_coef * entropy_bonus).item())
                 add("loss/total", loss.item())
                 add("policy/clip_ratio", ((w - 1.0).abs() > self.clip_param).float().mean().item())
-                # k3 estimator of KL(old || new) from the sampled actions.
-                add("policy/approx_kl", ((w - 1.0) - log_ratio.detach()).mean().item())
+                add("policy/approx_kl", approx_kl)
                 add("policy/kl_analytic", kl_mean.item())
                 # Effective sample size of the importance weights, as a fraction of the batch.
                 add("policy/ess", ((w.sum() ** 2) / (w.pow(2).sum() * w.numel())).item())
@@ -267,6 +282,8 @@ class InstrumentedPPO(PPO):
             metrics["value/norm_mean"] = self.value_norm.mean.item()
             metrics["value/norm_std"] = self.value_norm.var.sqrt().item()
         metrics["optim/updates"] = float(num_updates)
+        metrics["optim/kl_early_stop"] = float(early_stopped)
+        metrics["policy/last_approx_kl"] = last_kl
         metrics["optim/param_norm/policy"] = _norm(self.actor.parameters())
         metrics["optim/param_norm/critic"] = _norm(self.critic.parameters())
         for i, group in enumerate(self.optimizer.param_groups):
