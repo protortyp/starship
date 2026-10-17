@@ -9,7 +9,7 @@ from starship.sim.mass import make_mass_params, sample
 DEVICE = "cpu"
 
 
-@pytest.mark.parametrize("deadline", [60.0, 90.0, 180.0, 0.26])
+@pytest.mark.parametrize("deadline", [60.0, 90.0, 180.0, 240.0, 0.26])
 def test_timeout_uses_integer_control_steps(deadline):
     cfg = config(altitude=1e7, vertical_speed=0.0, pitch=0.0)
     cfg.max_altitude = 2e7

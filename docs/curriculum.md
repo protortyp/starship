@@ -5,8 +5,9 @@
 ## Environment
 
 - **Actions**: 3 Bernoulli engine-on heads; 8 continuous (shared throttle, shared 2-axis gimbal, 4 flaps, roll RCS) as absolute targets; actuator lag and rate limits come from the sim.
-- **Observations** (body frame, heading-invariant): up vector, velocity, pad position, angular velocity, altitude, flap angles, engine spool, throttle, gimbal, fuel fraction. Port/starboard mirror as augmentation.
-- **Reward**: γΦ(s′) − Φ(s) shaping on distance, speed above a safe descent profile and tilt near the ground; angular rate, jerk, fuel and time costs; fuel-scaled landing bonus, limit-excess crash penalty. Stages 5+: substep roll/horizontal travel, air-relative sideslip and reflip costs (default off).
+- **Observations** (28, heading-invariant): original 24 body/actuator/fuel channels; altitude capped at 5 km and pad-vector norm at 5.1 km. Append `log1p(h/1000)/3`, Mach, `q/5000 Pa`, `log1p(horizontal miss/1000)/3`; Mach/q use still-air velocity. Port/starboard mirror as augmentation. Old actor/critic checkpoints and standalone policies load with zero new input weights, 0/1 normalizer padding and zero new Adam moments; legacy statistics stay intact.
+- **Reward**: γΦ(s′) − Φ(s), zero terminal potential; distance, excess speed and near-ground tilt shaping, motion/fuel/time costs, landing bonus and limit-excess crash penalty. Stages 0–8 unchanged; stages 5+ add attitude costs. Stage 9+ uses `−0.05 d/(1+d/1000)` (−47.62/−25/0 at 20 km/1 km/0 distance); default `distance_saturation=0` retains the linear potential.
+- **Entry** (stage 10+): speed/angle below horizontal, heading ±2° towards the pad, belly normal along velocity (90° AoA; `pitch` offsets that attitude). Uptrack placement integrates a no-thrust point mass with 280 m² drag area, actual mass and local density to the 300 m flip corridor; offset noise is cross-track error. This reference estimates reachability, not a demonstrated landing. Deadline 240 s / 2,400 control steps; promotion resets episodes and recurrent state together.
 - **Termination**: landed, crashed, out of bounds, timeout, **tumbled** (pitch > 115° from vertical, pitch/yaw rate > 40°/s, or roll rate > 90°/s, tightened to 60°/s at stage 7 and 45°/s at stage 8) with the largest penalty.
 - **Metrics**: landing rate; touchdown speed, tilt, miss; crash and tumble breakdown by limit; reward per term; per-actuator usage and saturation; plasticity (`starship-diagnose`).
 
@@ -23,6 +24,11 @@
 | 6 | attitude costs at full weight | pending |
 | 7 | roll limit 60°/s | pending |
 | 8 | roll limit 45°/s | pending |
+| 9 | bounded distance potential, stage-8 spawns | pending |
+| 10 | 5 km forward handover, 110 ±5 m/s at 65 ±6° (34–59 m/s horizontal) | pending |
+| 11 | 8 km handover, 200 ±10 m/s at 60 ±5° | pending |
+| 12 | 12 km handover, otherwise unchanged | pending |
+| 13 | 20 km handover, 280 ±10 m/s at 64 ±3° (IFT-5 target) | pending |
 
 ## Findings
 

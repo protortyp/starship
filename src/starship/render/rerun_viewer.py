@@ -232,6 +232,7 @@ def fly_progress(args) -> None:
     """Fly evenly spaced checkpoints of a run on identical spawns, one lane per checkpoint."""
     import torch
 
+    from starship.train.checkpoint import load_policy
     from starship.train.env import RocketEnv
     from starship.train.rsl_env import RslRocketEnv
 
@@ -248,7 +249,7 @@ def fly_progress(args) -> None:
         env = RslRocketEnv(
             RocketEnv(args.envs, sim_cfg, obs_cfg, reward_cfg, device=args.device, seed=args.seed)
         )
-        policy = torch.load(f, map_location=env.device, weights_only=False).eval()
+        policy = load_policy(f, env.device)
         policy.reset()
         label = f"it{f.stem.split('_')[1]}"
         lanes.append({"env": env, "policy": policy, "obs": env.get_observations(), "label": label,
@@ -317,6 +318,7 @@ def _rollout(path, cfgs, args, record=None):
     """Fly a policy deterministically once per env; with `record` (env indices), log those."""
     import torch
 
+    from starship.train.checkpoint import load_policy
     from starship.train.env import RocketEnv
     from starship.train.rsl_env import RslRocketEnv
 
@@ -324,7 +326,7 @@ def _rollout(path, cfgs, args, record=None):
     env = RslRocketEnv(
         RocketEnv(args.envs, sim_cfg, obs_cfg, reward_cfg, device=args.device, seed=args.seed)
     )
-    policy = torch.load(path, map_location=env.device, weights_only=False).eval()
+    policy = load_policy(path, env.device)
     policy.reset()
     obs = env.get_observations()
     status = np.zeros(args.envs, dtype=int)

@@ -68,3 +68,37 @@ stages:
   - name: 8 roll limit 45 deg/s
     overrides:
       - sim.max_roll_rate=0.7853981633974483
+  - name: 9 bounded distance shaping (same spawns)
+    overrides:
+      - reward.distance_saturation=1000
+  - name: 10 forward handover at 5 km (34-59 m/s horizontal)
+    overrides:
+      - sim.spawn.entry=true
+      - sim.spawn.altitude=5000
+      - sim.spawn.altitude_noise=250
+      - sim.spawn.speed=110
+      - sim.spawn.speed_noise=5
+      - sim.spawn.flight_path_angle=1.1344640137963142
+      - sim.spawn.flight_path_angle_noise=0.10471975511965977
+      - sim.spawn.heading_noise=0.03490658503988659
+      - sim.spawn.offset_noise=100
+      - sim.spawn.pitch=1.5707963267948966
+      - sim.spawn.pitch_noise=0.05
+      - sim.max_time=240
+  - name: 11 handover at 8 km (200 m/s, 55-65 deg)
+    overrides:
+      - sim.spawn.altitude=8000
+      - sim.spawn.altitude_noise=500
+      - sim.spawn.speed=200
+      - sim.spawn.speed_noise=10
+      - sim.spawn.flight_path_angle=1.0471975511965976
+      - sim.spawn.flight_path_angle_noise=0.08726646259971647
+  - name: 12 handover at 12 km
+    overrides:
+      - sim.spawn.altitude=12000
+  - name: 13 IFT-5 handover at 20 km (280 m/s, 64 deg)
+    overrides:
+      - sim.spawn.altitude=20000
+      - sim.spawn.speed=280
+      - sim.spawn.flight_path_angle=1.117010721276371
+      - sim.spawn.flight_path_angle_noise=0.05235987755982989

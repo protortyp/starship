@@ -88,6 +88,14 @@ class SpawnParams:
     vertical_speed_noise: float
     horizontal_speed: float
     horizontal_speed_noise: float
+    entry: int
+    speed: float
+    speed_noise: float
+    flight_path_angle: float
+    flight_path_angle_noise: float
+    heading: float
+    heading_noise: float
+    entry_drag_area: float
     pitch: float
     pitch_noise: float
     angular_rate_noise: float
@@ -171,6 +179,28 @@ def attitude(pitch: float, heading: float) -> wp.quat:
 
 
 @wp.func
+def entry_range(
+    altitude: float, speed: float, angle: float, mass: float, drag_area: float
+) -> float:
+    """Point-mass, no-thrust footprint to the 300 m flip corridor, with quadratic drag."""
+    z = altitude
+    vx = speed * wp.cos(angle)
+    vz = -speed * wp.sin(angle)
+    x = float(0.0)  # noqa: UP018 - Warp requires a dynamic loop accumulator.
+    for _ in range(480):
+        if z <= 300.0:
+            break
+        drag = 0.5 * atmosphere(z).density * drag_area * wp.length(wp.vec2(vx, vz)) / mass
+        dt = wp.min(0.5, (z - 300.0) / wp.max(-vz, 1.0))
+        # Semi-implicit drag avoids a velocity reversal at large density or speed.
+        vx = vx / (1.0 + drag * dt)
+        vz = (vz - gravity(z) * dt) / (1.0 + drag * dt)
+        x += vx * dt
+        z += vz * dt
+    return x
+
+
+@wp.func
 def spawn(p: Params, s: State, tid: int):
     sp = p.spawn
     rng = s.rng[tid]
@@ -188,6 +218,23 @@ def spawn(p: Params, s: State, tid: int):
     b.vel = wp.vec3(speed * wp.cos(drift), speed * wp.sin(drift), vz)
     b.rot = attitude(pitch, heading)
     b.omega = wp.vec3(wp.randf(rng, -w, w), wp.randf(rng, -w, w), wp.randf(rng, -w, w))
+    if sp.entry != 0:
+        speed = sp.speed + sp.speed_noise * wp.randf(rng, -1.0, 1.0)
+        angle = sp.flight_path_angle + sp.flight_path_angle_noise * wp.randf(rng, -1.0, 1.0)
+        heading = bearing + sp.heading + sp.heading_noise * wp.randf(rng, -1.0, 1.0)
+        reach = entry_range(
+            alt, speed, angle, mass_properties(p.mass, sp.tanks).mass, sp.entry_drag_area
+        )
+        b.pos = wp.vec3(
+            -reach * wp.cos(bearing) - offset * wp.sin(bearing),
+            -reach * wp.sin(bearing) + offset * wp.cos(bearing),
+            alt,
+        )
+        b.vel = speed * wp.vec3(
+            wp.cos(angle) * wp.cos(heading), wp.cos(angle) * wp.sin(heading), -wp.sin(angle)
+        )
+        # In still air, pitch=90 degrees means b3 along the flow, b1 at 90-degree AoA.
+        b.rot = attitude(angle + pitch - 0.5 * wp.pi, heading)
     s.body[tid] = b
     s.attitude[tid] = track_attitude(Attitude(), b, wp.vec3(0.0), 0.0)
 

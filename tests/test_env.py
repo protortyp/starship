@@ -52,8 +52,8 @@ def com(cfg):
 def test_observation_layout_and_scale(device):
     env = RocketEnv(16, device=device, obs_config=ObsConfig(mirror=False))
     obs = env.obs.numpy()
-    assert OBS_DIM == 24
-    assert obs.shape == (16, 24)
+    assert OBS_DIM == 28
+    assert obs.shape == (16, OBS_DIM)
     assert np.isfinite(obs).all()
     assert np.abs(obs).max() <= 2
     np.testing.assert_allclose(np.linalg.norm(obs[:, :3], axis=1), 1, atol=1e-6)
@@ -158,9 +158,15 @@ def test_action_ranges_and_engine_heads(device):
 
 
 @pytest.mark.parametrize("gamma", [1.0, 0.95])
-def test_shaping_telescopes(device, gamma):
+@pytest.mark.parametrize("saturation", [0.0, 1000.0])
+def test_shaping_telescopes(device, gamma, saturation):
     cfg = config(altitude=50, vertical_speed=-40, pitch=0.15)
-    env = RocketEnv(1, cfg, reward_config=RewardConfig(gamma=gamma), device=device)
+    env = RocketEnv(
+        1,
+        cfg,
+        reward_config=RewardConfig(gamma=gamma, distance_saturation=saturation),
+        device=device,
+    )
     total = np.zeros(3)
     initial = None
     for step in range(50):

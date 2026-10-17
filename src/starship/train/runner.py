@@ -10,6 +10,7 @@ import torch
 from rsl_rl.runners import OnPolicyRunner
 from torch.utils.tensorboard import SummaryWriter
 
+from starship.train.checkpoint import migrate_checkpoint
 from starship.train.curriculum import Curriculum
 from starship.train.metrics import EpisodeTracker
 from starship.train.rsl_env import RslRocketEnv
@@ -121,6 +122,7 @@ class StarshipRunner(OnPolicyRunner):
         self.save(str(self.log_dir / f"model_stage{self.curriculum.stage}_passed.pt"))
         self.curriculum.advance()
         self._apply_stage()
+        self._reset_rollout()
         event = {
             "stage": self.curriculum.stage,
             "name": self.curriculum.name,
@@ -232,7 +234,11 @@ class StarshipRunner(OnPolicyRunner):
         self.writer.flush()
 
     def load(self, path: str, load_cfg=None, strict: bool = True, map_location=None) -> dict:
-        infos = super().load(path, load_cfg, strict, map_location or self.device)
+        checkpoint = torch.load(path, weights_only=False, map_location=map_location or self.device)
+        migrate_checkpoint(checkpoint, self.alg.actor, self.alg.critic, self.alg.optimizer)
+        if self.alg.load(checkpoint, load_cfg, strict):
+            self.current_learning_iteration = checkpoint["iter"]
+        infos = checkpoint["infos"]
         if self.curriculum is not None and infos and "curriculum" in infos:
             self.curriculum.load_state_dict(infos["curriculum"])
             self._apply_stage()

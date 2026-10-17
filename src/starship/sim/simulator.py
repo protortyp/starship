@@ -1,5 +1,6 @@
 """Batched 6-DOF Starship simulator on a Warp device."""
 
+import math
 from dataclasses import dataclass
 
 import numpy as np
@@ -36,7 +37,32 @@ COMMAND_FIELDS = {
 
 def make_params(config: SimConfig, device) -> Params:
     v, sp, ld = config.vehicle, config.spawn, config.landing
+    if sp.entry:
+        values = (
+            sp.speed,
+            sp.speed_noise,
+            sp.flight_path_angle,
+            sp.flight_path_angle_noise,
+            sp.heading,
+            sp.heading_noise,
+            sp.entry_drag_area,
+        )
+        if not all(math.isfinite(x) for x in values):
+            raise ValueError("entry spawn parameters must be finite")
+        if (
+            sp.speed_noise < 0
+            or sp.speed <= sp.speed_noise
+            or sp.heading_noise < 0
+            or sp.flight_path_angle_noise < 0
+            or sp.entry_drag_area <= 0
+            or not 0
+            < sp.flight_path_angle - sp.flight_path_angle_noise
+            <= sp.flight_path_angle + sp.flight_path_angle_noise
+            <= math.pi / 2
+        ):
+            raise ValueError("entry spawn needs positive speed/drag area and descending angles")
     spawn = SpawnParams()
+    spawn.entry = int(sp.entry)
     for name in (
         "altitude",
         "altitude_noise",
@@ -46,6 +72,13 @@ def make_params(config: SimConfig, device) -> Params:
         "vertical_speed_noise",
         "horizontal_speed",
         "horizontal_speed_noise",
+        "speed",
+        "speed_noise",
+        "flight_path_angle",
+        "flight_path_angle_noise",
+        "heading",
+        "heading_noise",
+        "entry_drag_area",
         "pitch",
         "pitch_noise",
         "angular_rate_noise",

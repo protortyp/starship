@@ -11,7 +11,7 @@ Next steps after the solved landing curriculum, merged from two independent revi
 | 5 | Sensors | Observation noise, bias and 0–100 ms latency | |
 | 6 | Wind | World-frame mean profile + Dryden turbulence (MIL-F-8785C), aero on air-relative velocity, no wind input to the policy; surface wind 0–5 → 15 m/s, light → moderate turbulence, severe held out | |
 | 7 | Engine faults | Delayed ignition → partial thrust → failed relight with retries → engine-out in the burn; spool input becomes spool × health | |
-| 8 | 20 km start | ~280 m/s at ~64° below horizontal (IFT-5 fit), reachable spawns, `max_time` 240 s; replace the 3-D distance potential (≈ −1,000 at 20 km); clamp old altitude inputs and add log-altitude, Mach and dynamic pressure with zero-initialised weights | |
+| 8 | 20 km start | 280 m/s at 64°; reference-glide spawns, 240 s, bounded distance potential, 28 observations and checkpoint migration; stages 9–13 | implemented; training pending |
 
 Notes: training spawns carry 15 t of main-tank residuals (landing mass ≈ 198 t, one-engine T/W ≈ 1.16). Vortex shedding is deferred until wind passes validation. Sources: `docs/starship.md`, `docs/gaps.md`.
 

@@ -180,7 +180,7 @@ class CoastingPolicy(torch.nn.Module):
         return torch.zeros(len(obs), ACTION_DIM)
 
 
-@pytest.mark.parametrize("deadline", [60.0, 90.0, 180.0])
+@pytest.mark.parametrize("deadline", [60.0, 90.0, 180.0, 240.0])
 def test_evaluation_counts_every_timeout(tmp_path, monkeypatch, deadline):
     cfg = compose_cfg(
         "num_envs=8",
