@@ -20,7 +20,7 @@ TensorBoard: `curriculum/stage` (steps at promotions), Text tab `curriculum`, `e
 
 ## Findings
 
-- Reward bisection on near-ground spawns (250 it from scratch): sanity reward 63% landed, + fuel cost 64%, + learner reward scaling ×0.05 only 2%, + speed term faded in with altitude only 7% (it penalizes descending at all, so policies hover). Scaling is back to 1.0 and speed shaping only penalizes speed above a safe descent profile v_safe(h) = sqrt(2·3.8·h) + 2 m/s.
+- Reward bisection on near-ground spawns (250 it from scratch): sanity reward 63% landed, + fuel cost 64%, + learner reward scaling ×0.05 only 2%, + speed term faded in with altitude only 7% (it penalizes descending at all, so policies hover). Scaling is back to 1.0 and speed shaping only penalizes speed above a safe descent profile v_safe(h) = sqrt(2·3.8·h) + 2 m/s. Validation (same setup): profile + fuel cost 46%, + lateral shaping 81% (best from scratch), so `reward.lateral_weight=0.05` is the default.
 
 - Controlled runs (300 it from `model_stage1_passed.pt`, promotion off, one change each; same checkpoint + seed replay identically, so differences are causal): lateral shaping near the ground (`reward.lateral_weight=0.05`) is the only change that recovers (eval ends 74–82%); lr 1e-4 + clip 0.1, 2 learning epochs, and soft touchdown credit (`reward.soft_touchdown_speed=10`) all stay collapsed.
 - CLI values lose to curriculum stage overrides for keys a stage sets (e.g. `reward.time_cost`); run controlled experiments without `curriculum=` and set the stage's values directly.

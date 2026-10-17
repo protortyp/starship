@@ -7,7 +7,6 @@ promote_evals: 2
 stages:
   - name: A upright near ground (50-350 m)
     overrides:
-      - reward.lateral_weight=0.05
       - sim.spawn.y=200
       - sim.spawn.y_noise=150
       - sim.spawn.vy=-30
