@@ -44,7 +44,7 @@ def test_attitude_stages_preserve_spawns_and_resume_indices():
 
     cfg = compose_cfg("curriculum=landing")
     curriculum = Curriculum(cfg, cfg.curriculum)
-    assert len(curriculum.stages) == 9
+    assert len(curriculum.stages) == 14
     weights = ("roll_travel_cost", "horizontal_rotation_cost", "sideslip_cost", "reflip_cost")
     for stage in range(5):
         sim, reward = curriculum.configs(stage)

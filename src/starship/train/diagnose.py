@@ -155,6 +155,7 @@ def probe_section(run: Path, report: dict, episodes: int, device: str | None) ->
     from omegaconf import OmegaConf
 
     from starship.train.actions import ENGINE_HEADS
+    from starship.train.checkpoint import load_policy
     from starship.train.conf import load_run_config
     from starship.train.curriculum import Curriculum
     from starship.train.diagnostics import model_diagnostics
@@ -179,7 +180,7 @@ def probe_section(run: Path, report: dict, episodes: int, device: str | None) ->
         policy_path = run / "policy.pt"
     obs_cfg = OmegaConf.to_object(cfg.obs)
     env = RslRocketEnv(RocketEnv(episodes, sim, obs_cfg, reward, device=device, seed=123))
-    policy = torch.load(policy_path, map_location=env.device, weights_only=False).eval()
+    policy = load_policy(policy_path, env.device)
     policy.reset()
     tracker = EpisodeTracker(env)
     obs = env.get_observations()

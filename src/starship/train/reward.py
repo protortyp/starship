@@ -31,6 +31,7 @@ REWARD_TERMS = (
 class RewardConfig:
     gamma: float = 0.999  # Must equal PPO's discount.
     distance_weight: float = 0.05  # per m
+    distance_saturation: float = 0.0  # m; zero retains legacy linear shaping
     speed_weight: float = 1.0  # per m/s above the safe profile
     # Horizontal speed is nearly free under the descent profile alone; without this term policies
     # tip over and fly away sideways (2D needed the same lateral shaping, docs/curriculum.md).
@@ -69,6 +70,7 @@ class RewardConfig:
 class RewardParams:
     gamma: float
     distance_weight: float
+    distance_saturation: float
     speed_weight: float
     horizontal_speed_weight: float
     tilt_weight: float
@@ -120,8 +122,11 @@ def potential(p: Params, r: RewardParams, b: Body, tanks: wp.vec4) -> wp.vec3:
     axis_z = wp.quat_rotate(b.rot, wp.vec3(1.0, 0.0, 0.0))[2]
     tilt = wp.acos(wp.clamp(axis_z, -1.0, 1.0))
     fade = wp.clamp(1.0 - height / r.tilt_height, 0.0, 1.0)
+    distance = wp.length(b.pos)
+    if r.distance_saturation > 0.0:
+        distance = distance / (1.0 + distance / r.distance_saturation)
     return wp.vec3(
-        -r.distance_weight * wp.length(b.pos),
+        -r.distance_weight * distance,
         -r.speed_weight * excess_speed
         - r.horizontal_speed_weight * wp.length(wp.vec2(b.vel[0], b.vel[1])),
         -r.tilt_weight * tilt * fade,

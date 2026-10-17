@@ -163,6 +163,14 @@ class SpawnConfig:
     vertical_speed_noise: float = 0.0
     horizontal_speed: float = 0.0
     horizontal_speed_noise: float = 0.0
+    entry: bool = False
+    speed: float = 280.0
+    speed_noise: float = 0.0
+    flight_path_angle: float = math.radians(64.0)  # below horizontal
+    flight_path_angle_noise: float = 0.0
+    heading: float = 0.0  # relative to the direction towards the pad
+    heading_noise: float = 0.0
+    entry_drag_area: float = 280.0  # m^2, reference unpowered footprint only
     pitch: float = math.radians(90.0)
     pitch_noise: float = 0.0
     angular_rate_noise: float = 0.0
