@@ -282,3 +282,23 @@ def test_lateral_shaping_rewards_moving_toward_the_pad_near_the_ground():
     # Moving 1 m toward the pad (vx = -10 m/s for 0.1 s) at 60 m altitude.
     gain = step_reward(0.1, -10.0) - step_reward(0.0, -10.0)
     assert gain == pytest.approx(0.1 * 1.0 * math.exp(-35.0 / 500.0), rel=1e-3)
+
+
+def test_soft_touchdown_credit_smooths_the_landing_cliff():
+    def terminal(soft_speed, vy, x=0.0):
+        spawn = SpawnConfig(x=x, y=25.5, vy=vy, theta=0.0)
+        env = RocketEnv(
+            1,
+            replace(SimConfig(), world=ZERO_G_VACUUM, spawn=spawn),
+            reward_config=RewardConfig(gamma=1.0, fuel_cost=0.0, soft_touchdown_speed=soft_speed),
+            device="cpu",
+        )
+        _, _, term = run_episode(env, lambda _: np.zeros(1, dtype=np.int32))
+        return env.terminal_reward.numpy()[0], int(term.status[0])
+
+    hard, status = terminal(0.0, -6.0)
+    soft, _ = terminal(10.0, -6.0)
+    assert status == CRASHED
+    assert soft - hard == pytest.approx(100.0 * (1.0 - 6.0 / 10.0), rel=1e-3)
+    off_pad, _ = terminal(10.0, -6.0, x=60.0)
+    assert off_pad == pytest.approx(hard, rel=1e-3)

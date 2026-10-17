@@ -44,6 +44,10 @@ class RewardConfig:
     # pad (beyond its half-width) counts as a crash. Off by default.
     lateral_weight: float = 0.0  # per m
     lateral_fade_altitude: float = 500.0  # m
+    # Partial landing credit for touching down on the pad slightly too hard: the landed reward
+    # scaled by (1 - impact speed / soft_touchdown_speed). Smooths the cliff between a 4 m/s
+    # landing and a 5 m/s crash, which exploration noise falls off. 0 disables it.
+    soft_touchdown_speed: float = 0.0  # m/s
     tilt_weight: float = 10.0  # per rad, faded in near the ground
     tilt_fade_altitude: float = 200.0  # m; tilt weight is exp(-altitude / this)
     landed_reward: float = 100.0
@@ -65,6 +69,7 @@ class RewardParams:
     speed_fade_altitude: float
     lateral_weight: float
     lateral_fade_altitude: float
+    soft_touchdown_speed: float
     tilt_weight: float
     tilt_fade_altitude: float
     landed_reward: float
@@ -98,14 +103,20 @@ def potential(p: Params, rp: RewardParams, pos: wp.vec2, vel: wp.vec2, theta: fl
 
 
 @wp.func
-def terminal_reward(p: Params, rp: RewardParams, status: int, vel: wp.vec2, fuel: float) -> float:
+def terminal_reward(
+    p: Params, rp: RewardParams, status: int, pos: wp.vec2, vel: wp.vec2, fuel: float
+) -> float:
     if status == STATUS_LANDED:
         bonus = 0.0
         if p.fuel_mass > 0.0:
             bonus = rp.fuel_bonus * fuel / p.fuel_mass
         return rp.landed_reward + bonus
     if status == STATUS_CRASHED:
-        return -(rp.crash_penalty + rp.crash_speed_weight * wp.length(vel))
+        speed = wp.length(vel)
+        credit = 0.0
+        if rp.soft_touchdown_speed > 0.0 and wp.abs(pos[0]) <= p.pad_half_width:
+            credit = rp.landed_reward * wp.max(1.0 - speed / rp.soft_touchdown_speed, 0.0)
+        return credit - (rp.crash_penalty + rp.crash_speed_weight * speed)
     if status == STATUS_OUT_OF_BOUNDS:
         return -rp.out_of_bounds_penalty
     if status == STATUS_TIMEOUT:
@@ -129,7 +140,7 @@ def reward_kernel(
     step_cost = rp.time_cost * p.dt * float(p.substeps)
     terminal[tid] = 0.0
     if term.done[tid] != 0:
-        end = terminal_reward(p, rp, term.status[tid], term.vel[tid], term.fuel[tid])
+        end = terminal_reward(p, rp, term.status[tid], term.pos[tid], term.vel[tid], term.fuel[tid])
         terminal[tid] = end
         burned = last_fuel[tid] - term.fuel[tid]
         reward[tid] = -last_potential[tid] - rp.fuel_cost * burned - step_cost + end
