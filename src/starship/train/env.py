@@ -7,7 +7,17 @@ import torch
 import warp as wp
 
 from starship.sim import FLYING, SimConfig, Simulator
-from starship.sim.physics import Commands, Params, State, Terminal, advance, init_rng_kernel, spawn
+from starship.sim.physics import (
+    ATTITUDE_FIELDS,
+    Attitude,
+    Commands,
+    Params,
+    State,
+    Terminal,
+    advance,
+    init_rng_kernel,
+    spawn,
+)
 from starship.train.actions import (
     ACTION_DIM,
     CONTINUOUS_HEADS,
@@ -70,6 +80,7 @@ def _step_kernel(
     before: wp.array(dtype=wp.vec3),
     fuel_before: wp.array(dtype=float),
     time_before: wp.array(dtype=float),
+    attitude_before: wp.array(dtype=Attitude),
     final_obs: wp.array2d(dtype=float),
     final_mirrored: wp.array(dtype=int),
 ):
@@ -77,6 +88,7 @@ def _step_kernel(
     before[i] = potential(p, r, state.body[i], state.tanks[i])
     fuel_before[i] = wp.dot(state.tanks[i], wp.vec4(1.0))
     time_before[i] = state.time[i]
+    attitude_before[i] = state.attitude[i]
     terminal.done[i] = 0
     for j in range(OBS_DIM):
         final_obs[i, j] = 0.0
@@ -86,6 +98,7 @@ def _step_kernel(
         terminal.done[i] = 1
         terminal.status[i] = state.status[i]
         terminal.body[i] = state.body[i]
+        terminal.attitude[i] = state.attitude[i]
         terminal.tanks[i] = state.tanks[i]
         terminal.time[i] = state.time[i]
         terminal.steps[i] = state.steps[i]
@@ -111,6 +124,7 @@ def _terminal_views_kernel(
     vel: wp.array(dtype=wp.vec3),
     rot: wp.array(dtype=wp.quat),
     omega: wp.array(dtype=wp.vec3),
+    attitude: wp.array2d(dtype=float),
 ):
     i = wp.tid()
     b = terminal.body[i]
@@ -118,6 +132,13 @@ def _terminal_views_kernel(
     vel[i] = b.vel
     rot[i] = b.rot
     omega[i] = b.omega
+    a = terminal.attitude[i]
+    attitude[i, 0] = a.roll_travel
+    attitude[i, 1] = a.horizontal_travel
+    attitude[i, 2] = a.peak_roll_rate
+    attitude[i, 3] = a.peak_horizontal_rate
+    attitude[i, 4] = float(a.flips)
+    attitude[i, 5] = float(a.reflips)
 
 
 @dataclass
@@ -177,11 +198,13 @@ class RocketEnv:
         self._potential_before = zeros(wp.vec3)
         self._fuel_before = zeros()
         self._time_before = zeros()
+        self._attitude_before = zeros(Attitude)
         self._ranges = make_action_ranges(self.device)
         self.final_pos = zeros(wp.vec3)
         self.final_vel = zeros(wp.vec3)
         self.final_rot = zeros(wp.quat)
         self.final_omega = zeros(wp.vec3)
+        self.final_attitude = zeros(width=len(ATTITUDE_FIELDS))
         term = self.sim.terminal
         self.final_status, self.final_steps = term.status, term.steps
         self.final_tanks, self.final_time = term.tanks, term.time
@@ -230,6 +253,7 @@ class RocketEnv:
             self.sim.terminal.steps,
             self.sim.terminal.time,
             self.sim.terminal.body,
+            self.sim.terminal.attitude,
             self.sim.terminal.tanks,
             self.reward,
             self.terminal_reward,
@@ -242,6 +266,7 @@ class RocketEnv:
             self.final_vel,
             self.final_rot,
             self.final_omega,
+            self.final_attitude,
             self.actions,
             self.squashed_actions,
         ):
@@ -281,6 +306,7 @@ class RocketEnv:
                 self._potential_before,
                 self._fuel_before,
                 self._time_before,
+                self._attitude_before,
                 self.final_obs,
                 self.final_mirrored,
             ],
@@ -295,6 +321,7 @@ class RocketEnv:
                 self._potential_before,
                 self._fuel_before,
                 self._time_before,
+                self._attitude_before,
                 self.landing_load,
                 self.squashed_actions,
                 self.previous_actions,
@@ -308,7 +335,14 @@ class RocketEnv:
         )
         self._launch(
             _terminal_views_kernel,
-            [self.sim.terminal, self.final_pos, self.final_vel, self.final_rot, self.final_omega],
+            [
+                self.sim.terminal,
+                self.final_pos,
+                self.final_vel,
+                self.final_rot,
+                self.final_omega,
+                self.final_attitude,
+            ],
         )
         self._respawn()
         self.observe()

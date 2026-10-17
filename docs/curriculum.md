@@ -6,8 +6,8 @@
 
 - **Actions**: 3 Bernoulli engine-on heads; 8 continuous (shared throttle, shared 2-axis gimbal, 4 flaps, roll RCS) as absolute targets; actuator lag and rate limits come from the sim.
 - **Observations** (body frame, heading-invariant): up vector, velocity, pad position, angular velocity, altitude, flap angles, engine spool, throttle, gimbal, fuel fraction. Port/starboard mirror as augmentation.
-- **Reward**: γΦ(s′) − Φ(s) shaping on distance, speed above a safe descent profile and tilt near the ground; penalties on angular rate and actuator jerk; fuel and time cost; terminal landing bonus scaled by fuel left, crash penalty scaled by limit excess.
-- **Termination**: landed, crashed, out of bounds, timeout, **tumbled** (pitch > 115° from vertical, pitch/yaw rate > 40°/s, or roll rate > 90°/s) with the largest penalty.
+- **Reward**: γΦ(s′) − Φ(s) shaping on distance, speed above a safe descent profile and tilt near the ground; angular rate, jerk, fuel and time costs; fuel-scaled landing bonus, limit-excess crash penalty. Stages 5+: substep roll/horizontal travel, air-relative sideslip and reflip costs (default off).
+- **Termination**: landed, crashed, out of bounds, timeout, **tumbled** (pitch > 115° from vertical, pitch/yaw rate > 40°/s, or roll rate > 90°/s, tightened to 60°/s at stage 7 and 45°/s at stage 8) with the largest penalty.
 - **Metrics**: landing rate; touchdown speed, tilt, miss; crash and tumble breakdown by limit; reward per term; per-actuator usage and saturation; plasticity (`starship-diagnose`).
 
 ## Stages
@@ -19,7 +19,10 @@
 | 2 | low-altitude belly-flop (flip + burn) | passed (land3d_v7_kl_long, it ~4100) |
 | 3 | 3 km belly-flop | passed (land3d_v8_lam098, it ~4775) |
 | 4 | altitude, speed, offset, pitch, spin ranges | solved (land3d_v8_lam098, it ~5400: 98 % eval, 98–99 % full scenario) |
-| 5 | wind and other `docs/gaps.md` items | |
+| 5 | attitude costs at half weight; stage-4 spawns | pending |
+| 6 | attitude costs at full weight | pending |
+| 7 | roll limit 60°/s | pending |
+| 8 | roll limit 45°/s | pending |
 
 ## Findings
 

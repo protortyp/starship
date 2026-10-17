@@ -16,6 +16,15 @@ OUTCOMES = {
     "timeout": TIMEOUT,
 }
 
+ATTITUDE_METRICS = {
+    "roll_travel_deg": ("roll_travel", 180.0 / math.pi),
+    "horizontal_travel_deg": ("horizontal_travel", 180.0 / math.pi),
+    "peak_roll_rate_dps": ("peak_roll_rate", 180.0 / math.pi),
+    "peak_horizontal_rate_dps": ("peak_horizontal_rate", 180.0 / math.pi),
+    "flips": ("flips", 1.0),
+    "reflips": ("reflips", 1.0),
+}
+
 
 def body_axis_z(rot: torch.Tensor) -> torch.Tensor:
     """World z component of the body axis b1 for (N, 4) quaternions (x, y, z, w)."""
@@ -81,6 +90,10 @@ class EpisodeTracker:
                     "engine_duty": self._engine_steps[keep] / steps[:, None],
                     "action_mean": self._action_sum[keep] / steps[:, None],
                     "saturated": self._saturated[keep] / steps[:, None],
+                    **{
+                        f"attitude/{key}": getattr(env, f"final_{field}")[keep] * scale
+                        for key, (field, scale) in ATTITUDE_METRICS.items()
+                    },
                 }
             )
             self.total_episodes += int(keep.sum())
@@ -125,6 +138,12 @@ class EpisodeTracker:
             out[f"actuators/{name}_mean"] = ep["action_mean"][:, i].mean().item()
             out[f"actuators/{name}_saturated"] = ep["saturated"][:, i].mean().item()
         landed, crashed = ep["status"] == LANDED, ep["status"] == CRASHED
+        for key in ATTITUDE_METRICS:
+            values = ep[f"attitude/{key}"]
+            out[f"attitude/{key}"] = values.mean().item()
+            for subset, mask in (("landed", landed), ("crashed", crashed)):
+                if mask.any():
+                    out[f"{subset}/attitude/{key}"] = values[mask].mean().item()
         touchdown = ("vz", "vh", "tilt_deg", "rate_dps", "miss", "fuel_t")
         if landed.any():
             for key in touchdown:

@@ -9,6 +9,7 @@ from starship.sim.aero import make_aero_params
 from starship.sim.config import SimConfig
 from starship.sim.mass import make_mass_params
 from starship.sim.physics import (
+    Attitude,
     Commands,
     Params,
     SpawnParams,
@@ -141,6 +142,7 @@ class Simulator:
 
         self.state = State()
         self.state.body = zeros(Body)
+        self.state.attitude = zeros(Attitude)
         self.state.engine = zeros(EngineState)
         self.state.flaps = zeros(FlapState)
         self.state.tanks = zeros(wp.vec4)
@@ -152,6 +154,7 @@ class Simulator:
         self.terminal.done = zeros(wp.int32)
         self.terminal.status = zeros(wp.int32)
         self.terminal.body = zeros(Body)
+        self.terminal.attitude = zeros(Attitude)
         self.terminal.tanks = zeros(wp.vec4)
         self.terminal.time = zeros(float)
         self.terminal.steps = zeros(wp.int32)
@@ -188,7 +191,17 @@ class Simulator:
         src = other.state
         if other is self:
             src = State()
-            for name in ("body", "engine", "flaps", "tanks", "time", "steps", "status", "rng"):
+            for name in (
+                "body",
+                "attitude",
+                "engine",
+                "flaps",
+                "tanks",
+                "time",
+                "steps",
+                "status",
+                "rng",
+            ):
                 setattr(src, name, wp.clone(getattr(self.state, name)))
         wp.launch(
             gather_kernel, dim=self.num_envs, inputs=[sources, src, self.state], device=self.device

@@ -39,6 +39,31 @@ def test_stage_overrides_accumulate():
     assert curriculum.target_configs()[0].spawn.vertical_speed == -35.0
 
 
+def test_attitude_stages_preserve_spawns_and_resume_indices():
+    import math
+
+    cfg = compose_cfg("curriculum=landing")
+    curriculum = Curriculum(cfg, cfg.curriculum)
+    assert len(curriculum.stages) == 9
+    weights = ("roll_travel_cost", "horizontal_rotation_cost", "sideslip_cost", "reflip_cost")
+    for stage in range(5):
+        sim, reward = curriculum.configs(stage)
+        assert [getattr(reward, key) for key in weights] == [0, 0, 0, 0]
+        assert sim.max_roll_rate == pytest.approx(math.pi / 2)
+    spawn4 = curriculum.configs(4)[0].spawn
+    for stage in range(5, 9):
+        sim, reward = curriculum.configs(stage)
+        assert sim.spawn == spawn4
+        expected = [1, 1, 0.25, 2.5] if stage == 5 else [2, 2, 0.5, 5]
+        assert [getattr(reward, key) for key in weights] == expected
+        assert sim.max_roll_rate == pytest.approx(math.radians({7: 60, 8: 45}.get(stage, 90)))
+    assert 20 < 7.2 * reward.roll_travel_cost + 5.7 * reward.horizontal_rotation_cost < 30
+    assert 1.6 * reward.horizontal_rotation_cost == pytest.approx(3.2)
+    curriculum.load_state_dict({"stage": 4, "passes": 0})
+    assert curriculum.stage == 4
+    assert not curriculum.is_final
+
+
 def test_overrides_outside_sim_and_reward_are_rejected():
     cfg = two_stage()
     cfg.stages[0]["overrides"] = ["runner.algorithm.gamma=0.9"]
