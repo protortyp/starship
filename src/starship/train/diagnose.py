@@ -26,6 +26,8 @@ RIGID_UPDATE_RATIO = 1e-5
 COLLAPSE_DROP = 0.30
 ENGINE_ENTROPY_MIN = 0.05
 CRITIC_SPIKE_RATIO = 20.0
+STARVED_UPDATES = 2  # policy steps per iteration at or below which the KL stop starved it
+STARVED_SHARE_MAX = 0.30
 PROMOTION_WINDOW = 300  # iterations after a promotion that count as its transition
 
 
@@ -83,6 +85,16 @@ def run_summary(run: Path, s: dict, report: dict) -> list[str]:
     target = [v for _, v in s.get("eval/target/rate/landed", [])]
     if target:
         lines.append(f"- target eval landed: last {target[-1]:.2f}, best {max(target):.2f}")
+    updates = [v for _, v in s.get("optim/updates", [])][-200:]
+    if updates:
+        starved = float(np.mean([u <= STARVED_UPDATES for u in updates]))
+        line = f"policy updates per iteration (last {len(updates)}): mean {np.mean(updates):.1f}"
+        if starved > STARVED_SHARE_MAX:
+            line = (
+                f"WARN {line}, {starved:.0%} stopped by the KL limit after "
+                f"<= {STARVED_UPDATES} steps: one step overshoots max_kl; lower the lr"
+            )
+        lines.append(f"- {line}")
     entropy = last(s, "explore/entropy")
     lines.append(f"- policy entropy {entropy:.2f} (3 Bernoulli + 8 Gaussian heads; no fixed max)")
     for i in range(3):
@@ -121,7 +133,8 @@ def promotion_lines(s: dict, promotions: list[dict]) -> list[str]:
     steps_per_it = (iteration[-1][0] - iteration[0][0]) / max(iteration[-1][1] - iteration[0][1], 1)
     window = PROMOTION_WINDOW * steps_per_it
     lines = []
-    for e, following in zip(promotions, [*promotions[1:], None], strict=True):
+    for i, e in enumerate(promotions):
+        following = promotions[i + 1] if i + 1 < len(promotions) else None
         start = e["env_steps"]
         end = start + window if following is None else min(start + window, following["env_steps"])
         before = [v for t, v in landed if start - 20 * steps_per_it <= t < start]
