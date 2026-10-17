@@ -91,7 +91,11 @@ def blueprint() -> rrb.Blueprint:
             rrb.Vertical(
                 # Rooted at the rocket's own transform, so the camera rides along with it.
                 rrb.Spatial3DView(name="follow (rocket 0)", origin="/world/rocket/0"),
-                rrb.Spatial3DView(name="flights", origin="/world"),
+                rrb.Spatial3DView(
+                    name="flights",
+                    origin="/world",
+                    eye_controls=rrb.EyeControls3D(tracking_entity="/world/rocket/0"),
+                ),
             ),
             rrb.Vertical(
                 rrb.TimeSeriesView(name="altitude (m)", origin="/telemetry/altitude"),
