@@ -19,6 +19,7 @@ TensorBoard: `curriculum/stage` (steps at promotions), Text tab `curriculum`, `e
 
 ## Findings
 
+- Stage 0 cannot be held long enough to be promoted (curriculum run collapsed at it ~1399 exactly like stage_c_stable: same checkpoint and seed replay the same drift), so runs start at stage 1 with `curriculum.start_stage=1`.
 - Without a time cost, long runs drift into ever slower descents and collapse (stage_c at it ~1175, stage_c_stable at lr 1e-4 at it ~1399); `policy_best.pt` keeps the peak.
 - Learning from the full 3 km scenario alone fails; near-ground starts first (stage_a, stage_b) made it learnable.
 - Fixed lr 3e-4 learns; rsl_rl's adaptive schedule pinned lr at 1e-2 and stalled.
