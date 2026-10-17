@@ -247,3 +247,23 @@ def test_value_normalization_is_saved_with_checkpoints(tmp_path):
     resumed.load(str(tmp_path / "a" / "model_1.pt"))
     assert resumed.alg.value_norm.mean.item() == pytest.approx(norm.mean.item())
     assert resumed.alg.value_norm.var.item() == pytest.approx(norm.var.item())
+
+
+def test_rollback_restores_the_best_policy(tmp_path):
+    cfg = compose_cfg(*SHORT_EPISODES)
+    runner = make_runner(cfg, tmp_path)
+    runner.rollback_drop, runner.rollback_patience = 0.5, 2
+    runner.learn(2)
+    best = torch.load(tmp_path / "model_best.pt", weights_only=False)["actor_state_dict"]
+    runner.learn(1)
+    runner.best_eval = (0, 1.0, 1e9)  # pretend the best eval landed everything
+    steps = runner.total_env_steps
+    runner._maybe_roll_back(3, {"eval/env/rate/landed": 0.0})
+    assert runner.rollbacks == 0
+    runner._maybe_roll_back(4, {"eval/env/rate/landed": 0.0})
+    assert runner.rollbacks == 1
+    restored = runner.alg.get_policy().state_dict()
+    assert all(torch.equal(restored[k], v) for k, v in best.items())
+    assert runner.total_env_steps == steps
+    runner._maybe_roll_back(5, {"eval/env/rate/landed": 0.9})
+    assert runner._below_best == 0

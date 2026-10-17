@@ -61,6 +61,8 @@ class StarshipRunner(OnPolicyRunner):
         verbose: bool = True,
         curriculum: Curriculum | None = None,
         target_eval_env: RslRocketEnv | None = None,
+        rollback_drop: float = 0.0,
+        rollback_patience: int = 2,
     ):
         # rsl_rl's own logger stays disabled; this runner writes its own TensorBoard metrics.
         super().__init__(env, train_cfg, log_dir=None, device=device)
@@ -79,6 +81,13 @@ class StarshipRunner(OnPolicyRunner):
         self.verbose = verbose
         self.curriculum = curriculum
         self.target_eval_env = target_eval_env
+        # Roll back to model_best.pt when the stage's eval landing rate stays this far below the
+        # stage's best for `rollback_patience` evals; PPO runs here occasionally collapse into
+        # hovering and do not recover. 0 disables it.
+        self.rollback_drop = rollback_drop
+        self.rollback_patience = rollback_patience
+        self._below_best = 0
+        self.rollbacks = 0
         if curriculum is not None:
             self._apply_stage()
 
@@ -162,6 +171,7 @@ class StarshipRunner(OnPolicyRunner):
                 eval_metrics = self.evaluate()
                 self._keep_best(it, eval_metrics)
                 metrics.update(eval_metrics)
+                self._maybe_roll_back(it, eval_metrics)
                 if self.target_eval_env is not None:
                     metrics.update(self.evaluate(self.target_eval_env, "eval/target"))
                 if self.curriculum is not None and self.curriculum.observe_eval(
@@ -169,6 +179,7 @@ class StarshipRunner(OnPolicyRunner):
                 ):
                     self._promote(it)
                 t_eval = time.perf_counter() - t_eval
+            metrics["train/rollbacks"] = float(self.rollbacks)
             if self.curriculum is not None:
                 metrics["curriculum/stage"] = float(self.curriculum.stage)
                 metrics["curriculum/passes"] = float(self.curriculum.passes)
@@ -247,6 +258,31 @@ class StarshipRunner(OnPolicyRunner):
                 f"iteration {it}\nstage {stage}\nlanded {score[1]:.3f}\nreturn {score[2]:.2f}\n"
             )
         m["eval/best_landed"] = self.best_eval[1]
+
+    def _maybe_roll_back(self, it: int, m: dict[str, float]) -> None:
+        if self.rollback_drop <= 0.0 or self.best_eval is None or "eval/env/rate/landed" not in m:
+            return
+        stage = self.curriculum.stage if self.curriculum is not None else 0
+        best_stage, best_landed, _ = self.best_eval
+        if best_stage != stage or m["eval/env/rate/landed"] > best_landed - self.rollback_drop:
+            self._below_best = 0
+            return
+        self._below_best += 1
+        if self._below_best < self.rollback_patience:
+            return
+        self._below_best = 0
+        self.rollbacks += 1
+        steps, next_it = self.total_env_steps, self.next_iteration
+        self.load(str(self.log_dir / "model_best.pt"))
+        # Keep counting forward; only the weights, optimizer and curriculum stage roll back.
+        self.total_env_steps, self.next_iteration = steps, next_it
+        self.writer.add_text(
+            "rollback",
+            f"rollback {self.rollbacks} at iteration {it}: eval landed "
+            f"{m['eval/env/rate/landed']:.2f} vs best {best_landed:.2f} in stage {stage}",
+            self.total_env_steps,
+        )
+        print(f"rollback {self.rollbacks}: restored model_best.pt at iteration {it}")
 
     def save_all(self, it: int) -> None:
         self.save(str(self.log_dir / f"model_{it}.pt"))
