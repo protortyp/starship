@@ -15,9 +15,14 @@ THRUSTER_BITS = (MAIN, LEFT, RIGHT)
 HEAD_NAMES = ("main", "left", "right")
 
 
-def actions_to_bitmask(actions: torch.Tensor) -> torch.Tensor:
+def actions_to_bitmask(actions: torch.Tensor, mirrored: torch.Tensor | None = None) -> torch.Tensor:
+    """Policy outputs to thruster bits; in mirrored episodes left and right swap places."""
     bits = torch.tensor(THRUSTER_BITS, dtype=torch.int32, device=actions.device)
-    return ((actions > 0.5).int() * bits).sum(dim=-1, dtype=torch.int32)
+    mask = ((actions > 0.5).int() * bits).sum(dim=-1, dtype=torch.int32)
+    if mirrored is None:
+        return mask
+    swapped = (mask & MAIN) | ((mask & LEFT) << 1) | ((mask & RIGHT) >> 1)
+    return torch.where(mirrored.bool(), swapped, mask)
 
 
 class RslRocketEnv(VecEnv):
@@ -36,6 +41,7 @@ class RslRocketEnv(VecEnv):
         # Zero-copy views of persistent Warp buffers, overwritten in place on every step.
         term = env.sim.terminal
         self.episode_length_buf = wp.to_torch(env.sim.state.steps)
+        self._mirrored = wp.to_torch(env.sim.state.mirrored)
         self.reward = wp.to_torch(env.reward)
         self.terminal_reward = wp.to_torch(env.terminal_reward)
         self.final_status = wp.to_torch(term.status)
@@ -66,7 +72,7 @@ class RslRocketEnv(VecEnv):
         return self._observations()
 
     def step(self, actions: torch.Tensor) -> tuple[TensorDict, torch.Tensor, torch.Tensor, dict]:
-        self.actions.copy_(actions_to_bitmask(actions))
+        self.actions.copy_(actions_to_bitmask(actions, self._mirrored))
         self.env.step(wp.from_torch(self.actions))
         truncated = self._truncated.bool()
         dones = self._terminated.bool() | truncated

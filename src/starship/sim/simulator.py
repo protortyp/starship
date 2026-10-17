@@ -69,6 +69,7 @@ class Simulator:
         self.state.status = zeros(wp.int32)
         self.state.steps = zeros(wp.int32)
         self.state.fuel = zeros(float)
+        self.state.mirrored = zeros(wp.int32)
         self.state.rng = zeros(wp.uint32)
 
         self.terminal = Terminal()
@@ -80,6 +81,7 @@ class Simulator:
         self.terminal.omega = zeros(float)
         self.terminal.steps = zeros(wp.int32)
         self.terminal.fuel = zeros(float)
+        self.terminal.mirrored = zeros(wp.int32)
 
         self.actions = zeros(wp.int32)
         self._all_envs = wp.ones(num_envs, dtype=wp.int32, device=self.device)
