@@ -68,7 +68,7 @@ def tb_port(state: dict) -> int:
 
 def free_tb_port() -> int:
     """Local tunnel port not used by another named instance."""
-    used = {json.loads(p.read_text()).get("tb_port") for p in STATE_DIR.glob("*.json")}
+    used = {tb_port(json.loads(p.read_text())) for p in STATE_DIR.glob("*.json")}
     port = TB_LOCAL_PORT
     while port in used:
         port += 1
