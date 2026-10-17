@@ -331,3 +331,27 @@ def test_easy_spawn_fraction(fraction):
     sim = make_sim(num_envs=2000, easy_spawn_fraction=fraction)
     easy = np.abs(sim.snapshot().theta) < 1.0
     assert easy.mean() == pytest.approx(fraction, abs=0.04)
+
+
+def test_mirrored_spawns_flip_half_the_rockets():
+    spawn = SpawnConfig(x=200.0, vx=15.0, x_noise=50.0, vx_noise=5.0, theta_noise=0.3, mirror=True)
+    s = make_sim(num_envs=2000, spawn=spawn).snapshot()
+    nose_left = s.theta > 0
+    assert nose_left.mean() == pytest.approx(0.5, abs=0.04)
+    # Mirroring flips position, velocity and attitude together.
+    assert np.all((s.pos[:, 0] > 0) == nose_left)
+    assert np.all((s.vel[:, 0] > 0) == nose_left)
+
+
+def test_mirrored_dynamics_are_symmetric():
+    base = SpawnConfig(x=120.0, vx=8.0, y=2000.0, vy=-60.0, theta=1.3, omega=0.05)
+    mirrored = replace(base, x=-120.0, vx=-8.0, theta=-1.3, omega=-0.05)
+    a, b = make_sim(spawn=base), make_sim(spawn=mirrored)
+    for k in range(60):
+        action = [MAIN, LEFT, RIGHT, MAIN | LEFT][k % 4]
+        swapped = action ^ (LEFT | RIGHT) if action & (LEFT | RIGHT) in (LEFT, RIGHT) else action
+        a.step(action)
+        b.step(swapped)
+    sa, sb = a.snapshot(), b.snapshot()
+    np.testing.assert_allclose(sa.pos[0] * [-1, 1], sb.pos[0], rtol=1e-4, atol=1e-3)
+    assert sa.theta[0] == pytest.approx(-sb.theta[0], abs=1e-5)

@@ -129,6 +129,9 @@ class SpawnConfig:
     vy_noise: float = 0.0
     theta_noise: float = 0.0
     omega_noise: float = 0.0
+    # Mirror half of the spawns about the vertical axis (x, vx, theta, omega change sign), e.g.
+    # nose left vs. nose right; the problem is left/right symmetric.
+    mirror: bool = False
 
     @classmethod
     def near_ground(cls) -> "SpawnConfig":
@@ -202,6 +205,7 @@ class SpawnParams:
     vel_noise: wp.vec2
     theta_noise: float
     omega_noise: float
+    mirror: int
 
 
 def make_spawn_params(s: SpawnConfig) -> SpawnParams:
@@ -214,6 +218,7 @@ def make_spawn_params(s: SpawnConfig) -> SpawnParams:
     sp.vel_noise = wp.vec2(s.vx_noise, s.vy_noise)
     sp.theta_noise = s.theta_noise
     sp.omega_noise = s.omega_noise
+    sp.mirror = int(s.mirror)
     return sp
 
 
