@@ -8,7 +8,7 @@ from rsl_rl.algorithms import PPO
 from torch import nn
 
 from starship.train import diagnostics as diag
-from starship.train.rsl_env import HEAD_NAMES
+from starship.train.actions import ACTION_DIM, ENGINE_HEADS, HEAD_NAMES
 
 
 def _norm(tensors) -> float:
@@ -238,11 +238,16 @@ class InstrumentedPPO(PPO):
                 add("explore/entropy", entropy_bonus.item())
                 distribution = self.actor.distribution
                 if hasattr(distribution, "entropy_per_head"):
-                    per_head = distribution.entropy_per_head.reshape(-1, len(HEAD_NAMES))
-                    probs = distribution.mean.reshape(-1, len(HEAD_NAMES))
+                    per_head = distribution.entropy_per_head.reshape(-1, ACTION_DIM).mean(0)
+                    # Engine heads: on-probability; continuous heads: Gaussian std (pre-tanh).
+                    on_prob = distribution.mean.reshape(-1, ACTION_DIM)[:, :ENGINE_HEADS].mean(0)
+                    std = distribution.std.reshape(-1, ACTION_DIM)[:, ENGINE_HEADS:].mean(0)
                     for i, head in enumerate(HEAD_NAMES):
-                        add(f"explore/entropy_head/{head}", per_head[:, i].mean().item())
-                        add(f"explore/fire_prob/{head}", probs[:, i].mean().item())
+                        add(f"explore/entropy_head/{head}", per_head[i].item())
+                        if i < ENGINE_HEADS:
+                            add(f"explore/on_prob/{head}", on_prob[i].item())
+                        else:
+                            add(f"explore/std/{head}", std[i - ENGINE_HEADS].item())
                 add("optim/grad_norm/policy", actor_grad.item())
                 add("optim/grad_norm/critic", critic_grad.item())
             num_updates += 1
