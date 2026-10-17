@@ -117,7 +117,7 @@ def potential(env: RocketEnv, pos, vel, theta) -> float:
     )
     return -(
         w.distance_weight * math.hypot(pos[0], h) / 1000.0
-        + w.speed_weight * float(np.linalg.norm(vel))
+        + w.speed_weight * float(np.linalg.norm(vel)) * math.exp(-h / w.speed_fade_altitude)
         + w.tilt_weight * abs(theta) * math.exp(-h / w.tilt_fade_altitude)
     )
 
@@ -246,3 +246,18 @@ def test_configs_can_change_in_place():
     reference.reset()
     baseline = reference.step(np.zeros(4, dtype=np.int32)).reward.numpy()
     np.testing.assert_allclose(reward - baseline, -10.0 * SimConfig().policy_dt, rtol=1e-4)
+
+
+def test_braking_high_up_earns_no_shaping():
+    def braking_gain(altitude):
+        """Reward of braking minus reward of coasting for one step."""
+        rewards = []
+        for action in (MAIN, 0):
+            env = make_env(world=ZERO_G_VACUUM, spawn=SpawnConfig(y=altitude, vy=-80.0, theta=0.0))
+            env.reset()
+            rewards.append(env.step(np.full(1, action, dtype=np.int32)).reward.numpy()[0])
+        return rewards[0] - rewards[1]
+
+    # The main engine slows the descent by ~1.7 m/s per step; that only pays off near the ground.
+    assert abs(braking_gain(3000.0)) < 0.01
+    assert braking_gain(100.0) > 0.1
