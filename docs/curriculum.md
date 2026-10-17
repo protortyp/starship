@@ -20,15 +20,19 @@
 | 2 | low-altitude belly-flop (flip + burn) | passed (land3d_v7_kl_long, it ~4100) |
 | 3 | 3 km belly-flop | passed (land3d_v8_lam098, it ~4775) |
 | 4 | altitude, speed, offset, pitch, spin ranges | solved (land3d_v8_lam098, it ~5400: 98 % eval, 98–99 % full scenario) |
-| 5 | attitude costs at half weight; stage-4 spawns | pending |
-| 6 | attitude costs at full weight | pending |
-| 7 | roll limit 60°/s | pending |
-| 8 | roll limit 45°/s | pending |
-| 9 | bounded distance potential, stage-8 spawns | pending |
-| 10 | 5 km forward handover, 110 ±5 m/s at 65 ±6° (34–59 m/s horizontal) | pending |
-| 11 | 8 km handover, 200 ±10 m/s at 60 ±5° | pending |
-| 12 | 12 km handover, otherwise unchanged | pending |
-| 13 | 20 km handover, 280 ±10 m/s at 64 ±3° (IFT-5 target) | pending |
+| 5 | attitude costs at half weight; stage-4 spawns | passed (attitude_v1, it ~6725) |
+| 6 | attitude costs at full weight | passed (attitude_v1, it ~6800) |
+| 7 | roll limit 60°/s | passed (attitude_v1, it ~7050) |
+| 8 | roll limit 45°/s | training (attitude_v1: ~97 % eval, roll travel 389° → 188°) |
+| 9 | light wind: surface 0–5 m/s, light Dryden turbulence | |
+| 10 | moderate wind: 0–10 m/s, moderate turbulence, 6 m/s gusts | |
+| 11 | strong wind: 0–15 m/s, 9 m/s gusts | |
+| 12 | vortex shedding and flap force noise | |
+| 13 | bounded distance potential, same spawns | |
+| 14 | 5 km forward handover, 110 ±5 m/s at 65 ±6° (34–59 m/s horizontal) | |
+| 15 | 8 km handover, 200 ±10 m/s at 60 ±5° | |
+| 16 | 12 km handover | |
+| 17 | 20 km handover, 280 ±10 m/s at 64 ±3° (IFT-5 target) | |
 
 ## Findings
 

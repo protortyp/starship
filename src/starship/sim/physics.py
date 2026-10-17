@@ -3,6 +3,7 @@
 Each env runs `substeps` physics steps per control step with its commands held. An episode ends
 when the hull touches the ground (landed or crashed), leaves the bounds, or times out; with
 auto-reset the final state goes to the terminal buffers and the env respawns in the same launch.
+Aerodynamics act on the air-relative velocity (`starship.sim.wind`); ground speed is the state.
 """
 
 import warp as wp
@@ -24,6 +25,14 @@ from starship.sim.propulsion import (
 )
 from starship.sim.rigid import Body, gravity, integrate
 from starship.sim.types import add_wrench
+from starship.sim.wind import (
+    WindParams,
+    WindState,
+    flap_gain,
+    sample_wind,
+    unsteady_step,
+    wind_step,
+)
 
 FLYING = 0
 LANDED = 1
@@ -127,6 +136,7 @@ class Params:
     mass: MassParams
     propulsion: PropulsionParams
     aero: AeroParams
+    wind: WindParams
 
 
 @wp.struct
@@ -151,6 +161,8 @@ class State:
     status: wp.array(dtype=wp.int32)
     # Per-env random stream, advanced on every respawn.
     rng: wp.array(dtype=wp.uint32)
+    # Wind sample and filter states, with their own stream inside.
+    wind: wp.array(dtype=WindState)
 
 
 @wp.struct
@@ -164,6 +176,7 @@ class Terminal:
     tanks: wp.array(dtype=wp.vec4)
     time: wp.array(dtype=float)
     steps: wp.array(dtype=wp.int32)
+    wind: wp.array(dtype=WindState)
 
 
 @wp.func
@@ -253,6 +266,7 @@ def spawn(p: Params, s: State, tid: int):
     s.steps[tid] = 0
     s.status[tid] = FLYING
     s.rng[tid] = rng
+    s.wind[tid] = sample_wind(p.wind, s.wind[tid].rng, alt)
 
 
 @wp.func
@@ -308,6 +322,7 @@ def advance(p: Params, s: State, c: Commands, tid: int):
     e = s.engine[tid]
     f = s.flaps[tid]
     tanks = s.tanks[tid]
+    ws = s.wind[tid]
     t = s.time[tid]
     status = int(FLYING)
     for _ in range(p.substeps):
@@ -325,8 +340,18 @@ def advance(p: Params, s: State, c: Commands, tid: int):
             oxidizer > 0.0 and fuel > 0.0,
         )
         f = flap_step(p.propulsion, f, c.flaps[tid])
-        v_air = wp.quat_rotate_inv(b.rot, b.vel)
-        w = aero_wrench(p.aero, v_air, b.omega, mp.com, f.angle, air)
+        v_air_world = b.vel
+        if p.wind.active != 0:
+            ws = wind_step(p.wind, ws, b.pos, b.vel, p.dt)
+            v_air_world = b.vel - ws.wind
+        v_air = wp.quat_rotate_inv(b.rot, v_air_world)
+        shed = wp.vec2(0.0)
+        gain = wp.vec4(1.0)
+        if p.wind.unsteady != 0:
+            ws = unsteady_step(p.wind, ws, v_air, p.dt)
+            shed = wp.vec2(p.wind.shedding_amplitude, ws.shed_phase)
+            gain = flap_gain(ws)
+        w = aero_wrench(p.aero, v_air, b.omega, mp.com, f.angle, air, shed, gain)
         mdot = engine_mass_flow(p.propulsion, e)
         supply = burn_fraction(p.propulsion, tanks, mdot, p.dt)
         thrust = engine_wrench(p.propulsion, e, air.pressure, mp.com)
@@ -363,6 +388,7 @@ def advance(p: Params, s: State, c: Commands, tid: int):
     s.engine[tid] = e
     s.flaps[tid] = f
     s.tanks[tid] = tanks
+    s.wind[tid] = ws
     s.time[tid] = t
     s.steps[tid] = s.steps[tid] + 1
     s.status[tid] = status
@@ -383,13 +409,14 @@ def step_kernel(p: Params, auto_reset: int, c: Commands, s: State, term: Termina
         term.tanks[tid] = s.tanks[tid]
         term.time[tid] = s.time[tid]
         term.steps[tid] = s.steps[tid]
+        term.wind[tid] = s.wind[tid]
         if auto_reset != 0:
             spawn(p, s, tid)
 
 
 @wp.kernel
 def gather_kernel(sources: wp.array(dtype=wp.int32), src: State, dst: State):
-    """dst[i] = src[sources[i]] for everything but the random stream, so copies diverge."""
+    """dst[i] = src[sources[i]] for everything but the random streams, so copies diverge."""
     tid = wp.tid()
     j = sources[tid]
     dst.body[tid] = src.body[j]
@@ -400,6 +427,9 @@ def gather_kernel(sources: wp.array(dtype=wp.int32), src: State, dst: State):
     dst.time[tid] = src.time[j]
     dst.steps[tid] = src.steps[j]
     dst.status[tid] = src.status[j]
+    wind = src.wind[j]
+    wind.rng = dst.wind[tid].rng
+    dst.wind[tid] = wind
 
 
 @wp.kernel

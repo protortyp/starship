@@ -312,14 +312,21 @@ def aero_wrench(
     com: float,
     flap_angle: wp.vec4,
     air: Air,
+    shed: wp.vec2,
+    flap_gain: wp.vec4,
 ) -> Wrench:
-    """Body force and torque about CoM; angles are actual flap positions in radians."""
+    """Body force and torque about CoM; v_air is the air-relative velocity, angles are actual
+    flap positions in radians. `shed` is (amplitude fraction, phase) of the vortex-shedding side
+    force and `flap_gain` multiplies each flap force; (0, 0) and ones leave the loads untouched."""
     force = wp.vec3(0.0)
     torque = wp.vec3(0.0)
     speed = wp.length(v_air)
     mach = speed / air.speed_of_sound
     cp_max = _interpolate(p.mach_table, mach, 1)
     newton = _interpolate(p.mach_table, mach, 2)
+    shed_sin = 0.0
+    if shed[0] > 0.0:
+        shed_sin = shed[0] * wp.sin(shed[1])
 
     for i in range(p.strip_station.shape[0]):
         r = wp.vec3(p.strip_station[i] - com, 0.0, 0.0)
@@ -338,6 +345,12 @@ def aero_wrench(
             weight = 1.0 - newton
         # TR R-474 strip crossflow: speed * velocity avoids dividing by zero at rest.
         f = -0.5 * air.density * weight * eta * cdn * p.strip_area[i] * crossflow_speed * crossflow
+        if shed_sin != 0.0:
+            # Alternating side force of the Karman street, perpendicular to the crossflow in the
+            # b2-b3 plane, scaled from this strip's crossflow drag [46]; one phase for the whole
+            # hull, so it also acts as a yaw/pitch torque about the CoM.
+            drag = 0.5 * air.density * weight * eta * cdn * p.strip_area[i] * crossflow_speed
+            f = f + (shed_sin * drag) * wp.cross(wp.vec3(1.0, 0.0, 0.0), crossflow)
         if slope > 0.0 and newton > 0.0:
             local_speed = wp.length(local)
             if local_speed > 0.0:
@@ -401,6 +414,7 @@ def aero_wrench(
             pressure = -wp.sign(vn) * 0.5 * air.density * local_speed * local_speed * exposed
             f = pressure * p.flap_area[i] * cn * normal
             f = f * p.flap_force_scale
+            f = f * flap_gain[i]
             force = force + f
             torque = torque + wp.cross(r, f)
 
@@ -418,10 +432,14 @@ def _sample_kernel(
     com: wp.array(dtype=float),
     angles: wp.array(dtype=wp.vec4),
     altitude: wp.array(dtype=float),
+    shed: wp.array(dtype=wp.vec2),
+    flap_gain: wp.array(dtype=wp.vec4),
     out: wp.array2d(dtype=float),
 ):
     i = wp.tid()
-    wrench = aero_wrench(p, velocity[i], omega[i], com[i], angles[i], atmosphere(altitude[i]))
+    wrench = aero_wrench(
+        p, velocity[i], omega[i], com[i], angles[i], atmosphere(altitude[i]), shed[i], flap_gain[i]
+    )
     for j in range(3):
         out[i, j] = wrench.force[j]
         out[i, j + 3] = wrench.torque[j]
@@ -434,6 +452,8 @@ def sample(
     com=26.0,
     flap_angle=(math.pi / 4,) * 4,
     altitude=0.0,
+    shed=(0.0, 0.0),
+    flap_gain=(1.0,) * 4,
     cfg: VehicleConfig | None = None,
     device: str | None = None,
 ):
@@ -456,6 +476,8 @@ def sample(
         array(com, (n,), float),
         array(flap_angle, (n, 4), wp.vec4),
         array(altitude, (n,), float),
+        array(shed, (n, 2), wp.vec2),
+        array(flap_gain, (n, 4), wp.vec4),
     ]
     out = wp.zeros((n, 6), dtype=float, device=device)
     wp.launch(_sample_kernel, dim=n, inputs=[*inputs, out], device=device)

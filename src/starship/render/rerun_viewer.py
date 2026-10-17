@@ -157,6 +157,17 @@ def log_step(cfg, s, flaps, trails, mass_params, first=0, shift=(0.0, 0.0, 0.0),
     # After rocket 0's episode ends its env may respawn elsewhere; the camera stays where it ended.
     if first == 0 and trails[0] is not None:
         rr.log("world/chase", rr.Transform3D(translation=s.pos[0] + shift))
+        if np.any(s.wind[0]):
+            # Air velocity at rocket 0, drawn beside it at 10 m per m/s.
+            rr.log(
+                "world/wind",
+                rr.Arrows3D(
+                    origins=[s.pos[0] + shift + (0.0, 0.0, 40.0)],
+                    vectors=[10.0 * s.wind[0]],
+                    colors=[(120, 220, 255)],
+                    labels=[f"wind {np.linalg.norm(s.wind[0]):.1f} m/s"],
+                ),
+            )
     for i in range(n):
         if trails[i] is None:
             continue

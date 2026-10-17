@@ -5,6 +5,7 @@ import pytest
 import torch
 from omegaconf import OmegaConf
 
+from starship.sim import SimConfig
 from starship.train.curriculum import Curriculum, CurriculumConfig
 from starship.train.runner import StarshipRunner
 from tests.test_train import SHORT_EPISODES, collect, compose_cfg, make_env
@@ -44,7 +45,7 @@ def test_attitude_stages_preserve_spawns_and_resume_indices():
 
     cfg = compose_cfg("curriculum=landing")
     curriculum = Curriculum(cfg, cfg.curriculum)
-    assert len(curriculum.stages) == 14
+    assert len(curriculum.stages) == 18
     weights = ("roll_travel_cost", "horizontal_rotation_cost", "sideslip_cost", "reflip_cost")
     for stage in range(5):
         sim, reward = curriculum.configs(stage)
@@ -59,6 +60,12 @@ def test_attitude_stages_preserve_spawns_and_resume_indices():
         assert sim.max_roll_rate == pytest.approx(math.radians({7: 60, 8: 45}.get(stage, 90)))
     assert 20 < 7.2 * reward.roll_travel_cost + 5.7 * reward.horizontal_rotation_cost < 30
     assert 1.6 * reward.horizontal_rotation_cost == pytest.approx(3.2)
+    assert curriculum.configs(8)[0].wind == SimConfig().wind
+    for stage, speed, turbulence in ((9, 5, 1), (10, 10, 2), (11, 15, 2), (12, 15, 2)):
+        sim, _ = curriculum.configs(stage)
+        assert sim.spawn == spawn4
+        assert (sim.wind.surface_speed, sim.wind.turbulence) == (speed, turbulence)
+        assert (sim.wind.shedding_amplitude > 0) == (sim.wind.flap_noise > 0) == (stage == 12)
     curriculum.load_state_dict({"stage": 4, "passes": 0})
     assert curriculum.stage == 4
     assert not curriculum.is_final

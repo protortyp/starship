@@ -61,7 +61,7 @@ def test_entry_noise_and_rng_are_reproducible():
     assert np.std(error) > 0.02
 
 
-@pytest.mark.parametrize("stage", [10, 11, 12, 13])
+@pytest.mark.parametrize("stage", [14, 15, 16, 17])
 def test_entry_placement_reaches_flip_corridor_in_reference_glide(stage):
     cfg = test_train.compose_cfg("curriculum=landing")
     sim_cfg, _ = Curriculum(cfg, cfg.curriculum).configs(stage)
@@ -156,16 +156,16 @@ def test_old_observation_channels_unchanged_below_clamp_and_new_scales():
 def test_entry_stages_preserve_legacy_and_raise_handover():
     cfg = test_train.compose_cfg("curriculum=landing")
     curriculum = Curriculum(cfg, cfg.curriculum)
-    for stage in range(9):
+    for stage in range(13):
         sim, reward = curriculum.configs(stage)
         assert not sim.spawn.entry
         assert reward.distance_saturation == 0
-    assert curriculum.configs(9)[0] == curriculum.configs(8)[0]
+    assert curriculum.configs(13)[0] == curriculum.configs(12)[0]
     for stage, altitude, speed, angle in [
-        (10, 5000, 110, 65),
-        (11, 8000, 200, 60),
-        (12, 12000, 200, 60),
-        (13, 20000, 280, 64),
+        (14, 5000, 110, 65),
+        (15, 8000, 200, 60),
+        (16, 12000, 200, 60),
+        (17, 20000, 280, 64),
     ]:
         sim, reward = curriculum.configs(stage)
         assert sim.spawn.entry

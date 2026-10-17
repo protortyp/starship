@@ -183,6 +183,45 @@ class SpawnConfig:
 
 
 @dataclass
+class WindConfig:
+    """Wind, turbulence and unsteady-aero noise, sampled per episode from a separate random stream.
+    Every default is off; values and sources in docs/starship.md [40]-[47].
+
+    Mean wind: speed at 10 m uniform in [surface_speed_min, surface_speed] from a direction of
+    direction +- direction_noise; power-law shear up to boundary_layer, then linear in the vector
+    to the jet maximum at jet_height (speed uniform in [jet_speed_min, jet_speed], direction offset
+    +- jet_direction_noise from the surface wind), falling linearly to zero jet_decay above it.
+    Turbulence: Dryden (MIL-F-8785C) with the severity level uniform in [turbulence_min,
+    turbulence]; 1 light (W20 15 kt), 2 moderate (30 kt), 3 severe (45 kt), interpolated between.
+    Gusts: horizontal 1-cosine pulses of amplitude uniform in [0, gust_speed] and length
+    gust_width x U(0.5, 1.5), starting at random with a mean interval of gust_interval seconds.
+    Shedding: hull side force of shedding_amplitude x the strip crossflow drag at St x V_n / D.
+    Flap noise: multiplicative first-order noise of flap_noise rms on every flap force."""
+
+    surface_speed: float = 0.0  # m/s at 10 m
+    surface_speed_min: float = 0.0
+    direction: float = 0.0  # rad from +x towards +y, the direction the air moves to
+    direction_noise: float = math.pi
+    shear_exponent: float = 0.14  # coastal land; 0.11 open water, 0.20 KSC design
+    shear_exponent_noise: float = 0.0
+    boundary_layer: float = 1000.0  # m
+    jet_speed: float = 0.0
+    jet_speed_min: float = 0.0
+    jet_height: float = 12_000.0
+    jet_decay: float = 10_000.0
+    jet_direction_noise: float = math.pi
+    turbulence: float = 0.0
+    turbulence_min: float = 0.0
+    gust_speed: float = 0.0
+    gust_width: float = 150.0  # m, full length of the pulse
+    gust_interval: float = 20.0  # s
+    shedding_amplitude: float = 0.0
+    shedding_strouhal: float = 0.2
+    flap_noise: float = 0.0  # rms fraction of the flap force
+    flap_noise_time: float = 0.2  # s, correlation time (St ~ 0.1 on the 9 m aft chord at 85 m/s)
+
+
+@dataclass
 class LandingConfig:
     pad_radius: float = 15.0
     max_vertical_speed: float = 2.0
@@ -196,6 +235,7 @@ class SimConfig:
     vehicle: VehicleConfig = field(default_factory=VehicleConfig)
     spawn: SpawnConfig = field(default_factory=SpawnConfig)
     landing: LandingConfig = field(default_factory=LandingConfig)
+    wind: WindConfig = field(default_factory=WindConfig)
     dt: float = 0.01
     substeps: int = 10  # physics steps per control step
     max_time: float = 180.0

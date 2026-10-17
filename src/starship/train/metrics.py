@@ -94,6 +94,8 @@ class EpisodeTracker:
                         f"attitude/{key}": getattr(env, f"final_{field}")[keep] * scale
                         for key, (field, scale) in ATTITUDE_METRICS.items()
                     },
+                    "wind/surface_speed": env.final_wind_speed[keep],
+                    "wind/turbulence": env.final_turbulence[keep],
                 }
             )
             self.total_episodes += int(keep.sum())
@@ -144,6 +146,18 @@ class EpisodeTracker:
             for subset, mask in (("landed", landed), ("crashed", crashed)):
                 if mask.any():
                     out[f"{subset}/attitude/{key}"] = values[mask].mean().item()
+        wind_cfg = self.env.env.config.wind
+        if wind_cfg.surface_speed > 0 or wind_cfg.turbulence > 0:
+            for key in ("wind/surface_speed", "wind/turbulence"):
+                out[key] = ep[key].mean().item()
+                for subset, mask in (("landed", landed), ("crashed", crashed)):
+                    if mask.any():
+                        out[f"{subset}/{key}"] = ep[key][mask].mean().item()
+            # Landing rate in the calmer and the windier half of the configured range.
+            windy = ep["wind/surface_speed"] > 0.5 * wind_cfg.surface_speed
+            for name, mask in (("calm", ~windy), ("windy", windy)):
+                if mask.any():
+                    out[f"rate/landed_{name}"] = landed[mask].float().mean().item()
         touchdown = ("vz", "vh", "tilt_deg", "rate_dps", "miss", "fuel_t")
         if landed.any():
             for key in touchdown:
