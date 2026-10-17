@@ -28,6 +28,10 @@ class EvalRecorder:
         path.parent.mkdir(parents=True, exist_ok=True)
         self.rec = rr.RecordingStream("starship")
         self.rec.save(path, default_blueprint=blueprint(self.cfg))
+        # Run dirs are logs/<experiment>/<time>/rerun/<file>; the name tells recordings apart
+        # when several are open in one viewer.
+        run = path.parent.parent
+        self.rec.send_recording_name(f"{run.parent.name} {path.stem}")
         self.frozen = np.zeros(self.n, dtype=bool)
         self.final = {f: getattr(self.sim.snapshot(), f)[: self.n].copy() for f in FIELDS}
         self.trail: list = []
