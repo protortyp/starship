@@ -6,6 +6,7 @@ from typing import Any
 from hydra.core.config_store import ConfigStore
 
 from starship.sim import SimConfig
+from starship.train.curriculum import CurriculumConfig
 from starship.train.encoding import ObsConfig
 from starship.train.reward import RewardConfig
 
@@ -25,6 +26,7 @@ class TrainConfig:
     obs: ObsConfig = field(default_factory=ObsConfig)
     reward: RewardConfig = field(default_factory=RewardConfig)
     runner: dict[str, Any] = field(default_factory=dict)
+    curriculum: CurriculumConfig = field(default_factory=CurriculumConfig)
 
 
 ConfigStore.instance().store(name="train_schema", node=TrainConfig)
