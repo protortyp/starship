@@ -3,6 +3,7 @@ telemetry.
 
     uv run starship-rerun                         # 8 passive belly-flops from 3 km, live viewer
     uv run starship-rerun --save out/run.rrd      # record to a file instead
+    uv run starship-rerun --schedule out/cem_best.npz   # replay a planned trajectory
 """
 
 import argparse
@@ -196,13 +197,23 @@ def main() -> None:
     parser.add_argument(
         "--save", default=None, help="write an .rrd file instead of spawning a viewer"
     )
+    parser.add_argument("--schedule", default=None, help="replay a starship.plan.cem schedule")
     args = parser.parse_args()
 
     cfg = SimConfig()
     cfg.spawn.altitude = args.altitude
     cfg.spawn.offset_noise = args.offset_noise
     cfg.spawn.pitch_noise = math.radians(5.0)
+    schedule = None
+    if args.schedule:
+        # The planner flies one env from the default spawn with seed 0; match it exactly.
+        cfg.spawn.offset_noise = cfg.spawn.pitch_noise = 0.0
+        args.envs, args.seed = 1, 0
     sim = Simulator(args.envs, cfg, device=args.device, seed=args.seed)
+    if args.schedule:
+        from starship.plan.cem import ScheduleReplay
+
+        schedule = ScheduleReplay(args.schedule, sim)
     rr.init("starship", default_blueprint=blueprint())
     if args.save:
         rr.save(args.save, default_blueprint=blueprint())
@@ -221,6 +232,8 @@ def main() -> None:
         log_step(cfg, sim, flaps, trails, mass_params)
         if all(t is None for t in trails):
             break
+        if schedule is not None:
+            schedule.apply(k * cfg.dt * cfg.substeps)
         sim.step()
 
 

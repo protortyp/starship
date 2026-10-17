@@ -61,6 +61,27 @@ def schedule_kernel(
     c.rcs[i] = 0.0
 
 
+class ScheduleReplay:
+    """Applies a saved schedule to every env of a simulator, e.g. for visualisation."""
+
+    def __init__(self, path: str, sim: Simulator):
+        saved = np.load(path)
+        n = sim.num_envs
+        self.sim = sim
+        self.interval = float(saved["knot_interval"])
+        knots = np.broadcast_to(saved["knots"], (n, *saved["knots"].shape))
+        self.knots = wp.array(np.ascontiguousarray(knots), dtype=float, device=sim.device)
+        self.ignite = wp.full(n, float(saved["ignite"]), dtype=float, device=sim.device)
+
+    def apply(self, t: float) -> None:
+        wp.launch(
+            schedule_kernel,
+            dim=self.sim.num_envs,
+            inputs=[self.knots, self.ignite, self.interval, t, self.sim.commands],
+            device=self.sim.device,
+        )
+
+
 @dataclass
 class Outcome:
     cost: np.ndarray
