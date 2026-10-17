@@ -40,6 +40,10 @@ class RewardConfig:
     distance_weight: float = 10.0  # per km to the pad center
     speed_weight: float = 0.2  # per m/s, faded in near the ground
     speed_fade_altitude: float = 300.0  # m; speed weight is exp(-altitude / this)
+    # Horizontal distance from the pad, faded in near the ground where touching down off the
+    # pad (beyond its half-width) counts as a crash. Off by default.
+    lateral_weight: float = 0.0  # per m
+    lateral_fade_altitude: float = 500.0  # m
     tilt_weight: float = 10.0  # per rad, faded in near the ground
     tilt_fade_altitude: float = 200.0  # m; tilt weight is exp(-altitude / this)
     landed_reward: float = 100.0
@@ -59,6 +63,8 @@ class RewardParams:
     distance_weight: float
     speed_weight: float
     speed_fade_altitude: float
+    lateral_weight: float
+    lateral_fade_altitude: float
     tilt_weight: float
     tilt_fade_altitude: float
     landed_reward: float
@@ -86,6 +92,7 @@ def potential(p: Params, rp: RewardParams, pos: wp.vec2, vel: wp.vec2, theta: fl
     return -(
         rp.distance_weight * distance / 1000.0
         + rp.speed_weight * wp.length(vel) * wp.exp(-h / rp.speed_fade_altitude)
+        + rp.lateral_weight * wp.abs(pos[0]) * wp.exp(-h / rp.lateral_fade_altitude)
         + rp.tilt_weight * wp.abs(theta) * tilt_fade
     )
 
