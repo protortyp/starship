@@ -4,10 +4,12 @@ telemetry.
     uv run starship-rerun                         # 8 passive belly-flops from 3 km, live viewer
     uv run starship-rerun --save out/run.rrd      # record to a file instead
     uv run starship-rerun --schedule out/cem_best.npz   # replay a planned trajectory
+    uv run starship-rerun --policy logs/<run>/policy_best.pt --stage 0   # fly a trained policy
 """
 
 import argparse
 import math
+from pathlib import Path
 
 import numpy as np
 import rerun as rr
@@ -204,6 +206,63 @@ def log_step(cfg, s, flaps, trails, mass_params) -> None:
             trails[i] = None
 
 
+def fly_policy(args) -> None:
+    """Run a policy on its run's config (curriculum stage `args.stage`, default the last one)."""
+    import torch
+    from omegaconf import OmegaConf
+
+    from starship.train.conf import TrainConfig
+    from starship.train.curriculum import Curriculum
+    from starship.train.env import RocketEnv
+    from starship.train.rsl_env import RslRocketEnv
+
+    path = Path(args.policy)
+    run_cfg = OmegaConf.merge(
+        OmegaConf.structured(TrainConfig), OmegaConf.load(path.parent / ".hydra/config.yaml")
+    )
+    sim_cfg, reward_cfg = OmegaConf.to_object(run_cfg.sim), OmegaConf.to_object(run_cfg.reward)
+    if run_cfg.curriculum.enabled:
+        curriculum = Curriculum(run_cfg, run_cfg.curriculum)
+        stage = len(curriculum.stages) - 1 if args.stage is None else args.stage
+        sim_cfg, reward_cfg = curriculum.configs(stage)
+        print(f"stage {stage}: {curriculum.stages[stage]['name']}")
+    obs_cfg = OmegaConf.to_object(run_cfg.obs)
+    env = RslRocketEnv(
+        RocketEnv(args.envs, sim_cfg, obs_cfg, reward_cfg, device=args.device, seed=args.seed)
+    )
+    policy = torch.load(path, map_location=env.device, weights_only=False).eval()
+    policy.reset()
+    layout = blueprint()
+    rr.init("starship", default_blueprint=layout)
+    if args.save:
+        rr.save(args.save, default_blueprint=layout)
+    else:
+        rr.spawn()
+    rr.send_blueprint(layout)
+    log_scene(sim_cfg, args.envs)
+    flaps = flap_geometry(sim_cfg)
+    mass_params = make_mass_params(sim_cfg.vehicle)
+    trails = [[] for _ in range(args.envs)]
+    obs = env.get_observations()
+    outcomes = []
+    dt = sim_cfg.dt * sim_cfg.substeps
+    with torch.inference_mode():
+        for k in range(env.max_episode_length):
+            rr.set_time("sim_time", duration=k * dt)
+            log_step(sim_cfg, env.env.sim.snapshot(), flaps, trails, mass_params)
+            obs, _, dones, _ = env.step(policy(obs, stochastic_output=False))
+            for i in torch.nonzero(dones).flatten().tolist():
+                if trails[i] is not None:
+                    trails[i] = None
+                    outcomes.append(int(env.final_status[i]))
+            policy.reset(dones)
+            if all(t is None for t in trails):
+                break
+    names = {1: "landed", 2: "crashed", 3: "out of bounds", 4: "timeout", 5: "tumbled"}
+    counts = {names.get(o, o): outcomes.count(o) for o in sorted(set(outcomes))}
+    print(f"{len(outcomes)} episodes: {counts}")
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
@@ -218,7 +277,12 @@ def main() -> None:
         "--save", default=None, help="write an .rrd file instead of spawning a viewer"
     )
     parser.add_argument("--schedule", default=None, help="replay a starship.plan.cem schedule")
+    parser.add_argument("--policy", default=None, help="fly an exported policy deterministically")
+    parser.add_argument("--stage", type=int, default=None, help="curriculum stage for --policy")
     args = parser.parse_args()
+    if args.policy:
+        fly_policy(args)
+        return
 
     cfg = SimConfig()
     cfg.spawn.altitude = args.altitude
