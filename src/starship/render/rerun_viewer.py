@@ -95,6 +95,7 @@ def blueprint() -> rrb.Blueprint:
                     name="chase (rocket 0)",
                     origin="/world/chase",
                     contents="/world/**",
+                    line_grid=False,
                     eye_controls=rrb.EyeControls3D(
                         position=(90.0, -90.0, 30.0), look_target=(0.0, 0.0, 0.0)
                     ),
