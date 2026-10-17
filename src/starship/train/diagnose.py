@@ -149,6 +149,19 @@ def attitude_lines(stats: dict[str, float]) -> list[str]:
     return lines
 
 
+def failure_lines(stats: dict[str, float]) -> list[str]:
+    """Where and why non-landing episodes end, plus the flight envelope peaks."""
+    lines = []
+    for key, value in sorted(stats.items()):
+        if key.startswith("tumbled/cause_"):
+            lines.append(f"- tumbles tripping {key.removeprefix('tumbled/cause_')}: {value:.0%}")
+        elif key.endswith(("/altitude_m", "/pad_distance_m")):
+            lines.append(f"- {key}: {value:.0f}")
+        elif key.startswith("flight/"):
+            lines.append(f"- {key}: {value:.3g}")
+    return lines
+
+
 def probe_section(run: Path, report: dict, episodes: int, device: str | None) -> list[str]:
     """Run the best policy deterministically on the run's current curriculum stage."""
     import torch
@@ -228,6 +241,7 @@ def probe_section(run: Path, report: dict, episodes: int, device: str | None) ->
         if f"crashed/{key}" in stats:
             lines.append(f"- crash mean {key}: {stats[f'crashed/{key}']:.1f}")
     lines += attitude_lines(stats)
+    lines += failure_lines(stats)
     for k, v in live.items():
         if k.endswith(("/dormant", "/dead")) and v > (
             DORMANT_MAX if k.endswith("dormant") else DEAD_MAX

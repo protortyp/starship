@@ -23,7 +23,7 @@ from starship.sim.propulsion import (
     flap_step,
     rcs_wrench,
 )
-from starship.sim.rigid import Body, gravity, integrate
+from starship.sim.rigid import G0, Body, gravity, integrate
 from starship.sim.types import add_wrench
 from starship.sim.wind import (
     WindParams,
@@ -48,6 +48,12 @@ ATTITUDE_FIELDS = (
     "peak_horizontal_rate",
     "flips",
     "reflips",
+    "peak_dynamic_pressure",
+    "peak_mach",
+    "peak_load",
+    "flip_altitude",
+    "ignition_altitude",
+    "start_offset",
 )
 
 
@@ -61,6 +67,12 @@ class Attitude:
     reflips: int
     sideslip: float
     phase: int  # 0: neither threshold reached; 1: above 60 degrees; 2: below 30 degrees
+    peak_dynamic_pressure: float  # Pa, air-relative
+    peak_mach: float
+    peak_load: float  # non-gravitational acceleration, g
+    flip_altitude: float  # m at the first flip to upright, -1 if none
+    ignition_altitude: float  # m when thrust first appears, -1 if never
+    start_offset: float  # m, horizontal distance to the pad at spawn
 
 
 @wp.func
@@ -84,6 +96,20 @@ def track_attitude(a: Attitude, b: Body, v_air: wp.vec3, dt: float) -> Attitude:
         if a.phase == 1:
             a.flips += 1
         a.phase = 2
+    return a
+
+
+@wp.func
+def track_flight(
+    a: Attitude, b: Body, dynamic_pressure: float, mach: float, load: float, thrusting: bool
+) -> Attitude:
+    a.peak_dynamic_pressure = wp.max(a.peak_dynamic_pressure, dynamic_pressure)
+    a.peak_mach = wp.max(a.peak_mach, mach)
+    a.peak_load = wp.max(a.peak_load, load)
+    if a.flips > 0 and a.flip_altitude < 0.0:
+        a.flip_altitude = b.pos[2]
+    if thrusting and a.ignition_altitude < 0.0:
+        a.ignition_altitude = b.pos[2]
     return a
 
 
@@ -249,7 +275,13 @@ def spawn(p: Params, s: State, tid: int):
         # In still air, pitch=90 degrees means b3 along the flow, b1 at 90-degree AoA.
         b.rot = attitude(angle + pitch - 0.5 * wp.pi, heading)
     s.body[tid] = b
-    s.attitude[tid] = track_attitude(Attitude(), b, wp.vec3(0.0), 0.0)
+    a = track_attitude(Attitude(), b, wp.vec3(0.0), 0.0)
+    a.flip_altitude = -1.0
+    a.ignition_altitude = -1.0
+    if sp.lit_throttle > 0.0:
+        a.ignition_altitude = b.pos[2]
+    a.start_offset = wp.length(wp.vec2(b.pos[0], b.pos[1]))
+    s.attitude[tid] = a
 
     e = EngineState()
     e.throttle = wp.vec3(p.propulsion.min_throttle)
@@ -363,6 +395,15 @@ def advance(p: Params, s: State, c: Commands, tid: int):
         b = integrate(b, force, w.torque, mp.mass, mp.inertia, p.dt)
         # Match the integrated angular step and use the same air-relative flow as aerodynamics.
         a = track_attitude(a, b, v_air, p.dt)
+        air_speed_sq = wp.dot(v_air, v_air)
+        a = track_flight(
+            a,
+            b,
+            0.5 * air.density * air_speed_sq,
+            wp.sqrt(air_speed_sq) / air.speed_of_sound,
+            wp.length(w.force) / (mp.mass * G0),
+            wp.length(thrust.force) > 0.0,
+        )
         tanks = draw_propellant(p.propulsion, tanks, mdot * supply, p.dt)
         t += p.dt
         if lowest_point(p, b, mp.com) <= 0.0:
