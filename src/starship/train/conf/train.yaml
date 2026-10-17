@@ -1,10 +1,10 @@
 defaults:
   - train_schema
-  - curriculum: none
+  - curriculum: landing
   - _self_
 
 experiment: landing
-num_envs: 4096
+num_envs: 16384
 device: null
 seed: 0
 iterations: 500
@@ -19,10 +19,6 @@ checkpoint: null
 reward:
   gamma: ${runner.algorithm.gamma}
 
-sim:
-  # Curriculum: start some training episodes near the ground; eval always uses the full scenario.
-  easy_spawn_fraction: 0.3
-
 runner:
   num_steps_per_env: 32
   save_interval: 50
@@ -35,13 +31,15 @@ runner:
     class_name: starship.train.ppo:InstrumentedPPO
     num_learning_epochs: 5
     num_mini_batches: 4
-    learning_rate: 1.0e-3
-    schedule: adaptive
+    # Fixed: rsl_rl's adaptive schedule pinned the lr at its 1e-2 ceiling and stalled (docs/curriculum.md).
+    learning_rate: 1.0e-4
+    schedule: fixed
     desired_kl: 0.01
     # ~100 s horizon at 10 Hz, so terminal rewards reach the start of a ~40 s episode.
     gamma: 0.999
     lam: 0.95
-    entropy_coef: 0.01
+    # Low entropy made 2D policies decisive and broke their plateaus (docs/curriculum.md).
+    entropy_coef: 0.002
     clip_param: 0.2
     value_loss_coef: 1.0
     max_grad_norm: 1.0
@@ -59,7 +57,7 @@ runner:
     activation: elu
     obs_normalization: true
     distribution_cfg:
-      class_name: starship.train.distribution:BernoulliDistribution
+      class_name: starship.train.distribution:HybridDistribution
   critic:
     class_name: RNNModel
     rnn_type: lstm

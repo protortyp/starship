@@ -11,9 +11,7 @@ attention is a line starting with WARN, so `grep WARN` gives the to-do list.
 
 import argparse
 import json
-import math
 import re
-from dataclasses import replace
 from pathlib import Path
 
 import numpy as np
@@ -142,11 +140,12 @@ def probe_section(run: Path, report: dict, episodes: int, device: str | None) ->
     import torch
     from omegaconf import OmegaConf
 
-    from starship.sim import CRASHED, LANDED
+    from starship.train.actions import ENGINE_HEADS
     from starship.train.conf import TrainConfig
     from starship.train.curriculum import Curriculum
     from starship.train.diagnostics import model_diagnostics
     from starship.train.env import RocketEnv
+    from starship.train.metrics import EpisodeTracker
     from starship.train.rsl_env import RslRocketEnv
 
     cfg = OmegaConf.merge(
@@ -163,16 +162,17 @@ def probe_section(run: Path, report: dict, episodes: int, device: str | None) ->
                 curriculum.stage = history[-1]["stage"]
         sim, reward = curriculum.configs()
         stage_name = f"stage {curriculum.stage} ({curriculum.name})"
-    sim = replace(sim, easy_spawn_fraction=0.0)
     policy_path = run / "policy_best.pt"
     if not policy_path.exists():
         policy_path = run / "policy.pt"
-    env = RslRocketEnv(RocketEnv(episodes, sim, reward_config=reward, device=device, seed=123))
+    obs_cfg = OmegaConf.to_object(cfg.obs)
+    env = RslRocketEnv(RocketEnv(episodes, sim, obs_cfg, reward, device=device, seed=123))
     policy = torch.load(policy_path, map_location=env.device, weights_only=False).eval()
     policy.reset()
+    tracker = EpisodeTracker(env)
     obs = env.get_observations()
     pending = torch.ones(episodes, dtype=torch.bool, device=env.device)
-    probs, rows, samples = [], [], []
+    undecided, samples = [], []
     with torch.no_grad():
         for step in range(env.max_episode_length):
             # Sample inputs across time: identical spawns would otherwise give a batch of
@@ -180,19 +180,15 @@ def probe_section(run: Path, report: dict, episodes: int, device: str | None) ->
             if step % 10 == 0 and policy.rnn.hidden_state is not None:
                 h = tuple(x.clone() for x in policy.rnn.hidden_state)
                 samples.append((obs["policy"].clone(), h))
-            # One forward pass gives the head probabilities; the deterministic action is p > 0.5.
+            # One forward pass updates the distribution; the deterministic action is engines on
+            # where p > 0.5 and the Gaussian means for the continuous heads.
             policy(obs, stochastic_output=True)
-            p = policy.distribution.mean
-            probs.append(((p > 0.1) & (p < 0.9))[pending].float().mean().item())
-            obs, _, dones, _ = env.step((p > 0.5).float())
-            done = dones.bool() & pending
-            if done.any():
-                t = env.env.sim.terminal_snapshot()
-                for i in torch.nonzero(done).flatten().tolist():
-                    rows.append(
-                        (int(t.status[i]), t.pos[i, 0], t.vel[i, 0], t.vel[i, 1],
-                         math.degrees(abs(t.theta[i])), abs(t.omega[i]))
-                    )  # fmt: skip
+            mean = policy.distribution.mean
+            engine_p = mean[:, :ENGINE_HEADS]
+            undecided.append(((engine_p > 0.1) & (engine_p < 0.9))[pending].float().mean().item())
+            actions = torch.cat([(engine_p > 0.5).float(), mean[:, ENGINE_HEADS:]], dim=-1)
+            obs, _, dones, _ = env.step(actions)
+            tracker.step(dones, record=pending)
             policy.reset(dones)
             pending &= ~dones.bool()
             if not pending.any():
@@ -206,31 +202,18 @@ def probe_section(run: Path, report: dict, episodes: int, device: str | None) ->
         live = model_diagnostics(
             policy, TensorDict({"policy": batch}, batch_size=[len(batch)]), hidden
         )
-    r = np.array(rows)
-    landed = float(np.mean(r[:, 0] == LANDED)) if len(r) else 0.0
-    lines = [f"## Probe: {policy_path.name} on {stage_name}, {len(r)} deterministic episodes"]
-    lines.append(f"- landed {landed:.3f}")
-    undecided = float(np.mean(probs)) if probs else float("nan")
-    lines.append(f"- undecided thruster choices (0.1 < p < 0.9): {undecided:.0%}")
-    crashes = r[r[:, 0] == CRASHED] if len(r) else r
-    limits = sim.landing
-    checks = (
-        {
-            "off pad": np.abs(crashes[:, 1]) > limits.pad_half_width,
-            "vertical speed": np.abs(crashes[:, 3]) > limits.max_vertical_speed,
-            "horizontal speed": np.abs(crashes[:, 2]) > limits.max_horizontal_speed,
-            "tilt": crashes[:, 4] > math.degrees(limits.max_tilt),
-            "spin": crashes[:, 5] > limits.max_angular_rate,
-        }
-        if len(crashes)
-        else {}
-    )
-    for name, hit in checks.items():
-        lines.append(f"- crashes breaking {name}: {hit.mean():.0%}")
-    if len(crashes):
-        lines.append(
-            f"- crash impact: median {np.median(np.hypot(crashes[:, 2], crashes[:, 3])):.1f} m/s"
-        )
+    stats = {k.removeprefix("probe/"): v for k, v in tracker.summarize("probe").items()}
+    lines = [f"## Probe: {policy_path.name} on {stage_name}, {episodes} deterministic episodes"]
+    for name in ("landed", "crashed", "tumbled", "out_of_bounds", "timeout"):
+        lines.append(f"- {name} {stats.get(f'rate/{name}', 0.0):.3f}")
+    if undecided:
+        lines.append(f"- undecided engine choices (0.1 < p < 0.9): {np.mean(undecided):.0%}")
+    for key, value in sorted(stats.items()):
+        if key.startswith("crashed/breaks_"):
+            lines.append(f"- crashes breaking {key.removeprefix('crashed/breaks_')}: {value:.0%}")
+    for key in ("vz", "vh", "tilt_deg", "rate_dps", "miss"):
+        if f"crashed/{key}" in stats:
+            lines.append(f"- crash mean {key}: {stats[f'crashed/{key}']:.1f}")
     for k, v in live.items():
         if k.endswith(("/dormant", "/dead")) and v > (
             DORMANT_MAX if k.endswith("dormant") else DEAD_MAX
@@ -243,10 +226,8 @@ def probe_section(run: Path, report: dict, episodes: int, device: str | None) ->
     report["probe"] = {
         "policy": str(policy_path),
         "stage": stage_name,
-        "episodes": len(r),
-        "landed": landed,
-        "undecided": undecided,
-        "crash_limits": {k: float(v.mean()) for k, v in checks.items()},
+        "episodes": episodes,
+        "stats": stats,
         "live_diagnostics": live,
     }
     return lines

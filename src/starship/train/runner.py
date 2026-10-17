@@ -4,22 +4,15 @@ snapshots, all logged to TensorBoard."""
 import copy
 import json
 import time
-from dataclasses import replace
 from pathlib import Path
 
 import torch
 from rsl_rl.runners import OnPolicyRunner
 from torch.utils.tensorboard import SummaryWriter
 
-from starship.sim import SimConfig
 from starship.train.curriculum import Curriculum
 from starship.train.metrics import EpisodeTracker
 from starship.train.rsl_env import RslRocketEnv
-
-
-def _eval_only(sim: SimConfig) -> SimConfig:
-    """Eval measures the stage's real distribution, without the near-ground practice spawns."""
-    return replace(sim, easy_spawn_fraction=0.0)
 
 
 def standalone_copy(policy: torch.nn.Module) -> torch.nn.Module:
@@ -103,10 +96,10 @@ class StarshipRunner(OnPolicyRunner):
         sim, reward = self.curriculum.configs()
         self.env.set_configs(sim, reward)
         if self.eval_env is not None:
-            self.eval_env.set_configs(_eval_only(sim), reward)
+            self.eval_env.set_configs(sim, reward)
         if self.target_eval_env is not None:
             target_sim, target_reward = self.curriculum.target_configs()
-            self.target_eval_env.set_configs(_eval_only(target_sim), target_reward)
+            self.target_eval_env.set_configs(target_sim, target_reward)
 
     def _promote(self, it: int) -> None:
         passed = self.curriculum.name

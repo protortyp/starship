@@ -4,30 +4,45 @@ import math
 
 import torch
 
-from starship.sim import CRASHED, LANDED, OUT_OF_BOUNDS, TIMEOUT
+from starship.sim import CRASHED, LANDED, OUT_OF_BOUNDS, TIMEOUT, TUMBLED
+from starship.train.actions import CONTINUOUS, ENGINE_NAMES
 from starship.train.reward import REWARD_TERMS
-from starship.train.rsl_env import HEAD_NAMES, THRUSTER_BITS, RslRocketEnv
 
 OUTCOMES = {
     "landed": LANDED,
     "crashed": CRASHED,
+    "tumbled": TUMBLED,
     "out_of_bounds": OUT_OF_BOUNDS,
     "timeout": TIMEOUT,
 }
 
 
+def body_axis_z(rot: torch.Tensor) -> torch.Tensor:
+    """World z component of the body axis b1 for (N, 4) quaternions (x, y, z, w)."""
+    x, y, z, w = rot.unbind(-1)
+    return 2.0 * (x * z - w * y)
+
+
 class EpisodeTracker:
     """Tracks running sums per env and collects stats of every episode that finishes."""
 
-    def __init__(self, env: RslRocketEnv):
+    def __init__(self, env):
         self.env = env
         n, device = env.num_envs, env.device
-        self.policy_dt = env.env.config.policy_dt
+        cfg = env.env.sim.config
+        self.policy_dt = cfg.dt * cfg.substeps
+        self.landing = cfg.landing
+        lows = torch.tensor([lo for _, lo, _ in CONTINUOUS], device=device)
+        highs = torch.tensor([hi for _, _, hi in CONTINUOUS], device=device)
+        # Within 5 % of a range end counts as saturated.
+        self._margin = 0.05 * (highs - lows)
+        self._lows, self._highs = lows, highs
         self._return = torch.zeros(n, device=device)
         self._terminal = torch.zeros(n, device=device)
         self._terms = torch.zeros(n, len(REWARD_TERMS), device=device)
-        self._thruster_steps = torch.zeros(n, len(THRUSTER_BITS), device=device)
-        self._bits = torch.tensor(THRUSTER_BITS, dtype=torch.int32, device=device)
+        self._engine_steps = torch.zeros(n, len(ENGINE_NAMES), device=device)
+        self._action_sum = torch.zeros(n, len(CONTINUOUS), device=device)
+        self._saturated = torch.zeros(n, len(CONTINUOUS), device=device)
         self._finished: list[dict[str, torch.Tensor]] = []
         self.total_episodes = 0
 
@@ -37,12 +52,17 @@ class EpisodeTracker:
         self._return += env.reward
         self._terminal += env.terminal_reward
         self._terms += env.reward_terms
-        self._thruster_steps += ((env.actions[:, None] & self._bits) != 0).float()
+        self._engine_steps += env.engine_on
+        a = env.squashed_actions
+        self._action_sum += a
+        near_end = (a < self._lows + self._margin) | (a > self._highs - self._margin)
+        self._saturated += near_end.float()
         done = dones.bool()
         keep = done if record is None else done & record
         if keep.any():
-            steps = env.final_steps[keep].float()
+            steps = env.final_steps[keep].float().clamp(min=1.0)
             vel = env.final_vel[keep]
+            pos = env.final_pos[keep]
             self._finished.append(
                 {
                     "return": self._return[keep],
@@ -50,21 +70,30 @@ class EpisodeTracker:
                     "terms": self._terms[keep],
                     "length_s": steps * self.policy_dt,
                     "status": env.final_status[keep],
-                    "speed": vel.norm(dim=-1),
-                    "vx": vel[:, 0],
-                    "vy": vel[:, 1],
-                    "tilt_deg": env.final_theta[keep].abs() * (180.0 / math.pi),
-                    "spin_dps": env.final_omega[keep].abs() * (180.0 / math.pi),
-                    "fuel_t": env.final_fuel[keep] / 1000.0,
-                    "duty": self._thruster_steps[keep] / steps[:, None],
+                    "vz": -vel[:, 2],
+                    "vh": vel[:, :2].norm(dim=-1),
+                    "tilt_deg": torch.rad2deg(
+                        torch.arccos(body_axis_z(env.final_rot[keep]).clamp(-1.0, 1.0))
+                    ),
+                    "rate_dps": torch.rad2deg(env.final_omega[keep].norm(dim=-1)),
+                    "miss": pos[:, :2].norm(dim=-1),
+                    "fuel_t": env.final_tanks[keep].sum(dim=-1) / 1000.0,
+                    "engine_duty": self._engine_steps[keep] / steps[:, None],
+                    "action_mean": self._action_sum[keep] / steps[:, None],
+                    "saturated": self._saturated[keep] / steps[:, None],
                 }
             )
             self.total_episodes += int(keep.sum())
         if done.any():
-            self._return[done] = 0.0
-            self._terminal[done] = 0.0
-            self._terms[done] = 0.0
-            self._thruster_steps[done] = 0.0
+            for buf in (
+                self._return,
+                self._terminal,
+                self._terms,
+                self._engine_steps,
+                self._action_sum,
+                self._saturated,
+            ):
+                buf[done] = 0.0
 
     @property
     def num_finished(self) -> int:
@@ -83,19 +112,35 @@ class EpisodeTracker:
             "return_terminal": ep["terminal"].mean().item(),
             "length_s": ep["length_s"].mean().item(),
         }
-        # Episode sums of each reward term; they add up to `return`.
+        # Episode sums of each reward term; together with the terminal reward they add up to
+        # `return`.
         for i, term in enumerate(REWARD_TERMS):
             out[f"reward/{term}"] = ep["terms"][:, i].mean().item()
         out["reward/terminal"] = ep["terminal"].mean().item()
         for name, code in OUTCOMES.items():
             out[f"rate/{name}"] = (ep["status"] == code).float().mean().item()
-        for i, head in enumerate(HEAD_NAMES):
-            out[f"duty/{head}"] = ep["duty"][:, i].mean().item()
+        for i, name in enumerate(ENGINE_NAMES):
+            out[f"actuators/{name}_duty"] = ep["engine_duty"][:, i].mean().item()
+        for i, (name, _, _) in enumerate(CONTINUOUS):
+            out[f"actuators/{name}_mean"] = ep["action_mean"][:, i].mean().item()
+            out[f"actuators/{name}_saturated"] = ep["saturated"][:, i].mean().item()
         landed, crashed = ep["status"] == LANDED, ep["status"] == CRASHED
+        touchdown = ("vz", "vh", "tilt_deg", "rate_dps", "miss", "fuel_t")
         if landed.any():
-            for key in ("speed", "vx", "vy", "tilt_deg", "spin_dps", "fuel_t"):
+            for key in touchdown:
                 out[f"landed/{key}"] = ep[key][landed].mean().item()
         if crashed.any():
-            out["crashed/impact_speed"] = ep["speed"][crashed].mean().item()
-            out["crashed/fuel_t"] = ep["fuel_t"][crashed].mean().item()
+            for key in touchdown:
+                out[f"crashed/{key}"] = ep[key][crashed].mean().item()
+            lim = self.landing
+            # Share of crashes breaking each touchdown limit (a crash can break several).
+            broken = {
+                "vertical_speed": ep["vz"] > lim.max_vertical_speed,
+                "horizontal_speed": ep["vh"] > lim.max_horizontal_speed,
+                "tilt": ep["tilt_deg"] > math.degrees(lim.max_tilt),
+                "rate": ep["rate_dps"] > math.degrees(lim.max_angular_rate),
+                "miss": ep["miss"] > lim.pad_radius,
+            }
+            for name, hit in broken.items():
+                out[f"crashed/breaks_{name}"] = hit[crashed].float().mean().item()
         return {f"{prefix}/{k}": v for k, v in out.items()}
