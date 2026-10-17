@@ -144,16 +144,14 @@ def probe_section(run: Path, report: dict, episodes: int, device: str | None) ->
     from omegaconf import OmegaConf
 
     from starship.train.actions import ENGINE_HEADS
-    from starship.train.conf import TrainConfig
+    from starship.train.conf import load_run_config
     from starship.train.curriculum import Curriculum
     from starship.train.diagnostics import model_diagnostics
     from starship.train.env import RocketEnv
     from starship.train.metrics import EpisodeTracker
     from starship.train.rsl_env import RslRocketEnv
 
-    cfg = OmegaConf.merge(
-        OmegaConf.structured(TrainConfig), OmegaConf.load(run / ".hydra/config.yaml")
-    )
+    cfg = load_run_config(run)
     sim, reward = OmegaConf.to_object(cfg.sim), OmegaConf.to_object(cfg.reward)
     stage_name = "no curriculum"
     if cfg.curriculum.enabled:

@@ -1,9 +1,11 @@
 """Hydra config: `train.yaml` layered on the structured `TrainConfig` schema registered here."""
 
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Any
 
 from hydra.core.config_store import ConfigStore
+from omegaconf import DictConfig, OmegaConf
 
 from starship.sim import SimConfig
 from starship.train.curriculum import CurriculumConfig
@@ -37,3 +39,18 @@ class TrainConfig:
 
 
 ConfigStore.instance().store(name="train_schema", node=TrainConfig)
+
+
+def load_run_config(run: Path):
+    """A finished run's Hydra config on the current schema. Settings the schema no longer has (e.g.
+    after a model upgrade) are dropped, so older runs stay loadable for viewing and diagnosis."""
+    schema = OmegaConf.structured(TrainConfig)
+    saved = OmegaConf.load(Path(run) / ".hydra/config.yaml")
+
+    def known(node, ref):
+        # Free-form sections (runner: dict[str, Any]) have no schema to check against.
+        if not isinstance(node, DictConfig) or OmegaConf.get_type(ref) is dict:
+            return node
+        return OmegaConf.create({k: known(v, ref[k]) for k, v in node.items() if k in ref})
+
+    return OmegaConf.merge(schema, known(saved, schema))
