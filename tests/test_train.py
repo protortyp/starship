@@ -180,7 +180,9 @@ def test_training_resumes_from_checkpoint(tmp_path):
 
 
 def test_learner_sees_scaled_rewards_while_metrics_stay_unscaled():
-    env = RslRocketEnv(RocketEnv(4, device="cpu"))
+    from starship.train import RewardConfig
+
+    env = RslRocketEnv(RocketEnv(4, reward_config=RewardConfig(learner_scale=0.05), device="cpu"))
     _, rewards, _, _ = env.step(torch.zeros(4, 3))
     scale = env.env.reward_config.learner_scale
     assert torch.allclose(rewards, env.reward * scale)
