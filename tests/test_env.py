@@ -117,7 +117,13 @@ def potential(env: RocketEnv, pos, vel, theta) -> float:
     )
     return -(
         w.distance_weight * math.hypot(pos[0], h) / 1000.0
-        + w.speed_weight * float(np.linalg.norm(vel)) * math.exp(-h / w.speed_fade_altitude)
+        + w.speed_weight
+        * max(
+            float(np.linalg.norm(vel))
+            - math.sqrt(2 * w.profile_decel * h)
+            - w.profile_touchdown_speed,
+            0.0,
+        )
         + w.lateral_weight * abs(pos[0]) * math.exp(-h / w.lateral_fade_altitude)
         + w.tilt_weight * abs(theta) * math.exp(-h / w.tilt_fade_altitude)
     )
@@ -249,7 +255,7 @@ def test_configs_can_change_in_place():
     np.testing.assert_allclose(reward - baseline, -10.0 * SimConfig().policy_dt, rtol=1e-4)
 
 
-def test_braking_high_up_earns_no_shaping():
+def test_speed_shaping_only_penalizes_excess_over_the_descent_profile():
     def braking_gain(altitude):
         """Reward of braking minus reward of coasting for one step."""
         rewards = []
@@ -259,9 +265,25 @@ def test_braking_high_up_earns_no_shaping():
             rewards.append(env.step(np.full(1, action, dtype=np.int32)).reward.numpy()[0])
         return rewards[0] - rewards[1]
 
-    # The main engine slows the descent by ~1.7 m/s per step; that only pays off near the ground.
+    # 80 m/s is within the safe profile at 3 km (~150 m/s), so braking there earns nothing;
+    # at 100 m the profile allows ~29 m/s, so braking pays.
     assert abs(braking_gain(3000.0)) < 0.01
     assert braking_gain(100.0) > 0.1
+
+    def descending_cost(vy):
+        """Shaping of one step descending at vy from 200 m, without the distance term."""
+        env = RocketEnv(
+            1,
+            replace(SimConfig(), world=ZERO_G_VACUUM, spawn=SpawnConfig(y=225.0, vy=vy, theta=0.0)),
+            reward_config=RewardConfig(gamma=1.0, fuel_cost=0.0, distance_weight=0.0),
+            device="cpu",
+        )
+        env.reset()
+        return env.step(np.zeros(1, dtype=np.int32)).reward.numpy()[0]
+
+    # Descending within the profile costs nothing, unlike a speed term faded in with altitude.
+    assert descending_cost(-20.0) == pytest.approx(0.0, abs=1e-6)
+    assert descending_cost(-60.0) < -0.01
 
 
 def test_lateral_shaping_rewards_moving_toward_the_pad_near_the_ground():
