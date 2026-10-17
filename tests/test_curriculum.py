@@ -90,3 +90,14 @@ def test_runner_promotes_logs_and_resumes(tmp_path):
     resumed.load(str(tmp_path / "a" / "model_2.pt"))
     assert resumed.curriculum.stage == 1
     assert resumed.env.env.config.spawn.vy == -45.0
+
+
+def test_start_stage_skips_solved_stages():
+    cfg = two_stage()
+    cfg.start_stage = 1
+    curriculum = Curriculum(compose_cfg(), OmegaConf.structured(cfg))
+    assert curriculum.stage == 1
+    assert curriculum.configs()[1].time_cost == 0.5
+    cfg.start_stage = 5
+    with pytest.raises(ValueError, match="start_stage"):
+        Curriculum(compose_cfg(), OmegaConf.structured(cfg))
