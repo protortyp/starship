@@ -87,6 +87,11 @@ class Simulator:
         wp.launch(init_rng_kernel, dim=num_envs, inputs=[seed, self.state.rng], device=self.device)
         self.reset()
 
+    def set_config(self, config: SimConfig) -> None:
+        """Swap in new parameters; running episodes continue, new spawns use the new config."""
+        self.config = config
+        self.params = make_params(config)
+
     def reset(self, mask: wp.array | np.ndarray | None = None) -> None:
         """Respawn every environment, or only those where `mask` is nonzero."""
         if mask is None:

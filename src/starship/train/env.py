@@ -74,6 +74,16 @@ class RocketEnv:
     def config(self) -> SimConfig:
         return self.sim.config
 
+    def set_configs(
+        self, sim_config: SimConfig | None = None, reward_config: RewardConfig | None = None
+    ) -> None:
+        """Change the simulation or reward parameters in place, e.g. for a curriculum."""
+        if sim_config is not None:
+            self.sim.set_config(sim_config)
+        if reward_config is not None:
+            self.reward_config = reward_config
+            self._reward_params = make_reward_params(reward_config)
+
     def reset(self) -> wp.array:
         self.sim.reset()
         wp.launch(

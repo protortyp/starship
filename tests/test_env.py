@@ -228,3 +228,21 @@ def test_time_cost_is_charged_per_second_of_flight():
     with_cost, steps = episode_total(2.0)
     without_cost, _ = episode_total(0.0)
     assert with_cost - without_cost == pytest.approx(-2.0 * steps * SimConfig().policy_dt, rel=1e-4)
+
+
+def test_configs_can_change_in_place():
+    env = make_env(num_envs=4)
+    env.reset()
+    buffers = (env.obs.ptr, env.sim.state.pos.ptr)
+    env.set_configs(
+        sim_config=replace(SimConfig(), spawn=SpawnConfig(y=1234.0)),
+        reward_config=RewardConfig(gamma=1.0, fuel_cost=0.0, time_cost=10.0),
+    )
+    env.reset()
+    assert (env.obs.ptr, env.sim.state.pos.ptr) == buffers
+    np.testing.assert_allclose(env.sim.snapshot().pos[:, 1], 1234.0)
+    reward = env.step(np.zeros(4, dtype=np.int32)).reward.numpy()
+    reference = make_env(num_envs=4, spawn=SpawnConfig(y=1234.0))
+    reference.reset()
+    baseline = reference.step(np.zeros(4, dtype=np.int32)).reward.numpy()
+    np.testing.assert_allclose(reward - baseline, -10.0 * SimConfig().policy_dt, rtol=1e-4)
