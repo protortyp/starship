@@ -4,7 +4,7 @@ GPU-parallel 6-DOF simulator of a SpaceX Starship upper stage landing, built on 
 
 The ship (V2 geometry, three sea-level Raptor 2 engines) falls belly-first and has to flip upright and land on a pad. Modelled: the U.S. Standard Atmosphere 1976; full rigid-body dynamics; liquid-oxygen and methane main and header tanks, whose draining moves the centre of mass and inertia; Raptor thrust that depends on ambient pressure, with spool-up, throttle and ±15° gimbal; four flaps with actuator lag; strip-wise crossflow and slender-body hull aerodynamics plus flat-plate flaps, with modified-Newtonian hull and flap loads up to Mach 25; touchdown against the exact hull shape. Parameters and sources: [docs/starship.md](docs/starship.md); what is left out: [docs/gaps.md](docs/gaps.md).
 
-On one RTX 3090 the simulator alone runs ~150M control steps per second (1.5B physics steps; 1M envs).
+On one RTX 3090 the simulator alone runs ~150M control steps per second (1.5B physics steps; 1M envs). The trained policy lands ~98 % of fully randomized descents (1.5–5 km, random speed, offset, pitch and spin) on the pad: belly-flop, flip, landing burn and touchdown.
 
 ## Setup
 

@@ -18,7 +18,7 @@
 | 1 | engines off at spawn (light them in time, 2 s spool) | passed (land3d_v6, it 2099; 4 collapses recovered by rollback) |
 | 2 | low-altitude belly-flop (flip + burn) | passed (land3d_v7_kl_long, it ~4100) |
 | 3 | 3 km belly-flop | passed (land3d_v8_lam098, it ~4775) |
-| 4 | altitude, speed, offset, pitch, spin ranges | |
+| 4 | altitude, speed, offset, pitch, spin ranges | solved (land3d_v8_lam098, it ~5400: 98 % eval, 98–99 % full scenario) |
 | 5 | wind and other `docs/gaps.md` items | |
 
 ## Findings
