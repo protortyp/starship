@@ -10,6 +10,8 @@ seed: 0
 iterations: 500
 eval_interval: 25
 eval_envs: 256
+rollback_drop: 0.5
+rollback_patience: 2
 checkpoint: null
 
 reward:

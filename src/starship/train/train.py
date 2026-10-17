@@ -51,6 +51,8 @@ def main(cfg: DictConfig) -> None:
         eval_interval=cfg.eval_interval,
         curriculum=curriculum,
         target_eval_env=target_env,
+        rollback_drop=cfg.rollback_drop,
+        rollback_patience=cfg.rollback_patience,
     )
     if cfg.checkpoint:
         runner.load(cfg.checkpoint)
