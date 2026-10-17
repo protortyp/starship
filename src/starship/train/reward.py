@@ -3,9 +3,11 @@
 reward = gamma * potential(s') - potential(s) - fuel_cost * fuel burned - time_cost * dt
          + terminal reward
 
-The potential scores how close the rocket is to a good touchdown: near the pad, and (only near the
-ground) slow and upright. A speed term at altitude would reward braking high up, which PPO's short
-advantage horizon chases greedily, burning the fuel needed for the landing.
+The potential scores how close the rocket is to a good touchdown: near the pad, upright near the
+ground, and not faster than a safe descent profile v_safe(h) = sqrt(2 a h) + v_touch. Only speed in
+excess of the profile counts: a plain speed term rewards braking at any altitude, and fading it in
+with altitude penalizes descending at all, and PPO's short advantage horizon follows either one
+greedily into hovering until the fuel runs out.
 
 With gamma equal to the learner's discount and a zero potential after the episode ends, the
 discounted shaping sums to -potential(start) for every trajectory, so it guides learning without
@@ -36,10 +38,12 @@ class RewardConfig:
     gamma: float = 0.999
     # Multiplier on rewards handed to the learner, keeping returns near the O(1-10) range that
     # PPO's value clipping and gradient clipping assume. Env metrics stay in unscaled units.
-    learner_scale: float = 0.05
+    learner_scale: float = 1.0
     distance_weight: float = 10.0  # per km to the pad center
-    speed_weight: float = 0.2  # per m/s, faded in near the ground
-    speed_fade_altitude: float = 300.0  # m; speed weight is exp(-altitude / this)
+    speed_weight: float = 0.2  # per m/s above the safe descent profile
+    # Safe descent profile: braking at this deceleration from v_safe(h) stops at v_touch.
+    profile_decel: float = 3.8  # m/s^2, about half the engine's net deceleration
+    profile_touchdown_speed: float = 2.0  # m/s
     # Horizontal distance from the pad, faded in near the ground where touching down off the
     # pad (beyond its half-width) counts as a crash. Off by default.
     lateral_weight: float = 0.0  # per m
@@ -66,7 +70,8 @@ class RewardParams:
     gamma: float
     distance_weight: float
     speed_weight: float
-    speed_fade_altitude: float
+    profile_decel: float
+    profile_touchdown_speed: float
     lateral_weight: float
     lateral_fade_altitude: float
     soft_touchdown_speed: float
@@ -94,9 +99,10 @@ def potential(p: Params, rp: RewardParams, pos: wp.vec2, vel: wp.vec2, theta: fl
     h = wp.max(lowest_point(pos[1], theta, p), 0.0)
     distance = wp.sqrt(pos[0] * pos[0] + h * h)
     tilt_fade = wp.exp(-h / rp.tilt_fade_altitude)
+    safe_speed = wp.sqrt(2.0 * rp.profile_decel * h) + rp.profile_touchdown_speed
     return -(
         rp.distance_weight * distance / 1000.0
-        + rp.speed_weight * wp.length(vel) * wp.exp(-h / rp.speed_fade_altitude)
+        + rp.speed_weight * wp.max(wp.length(vel) - safe_speed, 0.0)
         + rp.lateral_weight * wp.abs(pos[0]) * wp.exp(-h / rp.lateral_fade_altitude)
         + rp.tilt_weight * wp.abs(theta) * tilt_fade
     )
