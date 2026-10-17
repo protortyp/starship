@@ -7,7 +7,6 @@ requires-python = ">=3.13"
 dependencies = [
     "hydra-core>=1.3.7",
     "numpy>=2.5.4",
-    "pygame-ce>=2.5.8",
     "rerun-sdk>=0.39.0",
     "rsl-rl-lib>=5.5.1",
     "tensorboard>=2.21.0",
@@ -16,9 +15,6 @@ dependencies = [
 ]
 
 [project.scripts]
-starship-demo = "starship.demo:main"
-starship-view = "starship.render.app:main"
-starship-rerun = "starship.render.rerun_viewer:main"
 starship-train = "starship.train.train:main"
 starship-bench = "starship.train.bench:main"
 starship-diagnose = "starship.train.diagnose:main"
