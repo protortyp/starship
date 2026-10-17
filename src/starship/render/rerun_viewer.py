@@ -309,32 +309,70 @@ def fly_progress(args) -> None:
         )
 
 
-def fly_policy(args) -> None:
-    """Run a policy on its run's config (curriculum stage `args.stage`, default the last one)."""
-    import torch
-    from omegaconf import OmegaConf
+def _subset(snapshot, idx):
+    from dataclasses import fields, replace
 
-    from starship.train.conf import TrainConfig
-    from starship.train.curriculum import Curriculum
+    return replace(snapshot, **{f.name: getattr(snapshot, f.name)[idx] for f in fields(snapshot)})
+
+
+def _rollout(path, cfgs, args, record=None):
+    """Fly a policy deterministically once per env; with `record` (env indices), log those."""
+    import torch
+
     from starship.train.env import RocketEnv
     from starship.train.rsl_env import RslRocketEnv
 
-    path = Path(args.policy)
-    run_cfg = OmegaConf.merge(
-        OmegaConf.structured(TrainConfig), OmegaConf.load(path.parent / ".hydra/config.yaml")
-    )
-    sim_cfg, reward_cfg = OmegaConf.to_object(run_cfg.sim), OmegaConf.to_object(run_cfg.reward)
-    if run_cfg.curriculum.enabled:
-        curriculum = Curriculum(run_cfg, run_cfg.curriculum)
-        stage = len(curriculum.stages) - 1 if args.stage is None else args.stage
-        sim_cfg, reward_cfg = curriculum.configs(stage)
-        print(f"stage {stage}: {curriculum.stages[stage]['name']}")
-    obs_cfg = OmegaConf.to_object(run_cfg.obs)
+    sim_cfg, obs_cfg, reward_cfg = cfgs
     env = RslRocketEnv(
         RocketEnv(args.envs, sim_cfg, obs_cfg, reward_cfg, device=args.device, seed=args.seed)
     )
     policy = torch.load(path, map_location=env.device, weights_only=False).eval()
     policy.reset()
+    obs = env.get_observations()
+    status = np.zeros(args.envs, dtype=int)
+    pending = np.ones(args.envs, dtype=bool)
+    if record is not None:
+        flaps = flap_geometry(sim_cfg)
+        mass_params = make_mass_params(sim_cfg.vehicle)
+        trails = [[] for _ in record]
+    dt = sim_cfg.dt * sim_cfg.substeps
+    with torch.inference_mode():
+        for k in range(env.max_episode_length):
+            if record is not None:
+                rr.set_time("sim_time", duration=k * dt)
+                log_step(
+                    sim_cfg, _subset(env.env.sim.snapshot(), record), flaps, trails, mass_params
+                )
+            obs, _, dones, _ = env.step(policy(obs, stochastic_output=False))
+            done = dones.cpu().numpy().astype(bool) & pending
+            status[done] = env.final_status.cpu().numpy()[done]
+            if record is not None:
+                for j, i in enumerate(record):
+                    if done[i]:
+                        trails[j] = None
+            pending &= ~done
+            policy.reset(dones)
+            if not pending.any():
+                break
+    return status
+
+
+def fly_policy(args) -> None:
+    """Run a policy on its run's config (curriculum stage `args.stage`, default the last one)."""
+    path = Path(args.policy)
+    sim_cfg, obs_cfg, reward_cfg, name = run_configs(path.parent, args.stage)
+    cfgs = (sim_cfg, obs_cfg, reward_cfg)
+    print(f"stage: {name}")
+    names = {1: "landed", 2: "crashed", 3: "out of bounds", 4: "timeout", 5: "tumbled"}
+    if args.only_landed:
+        # Same seed, same spawns, deterministic policy: a second pass repeats every outcome.
+        status = _rollout(path, cfgs, args)
+        record = np.nonzero(status == 1)[0][: args.show]
+        print(f"{len(status)} episodes: {(status == 1).sum()} landed; recording {len(record)}")
+        if not len(record):
+            return
+    else:
+        record = np.arange(min(args.show, args.envs))
     layout = blueprint()
     rr.init("starship", default_blueprint=layout)
     if args.save:
@@ -343,28 +381,10 @@ def fly_policy(args) -> None:
     else:
         rr.spawn()
     rr.send_blueprint(layout)
-    log_scene(sim_cfg, args.envs)
-    flaps = flap_geometry(sim_cfg)
-    mass_params = make_mass_params(sim_cfg.vehicle)
-    trails = [[] for _ in range(args.envs)]
-    obs = env.get_observations()
-    outcomes = []
-    dt = sim_cfg.dt * sim_cfg.substeps
-    with torch.inference_mode():
-        for k in range(env.max_episode_length):
-            rr.set_time("sim_time", duration=k * dt)
-            log_step(sim_cfg, env.env.sim.snapshot(), flaps, trails, mass_params)
-            obs, _, dones, _ = env.step(policy(obs, stochastic_output=False))
-            for i in torch.nonzero(dones).flatten().tolist():
-                if trails[i] is not None:
-                    trails[i] = None
-                    outcomes.append(int(env.final_status[i]))
-            policy.reset(dones)
-            if all(t is None for t in trails):
-                break
-    names = {1: "landed", 2: "crashed", 3: "out of bounds", 4: "timeout", 5: "tumbled"}
-    counts = {names.get(o, o): outcomes.count(o) for o in sorted(set(outcomes))}
-    print(f"{len(outcomes)} episodes: {counts}")
+    log_scene(sim_cfg, len(record))
+    status = _rollout(path, cfgs, args, record=record)
+    counts = {names[c]: int((status == c).sum()) for c in sorted(set(status.tolist())) if c}
+    print(f"{len(status)} episodes: {counts}")
 
 
 def main() -> None:
@@ -383,6 +403,8 @@ def main() -> None:
     parser.add_argument("--schedule", default=None, help="replay a starship.plan.cem schedule")
     parser.add_argument("--policy", default=None, help="fly an exported policy deterministically")
     parser.add_argument("--stage", type=int, default=None, help="curriculum stage for --policy")
+    parser.add_argument("--only-landed", action="store_true", help="record only landing episodes")
+    parser.add_argument("--show", type=int, default=16, help="rockets to record with --policy")
     parser.add_argument(
         "--progress", default=None, help="run dir: fly its checkpoints side by side"
     )
