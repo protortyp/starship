@@ -143,14 +143,16 @@ def log_scene(cfg: SimConfig, n: int) -> None:
         )
 
 
-def log_step(cfg, sim, flaps, trails, mass_params) -> None:
-    s = sim.snapshot()
-    coms = mass_sample(mass_params, s.tanks, device="cpu")[:, 1]
+def log_step(cfg, s, flaps, trails, mass_params) -> None:
+    """Log rockets 0..len(trails)-1 of snapshot `s`; a rocket whose trail is None is finished
+    and stays where it was last logged."""
+    n = len(trails)
+    coms = mass_sample(mass_params, s.tanks[:n], device="cpu")[:, 1]
     pitch = np.degrees(np.arccos(np.clip(body_axis_z(s.rot), -1, 1)))
     engine = cfg.vehicle.engine
     rr.log("world/chase", rr.Transform3D(translation=s.pos[0]))
-    for i in range(sim.num_envs):
-        if s.status[i] != FLYING and trails[i] is None:
+    for i in range(n):
+        if trails[i] is None:
             continue
         q = s.rot[i]
         origin = s.pos[i] - rotate(q, np.array([coms[i], 0.0, 0.0]))
@@ -246,7 +248,7 @@ def main() -> None:
     steps = int(args.seconds / (cfg.dt * cfg.substeps))
     for k in range(steps):
         rr.set_time("sim_time", duration=k * cfg.dt * cfg.substeps)
-        log_step(cfg, sim, flaps, trails, mass_params)
+        log_step(cfg, sim.snapshot(), flaps, trails, mass_params)
         if all(t is None for t in trails):
             break
         if schedule is not None:

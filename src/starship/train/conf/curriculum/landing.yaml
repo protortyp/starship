@@ -1,0 +1,48 @@
+# @package curriculum
+# docs/curriculum.md. Each stage changes one thing on top of the earlier ones; spawn values are
+# centre +- noise (uniform).
+enabled: true
+promote_landed: 0.9
+promote_evals: 2
+stages:
+  - name: 0 landing burn (upright, engines lit, 150-450 m)
+    overrides:
+      - sim.spawn.altitude=300
+      - sim.spawn.altitude_noise=150
+      - sim.spawn.vertical_speed=-50
+      - sim.spawn.vertical_speed_noise=15
+      - sim.spawn.pitch=0
+      - sim.spawn.pitch_noise=0.1
+      - sim.spawn.offset_noise=50
+      - sim.spawn.horizontal_speed_noise=5
+      - sim.spawn.angular_rate_noise=0.02
+      - sim.spawn.lit_throttle=0.7
+      - sim.max_time=60
+  - name: 1 engines off at spawn
+    overrides:
+      - sim.spawn.lit_throttle=0
+  - name: 2 low belly-flop (0.9-1.5 km)
+    overrides:
+      - sim.spawn.altitude=1200
+      - sim.spawn.altitude_noise=300
+      - sim.spawn.vertical_speed=-90
+      - sim.spawn.vertical_speed_noise=10
+      - sim.spawn.pitch=1.5708
+      - sim.spawn.offset_noise=100
+      - sim.max_time=90
+  - name: 3 belly-flop from 3 km
+    overrides:
+      - sim.spawn.altitude=3000
+      - sim.spawn.altitude_noise=500
+      - sim.max_time=120
+  - name: 4 randomized (1.5-5 km, speed, offset, pitch, spin)
+    overrides:
+      - sim.spawn.altitude=3250
+      - sim.spawn.altitude_noise=1750
+      - sim.spawn.vertical_speed=-90
+      - sim.spawn.vertical_speed_noise=25
+      - sim.spawn.horizontal_speed_noise=20
+      - sim.spawn.offset_noise=500
+      - sim.spawn.pitch_noise=0.26
+      - sim.spawn.angular_rate_noise=0.05
+      - sim.max_time=180
