@@ -168,6 +168,13 @@ def spawn(p: Params, s: State, tid: int):
     )
     s.theta[tid] = wrap_angle(sp.theta + sp.theta_noise * wp.randf(rng, -1.0, 1.0))
     s.omega[tid] = sp.omega + sp.omega_noise * wp.randf(rng, -1.0, 1.0)
+    if sp.mirror != 0 and wp.randf(rng) < 0.5:
+        x = s.pos[tid]
+        v = s.vel[tid]
+        s.pos[tid] = wp.vec2(-x[0], x[1])
+        s.vel[tid] = wp.vec2(-v[0], v[1])
+        s.theta[tid] = -s.theta[tid]
+        s.omega[tid] = -s.omega[tid]
     s.status[tid] = STATUS_FLYING
     s.steps[tid] = 0
     s.fuel[tid] = p.fuel_mass
