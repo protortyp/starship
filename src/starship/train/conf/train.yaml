@@ -12,6 +12,8 @@ eval_interval: 25
 eval_envs: 256
 rollback_drop: 0.5
 rollback_patience: 2
+record_every: 4
+record_envs: 16
 checkpoint: null
 
 reward:
