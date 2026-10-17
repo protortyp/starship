@@ -69,6 +69,7 @@ class Outcome:
     horizontal_speed: np.ndarray
     tilt_deg: np.ndarray
     miss: np.ndarray
+    rate_deg: np.ndarray
     fuel_left: np.ndarray
     time: np.ndarray
 
@@ -83,6 +84,7 @@ def score(sim: Simulator) -> Outcome:
     vz = -s.vel[:, 2]
     vh = np.hypot(s.vel[:, 0], s.vel[:, 1])
     miss = np.hypot(s.pos[:, 0], s.pos[:, 1])
+    rate = np.degrees(np.linalg.norm(s.omega, axis=1))
     fuel = s.tanks.sum(axis=1)
     lim = sim.config.landing
     excess = (
@@ -90,12 +92,13 @@ def score(sim: Simulator) -> Outcome:
         + 2 * np.maximum(vh - lim.max_horizontal_speed, 0)
         + 0.5 * np.maximum(tilt - math.degrees(lim.max_tilt), 0)
         + 0.1 * np.maximum(miss - lim.pad_radius, 0)
+        + 0.5 * np.maximum(rate - math.degrees(lim.max_angular_rate), 0)
     )
     cost = np.where(s.status == LANDED, -1000.0 - fuel / 1000.0, excess)
     airborne = (s.status == FLYING) | (s.status == TIMEOUT)
     cost = np.where(airborne, 500.0 + s.pos[:, 2], cost)
     cost = np.where(~airborne & (s.status != LANDED) & (s.status != CRASHED), 2000.0, cost)
-    return Outcome(cost, s.status, vz, vh, tilt, miss, fuel, s.time)
+    return Outcome(cost, s.status, vz, vh, tilt, miss, rate, fuel, s.time)
 
 
 class CrossEntropyPlanner:
@@ -168,6 +171,7 @@ def main() -> None:
     parser.add_argument("--horizon", type=float, default=50.0)
     parser.add_argument("--knot-interval", type=float, default=2.0)
     parser.add_argument("--out", default="out/cem_best.npz")
+    parser.add_argument("--init", default=None, help="warm start from a saved schedule")
     args = parser.parse_args()
 
     cfg = SimConfig()
@@ -176,6 +180,12 @@ def main() -> None:
     planner = CrossEntropyPlanner(
         cfg, args.samples, args.horizon, args.knot_interval, device=args.device
     )
+    if args.init:
+        saved = np.load(args.init)
+        planner.mean = saved["knots"].astype(np.float32)
+        planner.ignite_mean = float(saved["ignite"])
+        planner.std *= 0.2
+        planner.ignite_std = 0.5
     best_cost, best = math.inf, None
     for it in range(args.iterations):
         t0 = time.perf_counter()
@@ -187,7 +197,7 @@ def main() -> None:
         print(
             f"it {it:3d}  best {out.cost[i]:9.1f}  landed {landed:5.1%}  "
             f"vz {out.vertical_speed[i]:6.1f}  vh {out.horizontal_speed[i]:5.1f}  "
-            f"tilt {out.tilt_deg[i]:5.1f}  miss {out.miss[i]:6.1f}  "
+            f"tilt {out.tilt_deg[i]:5.1f}  miss {out.miss[i]:6.1f}  rate {out.rate_deg[i]:4.1f}  "
             f"fuel {out.fuel_left[i] / 1000:5.1f} t  "
             f"t {out.time[i]:5.1f} s  ignite {top_ignite:5.1f} s  "
             f"({time.perf_counter() - t0:.1f} s)",
