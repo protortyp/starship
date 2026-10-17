@@ -5,6 +5,7 @@ telemetry.
     uv run starship-rerun --save out/run.rrd      # record to a file instead
     uv run starship-rerun --schedule out/cem_best.npz   # replay a planned trajectory
     uv run starship-rerun --policy logs/<run>/policy_best.pt --stage 0   # fly a trained policy
+    uv run starship-rerun --progress logs/<run> --stage 2   # checkpoints side by side
 """
 
 import argparse
@@ -145,28 +146,30 @@ def log_scene(cfg: SimConfig, n: int) -> None:
         )
 
 
-def log_step(cfg, s, flaps, trails, mass_params) -> None:
-    """Log rockets 0..len(trails)-1 of snapshot `s`; a rocket whose trail is None is finished
-    and stays where it was last logged."""
+def log_step(cfg, s, flaps, trails, mass_params, first=0, shift=(0.0, 0.0, 0.0), label=None):
+    """Log rockets 0..len(trails)-1 of snapshot `s` as entities first.. onwards, moved by
+    `shift`; a rocket whose trail is None is finished and stays where it was last logged."""
     n = len(trails)
+    shift = np.asarray(shift, dtype=float)
     coms = mass_sample(mass_params, s.tanks[:n], device="cpu")[:, 1]
     pitch = np.degrees(np.arccos(np.clip(body_axis_z(s.rot), -1, 1)))
     engine = cfg.vehicle.engine
     # After rocket 0's episode ends its env may respawn elsewhere; the camera stays where it ended.
-    if trails[0] is not None:
-        rr.log("world/chase", rr.Transform3D(translation=s.pos[0]))
+    if first == 0 and trails[0] is not None:
+        rr.log("world/chase", rr.Transform3D(translation=s.pos[0] + shift))
     for i in range(n):
         if trails[i] is None:
             continue
         q = s.rot[i]
-        origin = s.pos[i] - rotate(q, np.array([coms[i], 0.0, 0.0]))
+        origin = s.pos[i] + shift - rotate(q, np.array([coms[i], 0.0, 0.0]))
+        e = first + i
         rr.log(
-            f"world/rocket/{i}",
+            f"world/rocket/{e}",
             rr.Transform3D(translation=origin, quaternion=rr.Quaternion(xyzw=q)),
         )
         quads = [flap_quad(f, s.flaps[i, k]) for k, f in enumerate(flaps)]
         rr.log(
-            f"world/rocket/{i}/flaps",
+            f"world/rocket/{e}/flaps",
             rr.Mesh3D(
                 vertex_positions=np.concatenate(quads),
                 triangle_indices=[
@@ -187,7 +190,7 @@ def log_step(cfg, s, flaps, trails, mass_params) -> None:
             for k, a in enumerate(engine.azimuths)
         ]
         rr.log(
-            f"world/rocket/{i}/plumes",
+            f"world/rocket/{e}/plumes",
             rr.Cylinders3D(
                 lengths=[30 * s.spool[i, k] for k in range(3) if lit[k]],
                 radii=[0.6] * int(lit.sum()),
@@ -197,13 +200,112 @@ def log_step(cfg, s, flaps, trails, mass_params) -> None:
                 colors=[PLUME_COLOR],
             ),
         )
-        trails[i].append(s.pos[i].copy())
-        rr.log(f"world/trail/{i}", rr.LineStrips3D([trails[i]], colors=[(120, 160, 255)]))
-        rr.log(f"telemetry/altitude/{i}", rr.Scalars(s.pos[i, 2]))
-        rr.log(f"telemetry/vz/{i}", rr.Scalars(s.vel[i, 2]))
-        rr.log(f"telemetry/pitch/{i}", rr.Scalars(pitch[i]))
+        trails[i].append(s.pos[i] + shift)
+        rr.log(f"world/trail/{e}", rr.LineStrips3D([trails[i]], colors=[(120, 160, 255)]))
+        name = e if label is None else f"{label}/{i}"
+        rr.log(f"telemetry/altitude/{name}", rr.Scalars(s.pos[i, 2]))
+        rr.log(f"telemetry/vz/{name}", rr.Scalars(s.vel[i, 2]))
+        rr.log(f"telemetry/pitch/{name}", rr.Scalars(pitch[i]))
         if s.status[i] != FLYING:
             trails[i] = None
+
+
+def run_configs(run: Path, stage: int | None):
+    """Sim, obs and reward configs of a training run at a curriculum stage (default: last)."""
+    from omegaconf import OmegaConf
+
+    from starship.train.conf import TrainConfig
+    from starship.train.curriculum import Curriculum
+
+    run_cfg = OmegaConf.merge(
+        OmegaConf.structured(TrainConfig), OmegaConf.load(run / ".hydra/config.yaml")
+    )
+    sim_cfg, reward_cfg = OmegaConf.to_object(run_cfg.sim), OmegaConf.to_object(run_cfg.reward)
+    name = "no curriculum"
+    if run_cfg.curriculum.enabled:
+        curriculum = Curriculum(run_cfg, run_cfg.curriculum)
+        stage = len(curriculum.stages) - 1 if stage is None else stage
+        sim_cfg, reward_cfg = curriculum.configs(stage)
+        name = curriculum.stages[stage]["name"]
+    return sim_cfg, OmegaConf.to_object(run_cfg.obs), reward_cfg, name
+
+
+def fly_progress(args) -> None:
+    """Fly evenly spaced checkpoints of a run on identical spawns, one lane per checkpoint."""
+    import torch
+
+    from starship.train.env import RocketEnv
+    from starship.train.rsl_env import RslRocketEnv
+
+    run = Path(args.progress)
+    snapshots = sorted(run.glob("policy_[0-9]*.pt"), key=lambda f: int(f.stem.split("_")[1]))
+    if not snapshots:
+        raise SystemExit(f"no policy_<it>.pt checkpoints in {run}")
+    picks = np.unique(np.linspace(0, len(snapshots) - 1, args.checkpoints).round().astype(int))
+    chosen = [snapshots[i] for i in picks][::-1]  # newest first: lane 0 is the chase camera's
+    sim_cfg, obs_cfg, reward_cfg, name = run_configs(run, args.stage)
+    print(f"stage: {name}; checkpoints: {', '.join(f.stem for f in chosen)}")
+    lanes = []
+    for f in chosen:
+        env = RslRocketEnv(
+            RocketEnv(args.envs, sim_cfg, obs_cfg, reward_cfg, device=args.device, seed=args.seed)
+        )
+        policy = torch.load(f, map_location=env.device, weights_only=False).eval()
+        policy.reset()
+        label = f"it{f.stem.split('_')[1]}"
+        lanes.append({"env": env, "policy": policy, "obs": env.get_observations(), "label": label,
+                      "trails": [[] for _ in range(args.envs)], "outcomes": []})  # fmt: skip
+    spacing = 600.0
+    layout = blueprint()
+    rr.init("starship", default_blueprint=layout)
+    if args.save:
+        rr.save(args.save, default_blueprint=layout)
+    else:
+        rr.spawn()
+    rr.send_blueprint(layout)
+    log_scene(sim_cfg, args.envs * len(lanes))
+    for j, lane in enumerate(lanes):
+        rr.log(
+            f"world/labels/{lane['label']}",
+            rr.Points3D([(j * spacing, -250.0, 0.0)], labels=[lane["label"]], radii=8.0),
+            static=True,
+        )
+    flaps = flap_geometry(sim_cfg)
+    mass_params = make_mass_params(sim_cfg.vehicle)
+    dt = sim_cfg.dt * sim_cfg.substeps
+    with torch.inference_mode():
+        for k in range(lanes[0]["env"].max_episode_length):
+            rr.set_time("sim_time", duration=k * dt)
+            for j, lane in enumerate(lanes):
+                env, trails = lane["env"], lane["trails"]
+                if all(t is None for t in trails):
+                    continue
+                log_step(
+                    sim_cfg,
+                    env.env.sim.snapshot(),
+                    flaps,
+                    trails,
+                    mass_params,
+                    first=j * args.envs,
+                    shift=(j * spacing, 0.0, 0.0),
+                    label=lane["label"],
+                )
+                lane["obs"], _, dones, _ = env.step(
+                    lane["policy"](lane["obs"], stochastic_output=False)
+                )
+                for i in torch.nonzero(dones).flatten().tolist():
+                    if trails[i] is not None:
+                        trails[i] = None
+                        lane["outcomes"].append(int(env.final_status[i]))
+                lane["policy"].reset(dones)
+            if all(all(t is None for t in lane["trails"]) for lane in lanes):
+                break
+    names = {1: "landed", 2: "crashed", 3: "out", 4: "timeout", 5: "tumbled"}
+    for lane in lanes:
+        o = lane["outcomes"]
+        print(
+            f"{lane['label']:>8}: " + ", ".join(f"{names[c]} {o.count(c)}" for c in sorted(set(o)))
+        )
 
 
 def fly_policy(args) -> None:
@@ -279,7 +381,14 @@ def main() -> None:
     parser.add_argument("--schedule", default=None, help="replay a starship.plan.cem schedule")
     parser.add_argument("--policy", default=None, help="fly an exported policy deterministically")
     parser.add_argument("--stage", type=int, default=None, help="curriculum stage for --policy")
+    parser.add_argument(
+        "--progress", default=None, help="run dir: fly its checkpoints side by side"
+    )
+    parser.add_argument("--checkpoints", type=int, default=8, help="checkpoints for --progress")
     args = parser.parse_args()
+    if args.progress:
+        fly_progress(args)
+        return
     if args.policy:
         fly_policy(args)
         return
