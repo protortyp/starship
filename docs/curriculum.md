@@ -20,6 +20,9 @@ TensorBoard: `curriculum/stage` (steps at promotions), Text tab `curriculum`, `e
 
 ## Findings
 
+- Collapses are stochastic, not caused by eval (an eval-on run replays the eval-off run exactly) or the LSTM (near-ground LSTM runs: seed 0 81–86%, seed 1 67–88% through 500 it; an MLP learned slower, 63%). Some random trajectories tip into hovering and never recover (scratch_v2, scratch_v5), so the runner rolls back to `model_best.pt` after `rollback_patience` evals more than `rollback_drop` below the stage's best.
+- A policy trained only on near-ground starts landed the full 3 km scenario at 100% (deterministic eval, arch_lstm_eval it 450–500).
+
 - Reward bisection on near-ground spawns (250 it from scratch): sanity reward 63% landed, + fuel cost 64%, + learner reward scaling ×0.05 only 2%, + speed term faded in with altitude only 7% (it penalizes descending at all, so policies hover). Scaling is back to 1.0 and speed shaping only penalizes speed above a safe descent profile v_safe(h) = sqrt(2·3.8·h) + 2 m/s. Validation (same setup): profile + fuel cost 46%, + lateral shaping 81% (best from scratch), so `reward.lateral_weight=0.05` is the default.
 - Value normalization (`runner.algorithm.value_normalization`) hurts on the same setup: 16% at it 150, then hovering and 0% by 250, vs 81% without (exact replay of the validation run). Off by default.
 
