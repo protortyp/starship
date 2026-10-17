@@ -29,11 +29,14 @@ class RewardConfig:
     landed_bonus: float = 100.0
     fuel_bonus: float = 50.0
     crash_penalty: float = 100.0
-    crash_vertical_weight: float = 5.0  # per m/s excess
-    crash_horizontal_weight: float = 5.0  # per m/s excess
-    crash_tilt_weight: float = 50.0  # per rad excess
-    crash_rate_weight: float = 10.0  # per rad/s excess
-    crash_miss_weight: float = 1.0  # per m outside the pad
+    crash_vertical_weight: float = 1.0  # per m/s excess
+    crash_horizontal_weight: float = 1.0  # per m/s excess
+    crash_tilt_weight: float = 20.0  # per rad excess
+    crash_rate_weight: float = 5.0  # per rad/s excess
+    crash_miss_weight: float = 0.1  # per m outside the pad
+    # Caps the weighted excess so a crash costs at most crash_penalty + cap: unbounded penalties
+    # (a km-scale miss) swamp the value targets. Kept below tumble_penalty - crash_penalty.
+    crash_excess_cap: float = 50.0
     tumble_penalty: float = 200.0
     out_of_bounds_penalty: float = 100.0
     timeout_penalty: float = 50.0
@@ -59,6 +62,7 @@ class RewardParams:
     crash_tilt_weight: float
     crash_rate_weight: float
     crash_miss_weight: float
+    crash_excess_cap: float
     tumble_penalty: float
     out_of_bounds_penalty: float
     timeout_penalty: float
@@ -107,14 +111,14 @@ def terminal_value(p: Params, r: RewardParams, t: Terminal, i: int, load: float)
         horizontal = wp.length(wp.vec2(b.vel[0], b.vel[1]))
         miss = wp.length(wp.vec2(base[0], base[1]))
         tilt = wp.acos(wp.clamp(axis[2], -1.0, 1.0))
-        return -(
-            r.crash_penalty
-            + r.crash_vertical_weight * wp.max(-b.vel[2] - p.max_vertical_speed, 0.0)
+        excess = (
+            r.crash_vertical_weight * wp.max(-b.vel[2] - p.max_vertical_speed, 0.0)
             + r.crash_horizontal_weight * wp.max(horizontal - p.max_horizontal_speed, 0.0)
             + r.crash_tilt_weight * wp.max(tilt - p.max_tilt, 0.0)
             + r.crash_rate_weight * wp.max(wp.length(b.omega) - p.max_angular_rate, 0.0)
             + r.crash_miss_weight * wp.max(miss - p.pad_radius, 0.0)
         )
+        return -(r.crash_penalty + wp.min(excess, r.crash_excess_cap))
     if status == TUMBLED:
         return -r.tumble_penalty
     if status == OUT_OF_BOUNDS:
