@@ -141,6 +141,12 @@ def _terminal_views_kernel(
     attitude[i, 3] = a.peak_horizontal_rate
     attitude[i, 4] = float(a.flips)
     attitude[i, 5] = float(a.reflips)
+    attitude[i, 6] = a.peak_dynamic_pressure
+    attitude[i, 7] = a.peak_mach
+    attitude[i, 8] = a.peak_load
+    attitude[i, 9] = a.flip_altitude
+    attitude[i, 10] = a.ignition_altitude
+    attitude[i, 11] = a.start_offset
     w = terminal.wind[i]
     wind[i, 0] = wp.length(w.surface)
     wind[i, 1] = w.turbulence

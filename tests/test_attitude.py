@@ -6,11 +6,11 @@ import pytest
 import torch
 import warp as wp
 
-from starship.sim import CRASHED, LANDED, Simulator
+from starship.sim import CRASHED, LANDED, TUMBLED, Simulator
 from starship.sim.physics import Attitude, attitude, track_attitude
 from starship.sim.rigid import Body, rotate_by_body_rate
 from starship.train import RewardConfig, RocketEnv
-from starship.train.diagnose import attitude_lines
+from starship.train.diagnose import attitude_lines, failure_lines
 from starship.train.metrics import ATTITUDE_METRICS, EpisodeTracker
 from starship.train.reward import REWARD_TERMS
 from starship.train.rsl_env import RslRocketEnv
@@ -246,3 +246,62 @@ def test_attitude_metrics_subsets_and_diagnostic_warnings(device):
     assert "- WARN attitude/reflips: 1" in lines
     assert "- attitude/roll_travel_deg: 90" in lines
     assert tracker.summarize("test") == {}
+
+
+def test_flight_peaks_and_event_altitudes(device):
+    cfg = config(altitude=2000, vertical_speed=-80, pitch=math.pi / 2, offset=300, offset_noise=0)
+    env = RocketEnv(2, cfg, device=device)
+    a = env.sim.state.attitude.numpy()[0]
+    assert a["start_offset"] == pytest.approx(300, rel=1e-4)
+    assert a["flip_altitude"] == -1
+    assert a["ignition_altitude"] == -1
+    for _ in range(20):
+        env.step(actions(2))
+    a = env.sim.state.attitude.numpy()[0]
+    b = env.sim.state.body.numpy()[0]
+    speed = np.linalg.norm(b["vel"])
+    assert a["peak_mach"] == pytest.approx(speed / 340, rel=0.05)
+    assert a["peak_dynamic_pressure"] == pytest.approx(0.5 * 1.0 * speed**2, rel=0.2)
+    # Falling belly-first near terminal speed, drag approaches 1 g.
+    assert 0.3 < a["peak_load"] < 1.5
+    assert a["flip_altitude"] == -1
+    assert a["ignition_altitude"] == -1
+
+    lit = RocketEnv(1, config(lit_throttle=0.6), device=device)
+    assert lit.sim.state.attitude.numpy()[0]["ignition_altitude"] == pytest.approx(150)
+    unlit = RocketEnv(1, config(), device=device)
+    for _ in range(5):
+        unlit.step(actions(1))
+    assert unlit.sim.state.attitude.numpy()[0]["ignition_altitude"] == -1
+    altitude = unlit.sim.state.body.numpy()[0]["pos"][2]
+    unlit.step(actions(1, engines=1.0))
+    assert unlit.sim.state.attitude.numpy()[0]["ignition_altitude"] == pytest.approx(
+        altitude, abs=1.0
+    )
+
+
+def test_failure_metrics_split_tumble_causes_and_skip_missing_events(device):
+    env = RslRocketEnv(RocketEnv(4, config(), device=device))
+    env.final_status[:] = torch.tensor([LANDED, TUMBLED, TUMBLED, CRASHED], device=device)
+    env.final_steps[:] = 1
+    env.final_pos[:] = torch.tensor(
+        [[0, 0, 0], [0, 0, 900], [0, 0, 300], [0, 0, 0]], device=device, dtype=torch.float32
+    )
+    env.final_omega[:] = torch.tensor(
+        [[0, 0, 0], [2.0, 0, 0], [0, 1.0, 0], [0, 0, 0]], device=device, dtype=torch.float32
+    )
+    env.final_flip_altitude[:] = torch.tensor([400, -1, -1, 200], device=device)
+    env.final_ignition_altitude[:] = -1
+    tracker = EpisodeTracker(env)
+    tracker.step(torch.ones(4, dtype=torch.bool, device=device))
+    stats = {k.removeprefix("test/"): v for k, v in tracker.summarize("test").items()}
+    assert stats["tumbled/altitude_m"] == pytest.approx(600)
+    assert stats["tumbled/cause_roll_rate"] == 0.5
+    assert stats["tumbled/cause_transverse_rate"] == 0.5
+    assert stats["flight/flip_altitude_share"] == 0.5
+    assert stats["flight/flip_altitude_m"] == pytest.approx(300)
+    assert stats["landed/flight/flip_altitude_m"] == pytest.approx(400)
+    assert "flight/ignition_altitude_m" not in stats
+    lines = failure_lines(stats)
+    assert "- tumbles tripping roll_rate: 50%" in lines
+    assert "- tumbled/altitude_m: 600" in lines

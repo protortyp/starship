@@ -25,6 +25,17 @@ ATTITUDE_METRICS = {
     "reflips": ("reflips", 1.0),
 }
 
+# Episode peaks and event altitudes; negative altitudes mark events that never happened.
+FLIGHT_METRICS = {
+    "peak_q_kpa": ("peak_dynamic_pressure", 1.0e-3),
+    "peak_mach": ("peak_mach", 1.0),
+    "peak_load_g": ("peak_load", 1.0),
+    "flip_altitude_m": ("flip_altitude", 1.0),
+    "ignition_altitude_m": ("ignition_altitude", 1.0),
+    "start_offset_km": ("start_offset", 1.0e-3),
+}
+EVENT_METRICS = ("flip_altitude_m", "ignition_altitude_m")
+
 
 def body_axis_z(rot: torch.Tensor) -> torch.Tensor:
     """World z component of the body axis b1 for (N, 4) quaternions (x, y, z, w)."""
@@ -94,6 +105,13 @@ class EpisodeTracker:
                         f"attitude/{key}": getattr(env, f"final_{field}")[keep] * scale
                         for key, (field, scale) in ATTITUDE_METRICS.items()
                     },
+                    **{
+                        f"flight/{key}": getattr(env, f"final_{field}")[keep] * scale
+                        for key, (field, scale) in FLIGHT_METRICS.items()
+                    },
+                    "altitude": pos[:, 2],
+                    "roll_rate_dps": torch.rad2deg(env.final_omega[keep][:, 0].abs()),
+                    "transverse_rate_dps": torch.rad2deg(env.final_omega[keep][:, 1:].norm(dim=-1)),
                     "wind/surface_speed": env.final_wind_speed[keep],
                     "wind/turbulence": env.final_turbulence[keep],
                 }
@@ -146,7 +164,32 @@ class EpisodeTracker:
             for subset, mask in (("landed", landed), ("crashed", crashed)):
                 if mask.any():
                     out[f"{subset}/attitude/{key}"] = values[mask].mean().item()
-        wind_cfg = self.env.env.config.wind
+        for key in FLIGHT_METRICS:
+            values = ep[f"flight/{key}"]
+            happened = values >= 0.0 if key in EVENT_METRICS else torch.ones_like(landed)
+            if key in EVENT_METRICS:
+                out[f"flight/{key.removesuffix('_m')}_share"] = happened.float().mean().item()
+            for subset, mask in (("", happened), ("landed/", landed), ("crashed/", crashed)):
+                mask = mask & happened
+                if mask.any():
+                    out[f"{subset}flight/{key}"] = values[mask].mean().item()
+        sim_cfg = self.env.env.config
+        for name in ("tumbled", "out_of_bounds", "timeout"):
+            mask = ep["status"] == OUTCOMES[name]
+            if mask.any():
+                out[f"{name}/altitude_m"] = ep["altitude"][mask].mean().item()
+                out[f"{name}/pad_distance_m"] = ep["miss"][mask].mean().item()
+        tumbled = ep["status"] == TUMBLED
+        if tumbled.any():
+            # Share of tumbles tripping each limit (one can trip several).
+            causes = {
+                "pitch": ep["tilt_deg"] > math.degrees(sim_cfg.max_pitch),
+                "transverse_rate": ep["transverse_rate_dps"] > math.degrees(sim_cfg.max_rate),
+                "roll_rate": ep["roll_rate_dps"] > math.degrees(sim_cfg.max_roll_rate),
+            }
+            for name, hit in causes.items():
+                out[f"tumbled/cause_{name}"] = hit[tumbled].float().mean().item()
+        wind_cfg = sim_cfg.wind
         if wind_cfg.surface_speed > 0 or wind_cfg.turbulence > 0:
             for key in ("wind/surface_speed", "wind/turbulence"):
                 out[key] = ep[key].mean().item()
