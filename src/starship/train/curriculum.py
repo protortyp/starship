@@ -18,6 +18,9 @@ class CurriculumConfig:
     enabled: bool = False
     promote_landed: float = 0.9
     promote_evals: int = 2
+    # Stage to begin at when the checkpoint carries no curriculum state, e.g. to skip stages
+    # an earlier run already solved.
+    start_stage: int = 0
     # Each stage: {"name": str, "overrides": ["sim.spawn.y=3000", "reward.time_cost=0.25"]}.
     stages: list[Any] = field(default_factory=list)
 
@@ -34,7 +37,9 @@ class Curriculum:
             raise ValueError("a curriculum needs at least one stage")
         self.promote_landed = curriculum.promote_landed
         self.promote_evals = curriculum.promote_evals
-        self.stage = 0
+        if not 0 <= curriculum.start_stage < len(self.stages):
+            raise ValueError(f"start_stage {curriculum.start_stage} is not a valid stage")
+        self.stage = curriculum.start_stage
         self.passes = 0
 
     @property
