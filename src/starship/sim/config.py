@@ -166,6 +166,9 @@ class SpawnConfig:
     pitch_noise: float = 0.0
     angular_rate_noise: float = 0.0
     flap_angle: float = math.radians(45.0)
+    # Start with all engines spooled up at this throttle (0 = engines off), e.g. to practise the
+    # landing burn on its own.
+    lit_throttle: float = 0.0
     header_fill: float = 1.0  # fraction of header tank capacity
     main_fill: float = 0.01  # residuals in the main tanks
 

@@ -47,6 +47,7 @@ class SpawnParams:
     pitch_noise: float
     angular_rate_noise: float
     flap_angle: float
+    lit_throttle: float
     tanks: wp.vec4
 
 
@@ -143,6 +144,9 @@ def spawn(p: Params, s: State, tid: int):
 
     e = EngineState()
     e.throttle = wp.vec3(p.propulsion.min_throttle)
+    if sp.lit_throttle > 0.0:
+        e.spool = wp.vec3(1.0)
+        e.throttle = wp.vec3(sp.lit_throttle)
     s.engine[tid] = e
     f = FlapState()
     f.angle = wp.vec4(sp.flap_angle)

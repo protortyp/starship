@@ -226,3 +226,11 @@ def test_tumbling_ends_the_episode():
     sim = Simulator(1, config(altitude=5000.0, angular_rate_noise=1.5), device=DEVICE, seed=4)
     sim.step()
     assert sim.terminal_snapshot().status[0] == TUMBLED or sim.snapshot().status[0] == TUMBLED
+
+
+def test_spawn_with_engines_lit():
+    cfg = config(altitude=500.0, pitch=0.0, vertical_speed=-40.0, lit_throttle=0.7)
+    sim = Simulator(1, cfg, device=DEVICE)
+    assert np.allclose(sim.snapshot().spool, 1.0)
+    sim.step(engine_on=(1, 1, 1), throttle=(0.7, 0.7, 0.7))
+    assert sim.snapshot().vel[0, 2] > -40.0  # already decelerating, no 2 s spool-up

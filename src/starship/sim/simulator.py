@@ -49,6 +49,7 @@ def make_params(config: SimConfig, device) -> Params:
         "pitch_noise",
         "angular_rate_noise",
         "flap_angle",
+        "lit_throttle",
     ):
         setattr(spawn, name, float(getattr(sp, name)))
     fill = (sp.main_fill, sp.main_fill, sp.header_fill, sp.header_fill)
