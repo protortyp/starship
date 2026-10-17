@@ -34,9 +34,10 @@ class RewardConfig:
     crash_tilt_weight: float = 20.0  # per rad excess
     crash_rate_weight: float = 5.0  # per rad/s excess
     crash_miss_weight: float = 0.1  # per m outside the pad
-    # Caps the weighted excess so a crash costs at most crash_penalty + cap: unbounded penalties
-    # (a km-scale miss) swamp the value targets. Kept below tumble_penalty - crash_penalty.
-    crash_excess_cap: float = 50.0
+    # Crash penalty = crash_penalty + crash_excess_scale * log(1 + weighted excess). Linear
+    # penalties let km-scale misses swamp the value targets, and a hard cap ranks all bad crashes
+    # the same; the log keeps ranking them while a 2 km miss stays below the tumble penalty.
+    crash_excess_scale: float = 10.0
     tumble_penalty: float = 200.0
     out_of_bounds_penalty: float = 100.0
     timeout_penalty: float = 50.0
@@ -62,7 +63,7 @@ class RewardParams:
     crash_tilt_weight: float
     crash_rate_weight: float
     crash_miss_weight: float
-    crash_excess_cap: float
+    crash_excess_scale: float
     tumble_penalty: float
     out_of_bounds_penalty: float
     timeout_penalty: float
@@ -118,7 +119,7 @@ def terminal_value(p: Params, r: RewardParams, t: Terminal, i: int, load: float)
             + r.crash_rate_weight * wp.max(wp.length(b.omega) - p.max_angular_rate, 0.0)
             + r.crash_miss_weight * wp.max(miss - p.pad_radius, 0.0)
         )
-        return -(r.crash_penalty + wp.min(excess, r.crash_excess_cap))
+        return -(r.crash_penalty + r.crash_excess_scale * wp.log(1.0 + excess))
     if status == TUMBLED:
         return -r.tumble_penalty
     if status == OUT_OF_BOUNDS:
