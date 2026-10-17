@@ -7,6 +7,7 @@ import torch
 from rsl_rl.algorithms import PPO
 from torch import nn
 
+from starship.train import diagnostics as diag
 from starship.train.rsl_env import HEAD_NAMES
 
 
@@ -45,8 +46,13 @@ class ValueNormalizer(nn.Module):
 
 
 class InstrumentedPPO(PPO):
-    def __init__(self, *args, value_normalization: bool = False, **kwargs):
+    def __init__(
+        self, *args, value_normalization: bool = False, diagnostics_interval: int = 0, **kwargs
+    ):
         super().__init__(*args, **kwargs)
+        # Every `diagnostics_interval` updates, log network health under plasticity/* (0 = off).
+        self.diagnostics_interval = diagnostics_interval
+        self._updates_done = 0
         if self.rnd or self.symmetry or self.is_multi_gpu:
             raise ValueError("InstrumentedPPO does not support RND, symmetry or multi-GPU")
         # Lives on the critic so it is saved and restored with the critic's state dict.
@@ -54,6 +60,25 @@ class InstrumentedPPO(PPO):
         if value_normalization:
             self.critic.value_norm = ValueNormalizer().to(self.device)
             self.value_norm = self.critic.value_norm
+
+    def _activation_diagnostics(self, max_envs: int = 4096) -> dict[str, float]:
+        """Unit, rank and gate diagnostics on a random rollout step and its stored hidden state."""
+        st = self.storage
+        t = int(torch.randint(st.num_transitions_per_env, (1,)))
+        n = min(max_envs, st.observations.batch_size[1])
+        obs = st.observations[t][:n]
+        out = {}
+        for net, model, saved in (
+            ("actor", self.actor, getattr(st, "saved_hidden_state_a", None)),
+            ("critic", self.critic, getattr(st, "saved_hidden_state_c", None)),
+        ):
+            hidden = None
+            if saved is not None:
+                hidden = tuple(h[t][:, :n].contiguous() for h in saved)
+                hidden = hidden[0] if len(hidden) == 1 else hidden
+            for k, v in diag.model_diagnostics(model, obs, hidden).items():
+                out[f"plasticity/{net}/{k}"] = v
+        return out
 
     def _values(self, critic_output: torch.Tensor) -> torch.Tensor:
         """Critic output in return units."""
@@ -104,6 +129,15 @@ class InstrumentedPPO(PPO):
 
         if self.value_norm is not None:
             self.value_norm.update(self.storage.returns)
+
+        diagnose = (
+            self.diagnostics_interval > 0 and self._updates_done % self.diagnostics_interval == 0
+        )
+        self._updates_done += 1
+        if diagnose:
+            before = {"actor": diag.snapshot(self.actor), "critic": diag.snapshot(self.critic)}
+            plasticity = self._activation_diagnostics()
+        grad_norms: dict[str, dict[str, float]] = {}
 
         num_updates = 0
         for batch in generator:
@@ -176,6 +210,12 @@ class InstrumentedPPO(PPO):
 
             self.optimizer.zero_grad()
             loss.backward()
+            if diagnose and not grad_norms:
+                # Gradients of the first minibatch, before clipping.
+                grad_norms = {
+                    "actor": diag.layer_norms(self.actor, grads=True),
+                    "critic": diag.layer_norms(self.critic, grads=True),
+                }
             # clip_grad_norm_ returns the norm before clipping.
             actor_grad = nn.utils.clip_grad_norm_(self.actor.parameters(), self.max_grad_norm)
             critic_grad = nn.utils.clip_grad_norm_(self.critic.parameters(), self.max_grad_norm)
@@ -208,6 +248,15 @@ class InstrumentedPPO(PPO):
             num_updates += 1
 
         metrics = {k: v / num_updates for k, v in sums.items()}
+        if diagnose:
+            for net, model in (("actor", self.actor), ("critic", self.critic)):
+                for layer, v in diag.layer_norms(model).items():
+                    metrics[f"plasticity/{net}/weight_norm/{layer}"] = v
+                for layer, v in diag.update_ratios(model, before[net]).items():
+                    metrics[f"plasticity/{net}/update_ratio/{layer}"] = v
+                for layer, v in grad_norms.get(net, {}).items():
+                    metrics[f"plasticity/{net}/grad_norm/{layer}"] = v
+            metrics.update(plasticity)
         metrics["explore/entropy_coef"] = self.entropy_coef
         if self.value_norm is not None:
             metrics["value/norm_mean"] = self.value_norm.mean.item()
