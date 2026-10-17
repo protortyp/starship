@@ -17,7 +17,7 @@
 | 0 | upright near the ground, engines lit (landing burn only) | passed (land3d_v6, it 1574) |
 | 1 | engines off at spawn (light them in time, 2 s spool) | passed (land3d_v6, it 2099; 4 collapses recovered by rollback) |
 | 2 | low-altitude belly-flop (flip + burn) | passed (land3d_v7_kl_long, it ~4100) |
-| 3 | 3 km belly-flop | |
+| 3 | 3 km belly-flop | passed (land3d_v8_lam098, it ~4775) |
 | 4 | altitude, speed, offset, pitch, spin ranges | |
 | 5 | wind and other `docs/gaps.md` items | |
 
@@ -31,6 +31,8 @@
 
 - Stage 2 stalled for ~2,000 iterations at a 50–58 % peak. Causes, in order of effect: 32-step rollouts (3.2 s of LSTM backprop) could not cover the flip-to-burn sequence, and lr 1e-4 wrecked the policy within two updates. 128 steps x 4096 envs with lr 3e-5 and a KL stop of 0.01 passed it in ~125 iterations (98 % eval, 86 % train); lr 3e-5 with the KL stop alone held ~40 % train but a volatile eval.
 - Rollback and resume must restore a coherent state (envs, LSTM state, best score) and evals must count every episode; timeouts are terminal, not bootstrapped (fixed after an outside review).
+
+- Stage 3 cycled between 45–64 % eval peaks and near-miss collapses (crashes at ~2 m/s, 16–62 m off) for ~1,000 iterations; GAE λ 0.95 → 0.98 (credit decay 1.9 → 4.7 s) passed it in ~200 iterations (96 % eval).
 
 ## Carried over from 2D
 

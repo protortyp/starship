@@ -41,7 +41,9 @@ runner:
     max_kl: 0.01
     # ~100 s horizon at 10 Hz, so terminal rewards reach the start of a ~40 s episode.
     gamma: 0.999
-    lam: 0.95
+    # GAE decay time ~4.7 s at 10 Hz (0.95: ~1.9 s): touchdown credit reaches the braking and
+    # lateral corrections ~10 s earlier; it passed the 3 km belly-flop stage (docs/curriculum.md).
+    lam: 0.98
     # Low entropy made 2D policies decisive and broke their plateaus (docs/curriculum.md).
     entropy_coef: 0.002
     clip_param: 0.2
