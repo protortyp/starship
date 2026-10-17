@@ -83,7 +83,11 @@ def rotate(q: np.ndarray, v: np.ndarray) -> np.ndarray:
 def blueprint() -> rrb.Blueprint:
     return rrb.Blueprint(
         rrb.Horizontal(
-            rrb.Spatial3DView(name="flights", origin="/world"),
+            rrb.Vertical(
+                # Rooted at the rocket's own transform, so the camera rides along with it.
+                rrb.Spatial3DView(name="follow (rocket 0)", origin="/world/rocket/0"),
+                rrb.Spatial3DView(name="flights", origin="/world"),
+            ),
             rrb.Vertical(
                 rrb.TimeSeriesView(name="altitude (m)", origin="/telemetry/altitude"),
                 rrb.TimeSeriesView(name="vertical speed (m/s)", origin="/telemetry/vz"),
