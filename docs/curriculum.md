@@ -15,7 +15,7 @@
 | # | change | status |
 |---|---|---|
 | 0 | upright near the ground, engines lit (landing burn only) | passed (land3d_v6, it 1574) |
-| 1 | engines off at spawn (light them in time, 2 s spool) | |
+| 1 | engines off at spawn (light them in time, 2 s spool) | passed (land3d_v6, it 2099; 4 collapses recovered by rollback) |
 | 2 | low-altitude belly-flop (flip + burn) | |
 | 3 | 3 km belly-flop | |
 | 4 | altitude, speed, offset, pitch, spin ranges | |
