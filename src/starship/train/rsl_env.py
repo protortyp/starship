@@ -51,6 +51,13 @@ class RslRocketEnv(VecEnv):
         self._truncated = wp.to_torch(env.truncated)
         env.reset()
 
+    def set_configs(self, sim_config=None, reward_config=None) -> None:
+        self.env.set_configs(sim_config, reward_config)
+        self.max_episode_length = self.env.config.max_steps
+        self.learner_scale = self.env.reward_config.learner_scale
+        self.cfg["sim"] = asdict(self.env.config)
+        self.cfg["reward"] = asdict(self.env.reward_config)
+
     def _observations(self) -> TensorDict:
         # Cloned because rsl_rl keeps the observation it acted on until after the next step.
         return TensorDict({"policy": self._obs.clone()}, batch_size=[self.num_envs])
