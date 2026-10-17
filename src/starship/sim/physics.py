@@ -30,6 +30,7 @@ LANDED = 1
 CRASHED = 2
 OUT_OF_BOUNDS = 3
 TIMEOUT = 4
+TUMBLED = 5
 
 
 @wp.struct
@@ -56,6 +57,8 @@ class Params:
     max_time: float
     max_altitude: float
     max_offset: float
+    max_pitch: float  # from vertical; beyond it the vehicle counts as tumbling
+    max_rate: float
     length: float
     radius: float
     nose_length: float
@@ -240,6 +243,10 @@ def advance(p: Params, s: State, c: Commands, tid: int):
         horizontal = wp.sqrt(b.pos[0] * b.pos[0] + b.pos[1] * b.pos[1])
         if b.pos[2] > p.max_altitude or horizontal > p.max_offset:
             status = OUT_OF_BOUNDS
+            break
+        axis_z = wp.quat_rotate(b.rot, wp.vec3(1.0, 0.0, 0.0))[2]
+        if axis_z < wp.cos(p.max_pitch) or wp.length(b.omega) > p.max_rate:
+            status = TUMBLED
             break
     if status == FLYING and t >= p.max_time:
         status = TIMEOUT

@@ -189,3 +189,6 @@ class SimConfig:
     max_time: float = 180.0
     max_altitude: float = 25_000.0
     max_offset: float = 10_000.0
+    # Tumble limits: the real flip turns ~90 deg in 4-6 s (docs/starship.md), well inside both.
+    max_pitch: float = math.radians(115.0)
+    max_rate: float = math.radians(40.0)

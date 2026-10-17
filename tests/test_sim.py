@@ -151,7 +151,7 @@ def test_spinning_touchdown_crashes():
     cfg = config(altitude=float(com) + 0.05, vertical_speed=-1.0, pitch=0.0)
     sim = Simulator(1, cfg, device=DEVICE)
     body = sim.state.body.numpy()
-    body["omega"][0] = (2.0, 0.0, 0.0)  # fast roll about the axis
+    body["omega"][0] = (0.5, 0.0, 0.0)  # 29 deg/s roll: above the landing limit, below tumbling
     sim.state.body.assign(body)
     for _ in range(20):
         sim.step()
@@ -210,3 +210,19 @@ def test_copy_within_the_same_simulator():
     after = sim.snapshot()
     assert np.allclose(after.pos, before.pos[::-1])
     assert np.allclose(after.rot, before.rot[::-1])
+
+
+def test_tumbling_ends_the_episode():
+    from starship.sim import TUMBLED
+
+    # Passive belly-flop with aft flaps open pitches nose-down past the limit.
+    sim = Simulator(1, config(altitude=5000.0), device=DEVICE)
+    for _ in range(300):
+        sim.step(flaps=(0.0, 0.0, 1.4, 1.4))
+        if sim.snapshot().status[0] != FLYING:
+            break
+    assert sim.snapshot().status[0] == TUMBLED
+    # Spinning faster than the rate limit also counts.
+    sim = Simulator(1, config(altitude=5000.0, angular_rate_noise=1.5), device=DEVICE, seed=4)
+    sim.step()
+    assert sim.terminal_snapshot().status[0] == TUMBLED or sim.snapshot().status[0] == TUMBLED
