@@ -48,3 +48,23 @@ stages:
       - sim.spawn.pitch_noise=0.26
       - sim.spawn.angular_rate_noise=0.05
       - sim.max_time=180
+  - name: 5 attitude costs at half weight
+    overrides:
+      - reward.roll_travel_cost=1
+      - reward.horizontal_rotation_cost=1
+      - reward.sideslip_cost=0.25
+      - reward.reflip_cost=2.5
+  - name: 6 attitude costs at full weight
+    overrides:
+      # 2/rad costs 25.8 for the measured 7.2 + 5.7 rad, versus 3.2 for one clean flip.
+      # Sideslip costs at most 0.5/s; a reflip costs 5, more than one clean flip.
+      - reward.roll_travel_cost=2
+      - reward.horizontal_rotation_cost=2
+      - reward.sideslip_cost=0.5
+      - reward.reflip_cost=5
+  - name: 7 roll limit 60 deg/s
+    overrides:
+      - sim.max_roll_rate=1.0471975511965976
+  - name: 8 roll limit 45 deg/s
+    overrides:
+      - sim.max_roll_rate=0.7853981633974483

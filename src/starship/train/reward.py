@@ -6,12 +6,25 @@ import warp as wp
 
 from starship.sim import CRASHED, LANDED, OUT_OF_BOUNDS, TIMEOUT, TUMBLED
 from starship.sim.mass import mass_properties
-from starship.sim.physics import Params, State, Terminal, lowest_point
+from starship.sim.physics import Attitude, Params, State, Terminal, lowest_point
 from starship.sim.rigid import Body
 from starship.train.actions import CONTINUOUS_HEADS
 from starship.train.encoding import fuel_fraction
 
-REWARD_TERMS = ("distance", "speed", "tilt", "angular_rate", "jerk", "fuel", "time", "terminal")
+REWARD_TERMS = (
+    "distance",
+    "speed",
+    "tilt",
+    "angular_rate",
+    "jerk",
+    "fuel",
+    "time",
+    "terminal",
+    "roll_travel_cost",
+    "horizontal_rotation_cost",
+    "sideslip_cost",
+    "reflip_cost",
+)
 
 
 @dataclass
@@ -46,6 +59,10 @@ class RewardConfig:
     tumble_penalty: float = 200.0
     out_of_bounds_penalty: float = 150.0
     timeout_penalty: float = 150.0
+    roll_travel_cost: float = 0.0  # per rad
+    horizontal_rotation_cost: float = 0.0  # per rad about world-horizontal axes
+    sideslip_cost: float = 0.0  # per squared air-relative sideslip fraction s above 20 m/s
+    reflip_cost: float = 0.0  # per return above 60 degrees after reaching below 30 degrees
 
 
 @wp.struct
@@ -73,6 +90,10 @@ class RewardParams:
     tumble_penalty: float
     out_of_bounds_penalty: float
     timeout_penalty: float
+    roll_travel_cost: float
+    horizontal_rotation_cost: float
+    sideslip_cost: float
+    reflip_cost: float
 
 
 def make_reward_params(config: RewardConfig) -> RewardParams:
@@ -145,6 +166,7 @@ def reward_kernel(
     before: wp.array(dtype=wp.vec3),
     fuel_before: wp.array(dtype=float),
     time_before: wp.array(dtype=float),
+    attitude_before: wp.array(dtype=Attitude),
     landing_load: wp.array(dtype=float),
     squashed: wp.array2d(dtype=float),
     previous: wp.array2d(dtype=float),
@@ -159,6 +181,7 @@ def reward_kernel(
     b = state.body[i]
     tanks = state.tanks[i]
     time = state.time[i]
+    a = state.attitude[i]
     done = terminal.done[i] != 0
     phi = wp.vec3(0.0)
     terminal_reward[i] = 0.0
@@ -168,6 +191,7 @@ def reward_kernel(
         b = terminal.body[i]
         tanks = terminal.tanks[i]
         time = terminal.time[i]
+        a = terminal.attitude[i]
         terminal_reward[i] = terminal_value(p, r, terminal, i, landing_load[i])
         if terminal.status[i] == TIMEOUT:
             truncated[i] = 1
@@ -196,7 +220,12 @@ def reward_kernel(
     terms[i, 5] = -r.fuel_cost * burned
     terms[i, 6] = -r.time_cost * dt
     terms[i, 7] = terminal_reward[i]
+    prev = attitude_before[i]
+    terms[i, 8] = -r.roll_travel_cost * (a.roll_travel - prev.roll_travel)
+    terms[i, 9] = -r.horizontal_rotation_cost * (a.horizontal_travel - prev.horizontal_travel)
+    terms[i, 10] = -r.sideslip_cost * (a.sideslip - prev.sideslip)
+    terms[i, 11] = -r.reflip_cost * float(a.reflips - prev.reflips)
     total = 0.0
-    for j in range(8):
+    for j in range(wp.static(len(REWARD_TERMS))):
         total += terms[i, j]
     reward[i] = total

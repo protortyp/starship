@@ -32,6 +32,51 @@ OUT_OF_BOUNDS = 3
 TIMEOUT = 4
 TUMBLED = 5
 
+ATTITUDE_FIELDS = (
+    "roll_travel",
+    "horizontal_travel",
+    "peak_roll_rate",
+    "peak_horizontal_rate",
+    "flips",
+    "reflips",
+)
+
+
+@wp.struct
+class Attitude:
+    roll_travel: float
+    horizontal_travel: float
+    peak_roll_rate: float
+    peak_horizontal_rate: float
+    flips: int
+    reflips: int
+    sideslip: float
+    phase: int  # 0: neither threshold reached; 1: above 60 degrees; 2: below 30 degrees
+
+
+@wp.func
+def track_attitude(a: Attitude, b: Body, v_air: wp.vec3, dt: float) -> Attitude:
+    roll = wp.abs(b.omega[0])
+    world_rate = wp.quat_rotate(b.rot, b.omega)
+    horizontal = wp.length(wp.vec2(world_rate[0], world_rate[1]))
+    a.roll_travel += roll * dt
+    a.horizontal_travel += horizontal * dt
+    a.peak_roll_rate = wp.max(a.peak_roll_rate, roll)
+    a.peak_horizontal_rate = wp.max(a.peak_horizontal_rate, horizontal)
+    speed_sq = wp.dot(v_air, v_air)
+    if speed_sq > 400.0:
+        a.sideslip += v_air[1] * v_air[1] / speed_sq * dt
+    axis_z = wp.quat_rotate(b.rot, wp.vec3(1.0, 0.0, 0.0))[2]
+    if axis_z < wp.cos(wp.pi / 3.0):
+        if a.phase == 2:
+            a.reflips += 1
+        a.phase = 1
+    elif axis_z > wp.cos(wp.pi / 6.0):
+        if a.phase == 1:
+            a.flips += 1
+        a.phase = 2
+    return a
+
 
 @wp.struct
 class SpawnParams:
@@ -89,6 +134,7 @@ class Commands:
 @wp.struct
 class State:
     body: wp.array(dtype=Body)
+    attitude: wp.array(dtype=Attitude)
     engine: wp.array(dtype=EngineState)
     flaps: wp.array(dtype=FlapState)
     tanks: wp.array(dtype=wp.vec4)
@@ -106,6 +152,7 @@ class Terminal:
     done: wp.array(dtype=wp.int32)
     status: wp.array(dtype=wp.int32)
     body: wp.array(dtype=Body)
+    attitude: wp.array(dtype=Attitude)
     tanks: wp.array(dtype=wp.vec4)
     time: wp.array(dtype=float)
     steps: wp.array(dtype=wp.int32)
@@ -142,6 +189,7 @@ def spawn(p: Params, s: State, tid: int):
     b.rot = attitude(pitch, heading)
     b.omega = wp.vec3(wp.randf(rng, -w, w), wp.randf(rng, -w, w), wp.randf(rng, -w, w))
     s.body[tid] = b
+    s.attitude[tid] = track_attitude(Attitude(), b, wp.vec3(0.0), 0.0)
 
     e = EngineState()
     e.throttle = wp.vec3(p.propulsion.min_throttle)
@@ -209,6 +257,7 @@ def touchdown_status(p: Params, b: Body, com: float) -> int:
 @wp.func
 def advance(p: Params, s: State, c: Commands, tid: int):
     b = s.body[tid]
+    a = s.attitude[tid]
     e = s.engine[tid]
     f = s.flaps[tid]
     tanks = s.tanks[tid]
@@ -240,6 +289,8 @@ def advance(p: Params, s: State, c: Commands, tid: int):
         w = add_wrench(w, rcs_wrench(p.propulsion, c.rcs[tid]))
         force = wp.quat_rotate(b.rot, w.force) - wp.vec3(0.0, 0.0, gravity(b.pos[2]) * mp.mass)
         b = integrate(b, force, w.torque, mp.mass, mp.inertia, p.dt)
+        # Match the integrated angular step and use the same air-relative flow as aerodynamics.
+        a = track_attitude(a, b, v_air, p.dt)
         tanks = draw_propellant(p.propulsion, tanks, mdot * supply, p.dt)
         t += p.dt
         if lowest_point(p, b, mp.com) <= 0.0:
@@ -261,6 +312,7 @@ def advance(p: Params, s: State, c: Commands, tid: int):
     if status == FLYING and s.steps[tid] + 1 >= p.max_steps:
         status = TIMEOUT
     s.body[tid] = b
+    s.attitude[tid] = a
     s.engine[tid] = e
     s.flaps[tid] = f
     s.tanks[tid] = tanks
@@ -280,6 +332,7 @@ def step_kernel(p: Params, auto_reset: int, c: Commands, s: State, term: Termina
         term.done[tid] = 1
         term.status[tid] = s.status[tid]
         term.body[tid] = s.body[tid]
+        term.attitude[tid] = s.attitude[tid]
         term.tanks[tid] = s.tanks[tid]
         term.time[tid] = s.time[tid]
         term.steps[tid] = s.steps[tid]
@@ -293,6 +346,7 @@ def gather_kernel(sources: wp.array(dtype=wp.int32), src: State, dst: State):
     tid = wp.tid()
     j = sources[tid]
     dst.body[tid] = src.body[j]
+    dst.attitude[tid] = src.attitude[j]
     dst.engine[tid] = src.engine[j]
     dst.flaps[tid] = src.flaps[j]
     dst.tanks[tid] = src.tanks[j]
