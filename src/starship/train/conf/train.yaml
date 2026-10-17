@@ -41,6 +41,8 @@ runner:
     clip_param: 0.2
     value_loss_coef: 1.0
     max_grad_norm: 1.0
+    # Critic predicts returns normalized by their running mean and std.
+    value_normalization: true
   actor:
     class_name: RNNModel
     rnn_type: lstm

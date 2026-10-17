@@ -219,3 +219,31 @@ def test_bitmask_swaps_side_thrusters_when_mirrored():
         LEFT,
         MAIN | LEFT | RIGHT,
     ]
+
+
+def test_value_normalizer_tracks_running_moments():
+    from starship.train.ppo import ValueNormalizer
+
+    norm = ValueNormalizer()
+    data = [torch.randn(1000) * 50 + 20, torch.randn(3000) * 80 - 10]
+    for x in data:
+        norm.update(x)
+    all_x = torch.cat(data)
+    assert norm.mean.item() == pytest.approx(all_x.mean().item(), rel=1e-4)
+    assert norm.var.item() == pytest.approx(all_x.var(unbiased=False).item(), rel=1e-4)
+    x = torch.tensor([3.0, -40.0])
+    assert torch.allclose(norm.denormalize(norm.normalize(x)), x, atol=1e-4)
+
+
+def test_value_normalization_is_saved_with_checkpoints(tmp_path):
+    cfg = compose_cfg(*SHORT_EPISODES)
+    runner = make_runner(cfg, tmp_path / "a")
+    runner.learn(2)
+    norm = runner.alg.value_norm
+    assert norm is not None
+    assert norm.count.item() > 0
+    assert "value/norm_std" in runner.last_metrics
+    resumed = make_runner(cfg, tmp_path / "b")
+    resumed.load(str(tmp_path / "a" / "model_1.pt"))
+    assert resumed.alg.value_norm.mean.item() == pytest.approx(norm.mean.item())
+    assert resumed.alg.value_norm.var.item() == pytest.approx(norm.var.item())
