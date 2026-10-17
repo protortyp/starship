@@ -24,6 +24,9 @@ class TrainConfig:
     # rollback_patience evals (0 disables).
     rollback_drop: float = 0.5
     rollback_patience: int = 2
+    # Write Rerun recordings of eval episodes every `record_every` evals (0 disables).
+    record_every: int = 4
+    record_envs: int = 16
     # model_<it>.pt from an earlier run to continue from (weights, optimizer and normalizers).
     checkpoint: str | None = None
     sim: SimConfig = field(default_factory=SimConfig)

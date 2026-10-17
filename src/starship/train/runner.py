@@ -63,6 +63,8 @@ class StarshipRunner(OnPolicyRunner):
         target_eval_env: RslRocketEnv | None = None,
         rollback_drop: float = 0.0,
         rollback_patience: int = 2,
+        record_every: int = 0,
+        record_envs: int = 16,
     ):
         # rsl_rl's own logger stays disabled; this runner writes its own TensorBoard metrics.
         super().__init__(env, train_cfg, log_dir=None, device=device)
@@ -88,6 +90,11 @@ class StarshipRunner(OnPolicyRunner):
         self.rollback_patience = rollback_patience
         self._below_best = 0
         self.rollbacks = 0
+        # Every `record_every` evals, eval episodes are also written as Rerun recordings to
+        # <log_dir>/rerun/. 0 disables it.
+        self.record_every = record_every
+        self.record_envs = record_envs
+        self._evals = 0
         if curriculum is not None:
             self._apply_stage()
 
@@ -172,12 +179,20 @@ class StarshipRunner(OnPolicyRunner):
             t_eval = 0.0
             if self.eval_env is not None and (it + 1) % self.eval_interval == 0:
                 t_eval = time.perf_counter()
-                eval_metrics = self.evaluate()
+                self._evals += 1
+                record = self.record_every > 0 and self._evals % self.record_every == 0
+                rerun_dir = self.log_dir / "rerun"
+                eval_metrics = self.evaluate(
+                    record=rerun_dir / f"eval_{it}.rrd" if record else None
+                )
                 self._keep_best(it, eval_metrics)
                 metrics.update(eval_metrics)
                 self._maybe_roll_back(it, eval_metrics)
                 if self.target_eval_env is not None:
-                    metrics.update(self.evaluate(self.target_eval_env, "eval/target"))
+                    target_record = rerun_dir / f"target_{it}.rrd" if record else None
+                    metrics.update(
+                        self.evaluate(self.target_eval_env, "eval/target", record=target_record)
+                    )
                 if self.curriculum is not None and self.curriculum.observe_eval(
                     eval_metrics.get("eval/env/rate/landed", 0.0)
                 ):
@@ -229,9 +244,20 @@ class StarshipRunner(OnPolicyRunner):
             infos = {**(infos or {}), "curriculum": self.curriculum.state_dict()}
         super().save(path, infos)
 
-    def evaluate(self, env: RslRocketEnv | None = None, prefix: str = "eval/env") -> dict:
-        """Run every eval env for one full episode with the deterministic policy."""
+    def evaluate(
+        self,
+        env: RslRocketEnv | None = None,
+        prefix: str = "eval/env",
+        record: Path | None = None,
+    ) -> dict:
+        """Run every eval env for one full episode with the deterministic policy, optionally
+        writing a Rerun recording of the first `record_envs` of them."""
         env = env or self.eval_env
+        recorder = None
+        if record is not None:
+            from starship.render.recording import EvalRecorder
+
+            recorder = EvalRecorder(env, record, self.record_envs)
         policy = standalone_copy(self.alg.get_policy()).eval()
         policy.reset()
         tracker = EpisodeTracker(env)
@@ -243,10 +269,14 @@ class StarshipRunner(OnPolicyRunner):
                 actions = policy(obs, stochastic_output=False)
                 obs, _, dones, _ = env.step(actions)
                 tracker.step(dones, record=pending)
+                if recorder is not None:
+                    recorder.step(dones)
                 policy.reset(dones)
                 pending &= ~dones.bool()
                 if not pending.any():
                     break
+        if recorder is not None:
+            recorder.close()
         return tracker.summarize(prefix)
 
     def _keep_best(self, it: int, m: dict[str, float]) -> None:
