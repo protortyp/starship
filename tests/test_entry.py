@@ -61,7 +61,7 @@ def test_entry_noise_and_rng_are_reproducible():
     assert np.std(error) > 0.02
 
 
-@pytest.mark.parametrize("stage", [10, 11, 12, 13])
+@pytest.mark.parametrize("stage", [14, 15, 16, 17])
 def test_entry_placement_reaches_flip_corridor_in_reference_glide(stage):
     cfg = test_train.compose_cfg("curriculum=landing")
     sim_cfg, _ = Curriculum(cfg, cfg.curriculum).configs(stage)
