@@ -291,7 +291,11 @@ class StarshipRunner(OnPolicyRunner):
             return
         stage = self.curriculum.stage if self.curriculum is not None else 0
         best_stage, best_landed, _ = self.best_eval
-        if best_stage != stage or m["eval/env/rate/landed"] > best_landed - self.rollback_drop:
+        # Relative to the stage's best: an absolute margin never fires while a hard stage's best
+        # is still low (best 0.19, margin 0.5). Below 10 % there is nothing worth restoring.
+        floor = best_landed * (1.0 - self.rollback_drop)
+        landed = m["eval/env/rate/landed"]
+        if best_stage != stage or best_landed < 0.1 or landed >= floor:
             self._below_best = 0
             return
         self._below_best += 1
