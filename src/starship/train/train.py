@@ -15,13 +15,10 @@ from starship.train.rsl_env import RslRocketEnv
 from starship.train.runner import StarshipRunner
 
 
-def make_env(cfg: DictConfig, num_envs: int, seed: int, for_eval: bool = False) -> RslRocketEnv:
-    sim = OmegaConf.to_object(cfg.sim)
-    if for_eval:
-        sim.easy_spawn_fraction = 0.0
+def make_env(cfg: DictConfig, num_envs: int, seed: int) -> RslRocketEnv:
     env = RocketEnv(
         num_envs,
-        sim,
+        OmegaConf.to_object(cfg.sim),
         OmegaConf.to_object(cfg.obs),
         OmegaConf.to_object(cfg.reward),
         device=cfg.device,
@@ -35,13 +32,11 @@ def main(cfg: DictConfig) -> None:
     out_dir = HydraConfig.get().runtime.output_dir
     torch.manual_seed(cfg.seed)
     env = make_env(cfg, cfg.num_envs, cfg.seed)
-    eval_env = (
-        make_env(cfg, cfg.eval_envs, cfg.seed + 1, for_eval=True) if cfg.eval_envs > 0 else None
-    )
+    eval_env = make_env(cfg, cfg.eval_envs, cfg.seed + 1) if cfg.eval_envs > 0 else None
     curriculum = Curriculum(cfg, cfg.curriculum) if cfg.curriculum.enabled else None
     target_env = None
     if curriculum is not None and eval_env is not None:
-        target_env = make_env(cfg, cfg.eval_envs, cfg.seed + 2, for_eval=True)
+        target_env = make_env(cfg, cfg.eval_envs, cfg.seed + 2)
     runner = StarshipRunner(
         env,
         OmegaConf.to_container(cfg.runner, resolve=True),
@@ -58,6 +53,11 @@ def main(cfg: DictConfig) -> None:
     )
     if cfg.checkpoint:
         runner.load(cfg.checkpoint)
+        if runner.eval_env is not None:
+            metrics = runner.evaluate()
+            runner._keep_best(runner.current_learning_iteration, metrics)
+            for key, value in metrics.items():
+                runner.writer.add_scalar(key, value, runner.total_env_steps)
         print(f"continuing from {cfg.checkpoint}")
     runner.learn(cfg.iterations)
     print(f"policy exported to {out_dir}/policy.pt")

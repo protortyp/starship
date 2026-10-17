@@ -1,9 +1,11 @@
 defaults:
   - train_schema
-  - curriculum: none
+  - curriculum: landing
   - _self_
 
 experiment: landing
+# 4096 envs x 128 steps keeps the 524k-step batch of 16384 x 32 while letting the LSTM learn over
+# 12.8 s windows: the belly-flop's flip-to-burn sequence never fit in 3.2 s (docs/curriculum.md).
 num_envs: 4096
 device: null
 seed: 0
@@ -11,7 +13,7 @@ iterations: 500
 eval_interval: 25
 eval_envs: 256
 rollback_drop: 0.5
-rollback_patience: 2
+rollback_patience: 6
 record_every: 4
 record_envs: 16
 checkpoint: null
@@ -19,12 +21,8 @@ checkpoint: null
 reward:
   gamma: ${runner.algorithm.gamma}
 
-sim:
-  # Curriculum: start some training episodes near the ground; eval always uses the full scenario.
-  easy_spawn_fraction: 0.3
-
 runner:
-  num_steps_per_env: 32
+  num_steps_per_env: 128
   save_interval: 50
   check_for_nan: true
   multi_gpu: null
@@ -35,15 +33,22 @@ runner:
     class_name: starship.train.ppo:InstrumentedPPO
     num_learning_epochs: 5
     num_mini_batches: 4
-    learning_rate: 1.0e-3
-    schedule: adaptive
+    # Fixed: rsl_rl's adaptive schedule pinned the lr at its 1e-2 ceiling and stalled (docs/curriculum.md).
+    # 1e-4 wrecked a 58 % belly-flop policy within two updates; 3e-5 with a KL stop holds it.
+    learning_rate: 3.0e-5
+    schedule: fixed
     desired_kl: 0.01
+    max_kl: 0.01
     # ~100 s horizon at 10 Hz, so terminal rewards reach the start of a ~40 s episode.
     gamma: 0.999
-    lam: 0.95
-    entropy_coef: 0.01
+    # GAE decay time ~4.7 s at 10 Hz (0.95: ~1.9 s): touchdown credit reaches the braking and
+    # lateral corrections ~10 s earlier; it passed the 3 km belly-flop stage (docs/curriculum.md).
+    lam: 0.98
+    # Low entropy made 2D policies decisive and broke their plateaus (docs/curriculum.md).
+    entropy_coef: 0.002
     clip_param: 0.2
     value_loss_coef: 1.0
+    use_clipped_value_loss: false
     max_grad_norm: 1.0
     # Critic predicts returns normalized by their running mean and std. Off: it made learning
     # collapse on near-ground spawns (16% then 0% at 250 it, vs 81% without; docs/curriculum.md).
@@ -59,7 +64,9 @@ runner:
     activation: elu
     obs_normalization: true
     distribution_cfg:
-      class_name: starship.train.distribution:BernoulliDistribution
+      class_name: starship.train.distribution:HybridDistribution
+      # Spread of the continuous heads before tanh squashing.
+      init_std: 0.5
   critic:
     class_name: RNNModel
     rnn_type: lstm

@@ -1,1 +1,1 @@
-"""Pygame visualization of the simulator."""
+"""Visualisation of simulator flights."""

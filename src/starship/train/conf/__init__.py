@@ -20,8 +20,8 @@ class TrainConfig:
     iterations: int = 500
     eval_interval: int = 25
     eval_envs: int = 256
-    # Reload model_best.pt when the stage's eval landing rate stays this far below its best for
-    # rollback_patience evals (0 disables).
+    # Reload model_best.pt when the stage's eval landing rate stays below (1 - rollback_drop) x its
+    # best for rollback_patience evals (0 disables).
     rollback_drop: float = 0.5
     rollback_patience: int = 2
     # Write Rerun recordings of eval episodes every `record_every` evals (0 disables).

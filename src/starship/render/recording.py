@@ -5,66 +5,52 @@ from pathlib import Path
 import numpy as np
 import rerun as rr
 
-from starship.render.rerun_viewer import blueprint, log_static_scene, log_step
-from starship.sim import StateSnapshot
-from starship.train.rsl_env import RslRocketEnv
-
-FIELDS = ("pos", "vel", "theta", "omega", "status", "steps", "fuel")
+from starship.render.rerun_viewer import blueprint, flap_geometry, log_scene, log_step
+from starship.sim.mass import make_mass_params
 
 
 class EvalRecorder:
-    """Records the first `num_envs` envs of an eval env until each finished one episode.
+    """Records the first `num_envs` envs of an eval env until each has finished one episode.
 
-    Eval envs auto-reset, so finished rockets are frozen at their terminal state instead of
-    showing their respawn.
+    Eval envs auto-reset, so a finished rocket stops being logged instead of showing its respawn.
     """
 
-    def __init__(self, env: RslRocketEnv, path: str | Path, num_envs: int = 16):
+    def __init__(self, env, path: str | Path, num_envs: int = 16):
         self.sim = env.env.sim
-        self.env = env
-        self.n = min(num_envs, env.num_envs)
+        self.n = min(num_envs, self.sim.num_envs)
         self.cfg = self.sim.config
         path = Path(path)
         path.parent.mkdir(parents=True, exist_ok=True)
         self.rec = rr.RecordingStream("starship")
-        self.rec.save(path, default_blueprint=blueprint(self.cfg))
         # Run dirs are logs/<experiment>/<time>/rerun/<file>; the name tells recordings apart
         # when several are open in one viewer.
-        run = path.parent.parent
-        self.rec.send_recording_name(f"{run.parent.name} {path.stem}")
-        self.frozen = np.zeros(self.n, dtype=bool)
-        self.final = {f: getattr(self.sim.snapshot(), f)[: self.n].copy() for f in FIELDS}
-        self.trail: list = []
-        self.t = 0.0
+        self.rec.send_recording_name(f"{path.parent.parent.parent.name} {path.stem}")
+        layout = blueprint()
+        self.rec.save(path, default_blueprint=layout)
         # The recording stays active from here until close(): re-entering a RecordingStream's
         # context a second time silently drops everything logged afterwards.
         self.rec.__enter__()
-        log_static_scene(self.cfg)
+        rr.send_blueprint(layout)
+        log_scene(self.cfg, self.n)
+        self.flaps = flap_geometry(self.cfg)
+        self.mass_params = make_mass_params(self.cfg.vehicle)
+        self.trails: list[list | None] = [[] for _ in range(self.n)]
+        self.t = 0.0
+        self._log()
+
+    def _log(self) -> None:
+        rr.set_time("sim_time", duration=self.t)
+        log_step(self.cfg, self.sim.snapshot(), self.flaps, self.trails, self.mass_params)
 
     def step(self, dones) -> None:
-        """Log the state after an env step; `dones` are that step's episode ends."""
-        live = self.sim.snapshot()
-        term = self.sim.terminal_snapshot()
-        newly = np.asarray(dones.cpu())[: self.n].astype(bool) & ~self.frozen
-        for f in FIELDS:
-            self.final[f][newly] = getattr(term, f)[: self.n][newly]
-        self.frozen |= newly
-        view = {}
-        for f in FIELDS:
-            current = getattr(live, f)[: self.n].copy()
-            current[self.frozen] = self.final[f][self.frozen]
-            view[f] = current
-        actions = self.env.actions[: self.n].cpu().numpy().copy()
-        actions[self.frozen] = 0
-        self.t += self.cfg.policy_dt
-        rr.set_time("sim_time", duration=self.t)
-        log_step(self.cfg, StateSnapshot(**view), actions, self.trail)
-
-    @property
-    def done(self) -> bool:
-        return bool(self.frozen.all())
+        """Call after each env step with that step's episode ends."""
+        done = np.asarray(dones.cpu())[: self.n].astype(bool)
+        for i in np.nonzero(done)[0]:
+            self.trails[i] = None
+        self.t += self.cfg.dt * self.cfg.substeps
+        if any(t is not None for t in self.trails):
+            self._log()
 
     def close(self) -> None:
         self.rec.__exit__(None, None, None)
         self.rec.flush()
-        self.rec.disconnect()

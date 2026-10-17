@@ -1,49 +1,45 @@
 # Curriculum
 
-From scratch: `just vast train curriculum=scratch` (near-ground stages A–C first, then the spawn stages).
-Run: `just vast train curriculum=spawn checkpoint=<model_*.pt> ...` (stages in `src/starship/train/conf/curriculum/spawn.yaml`).
-Each stage adds one change on top of all earlier ones. Promotion: stage eval lands ≥ 90% in 2 consecutive evals.
-TensorBoard: `curriculum/stage` (steps at promotions), Text tab `curriculum`, `eval/env/*` (current stage), `eval/target/*` (final stage). Run dir: `curriculum.json`, `model_stage<k>_passed.pt`, `policy_best.pt`, and every 4th eval Rerun recordings `rerun/eval_<it>.rrd` / `rerun/target_<it>.rrd` (`just vast rerun --watch 20` opens new ones as they appear).
+6-DOF sim (`starship.sim`, values in `docs/starship.md`). One change per stage; promotion at ≥ 90 % eval landings in 2 consecutive evals.
 
-Health: `plasticity/*` in TensorBoard (dormant/dead units, feature rank, LSTM gate saturation, per-layer grad/weight norms and update ratios) and `uv run starship-diagnose <run> --probe`.
+## Environment
+
+- **Actions**: 3 Bernoulli engine-on heads; 8 continuous (shared throttle, shared 2-axis gimbal, 4 flaps, roll RCS) as absolute targets; actuator lag and rate limits come from the sim.
+- **Observations** (body frame, heading-invariant): up vector, velocity, pad position, angular velocity, altitude, flap angles, engine spool, throttle, gimbal, fuel fraction. Port/starboard mirror as augmentation.
+- **Reward**: γΦ(s′) − Φ(s) shaping on distance, speed above a safe descent profile and tilt near the ground; penalties on angular rate and actuator jerk; fuel and time cost; terminal landing bonus scaled by fuel left, crash penalty scaled by limit excess.
+- **Termination**: landed, crashed, out of bounds, timeout, **tumbled** (pitch > 115° from vertical, pitch/yaw rate > 40°/s, or roll rate > 90°/s) with the largest penalty.
+- **Metrics**: landing rate; touchdown speed, tilt, miss; crash and tumble breakdown by limit; reward per term; per-actuator usage and saturation; plasticity (`starship-diagnose`).
 
 ## Stages
 
-`curriculum=scratch`; the best run so far is e2_ent002_lr1e4 (`entropy_coef=0.002`, fixed lr 1e-4, from scratch_v8's best).
-
 | # | change | status |
 |---|---|---|
-| 0 | A upright near ground (50–350 m) | passed (e2, it 2074) |
-| 1 | B up to 1 km, tilted up to flat | passed (e2, it 2499) |
-| 2 | C randomized 3 km belly-flop, 20% near-ground practice spawns | passed (e2, it 2574: eval 0.99) |
-| 3 | time cost 0.25/s | passed (e2, it 2624: eval 1.00); `model_stage3_passed.pt` = baseline_v1 |
-| 4 | mirrored spawns (nose left/right) | training |
-| 5 | altitude 1.5–5 km | |
-| 6 | vertical speed −40 to −130 m/s | |
-| 7 | horizontal speed ±30 m/s, offset ±500 m | |
-| 8 | orientation flat ±30° | |
-| 9 | spin ±5°/s | |
+| 0 | upright near the ground, engines lit (landing burn only) | passed (land3d_v6, it 1574) |
+| 1 | engines off at spawn (light them in time, 2 s spool) | passed (land3d_v6, it 2099; 4 collapses recovered by rollback) |
+| 2 | low-altitude belly-flop (flip + burn) | passed (land3d_v7_kl_long, it ~4100) |
+| 3 | 3 km belly-flop | passed (land3d_v8_lam098, it ~4775) |
+| 4 | altitude, speed, offset, pitch, spin ranges | solved (land3d_v8_lam098, it ~5400: 98 % eval, 98–99 % full scenario) |
+| 5 | wind and other `docs/gaps.md` items | |
 
 ## Findings
 
-- Stage A plateau broken by a decisive policy: from scratch_v8's best, `entropy_coef=0.002` with fixed lr 1e-4 passed A, B, C and the time cost in ~600 iterations (e2); lr 3e-4 (e1) and entropy 0 (e3) stayed at 85–92% on A. Before, 86% of thruster choices were undecided (0.1 < p < 0.9) at entropy 1.33.
-- The critic's last hidden layer has collapsed rank (12–31 of 128) in every run, with critic gradient norms above 1,000 before clipping; not yet shown to limit learning.
+- The first telemetry calibration (IFT-5, 2026-10-17) fits speed to 4.16 m/s RMSE but does not complete IFT-6’s held-descent window. Mass, drag and flap effectiveness remain coupled; keep the training defaults neutral. Details and cross-flight errors: [calibration.md](calibration.md).
 
-- Stage A plateau (scratch_v8, it ~1100–2400 at 80–89% eval): best policy lands 87.8% of 1,024 stage-A starts; 98% of crashes exceed 4 m/s with a median impact of 22 m/s, 44% are also off the pad. The remaining failures are whole bad trajectories, not touchdowns just over the limits.
+- Crash penalties must stay bounded but keep ranking crashes (log of the weighted limit excess); linear ones swamped the value targets (−1,300), hard caps made every bad crash equal.
+- Terminal ordering matters: with timeouts cheaper than crashes, policies climbed away from the ground.
+- Tumble checks must exclude roll: roll inertia is ~18× smaller, random flaps spun it past 40°/s.
+- Without horizontal-speed shaping and an upright term over the whole spawn range, policies tipped over and flew off sideways; with both, landings appeared at ~250 it and stage 0 passed (a 97 % peak, one collapse, recovered by rollback). A second seed reproduced it.
+- Lower exploration noise on the continuous heads (std 0.2 vs 0.5) did not help.
 
-- Collapses are stochastic, not caused by eval (an eval-on run replays the eval-off run exactly) or the LSTM (near-ground LSTM runs: seed 0 81–86%, seed 1 67–88% through 500 it; an MLP learned slower, 63%). Some random trajectories tip into hovering and never recover (scratch_v2, scratch_v5), so the runner rolls back to `model_best.pt` after `rollback_patience` evals more than `rollback_drop` below the stage's best.
-- A policy trained only on near-ground starts landed the full 3 km scenario at 100% (deterministic eval, arch_lstm_eval it 450–500).
+- Stage 2 stalled for ~2,000 iterations at a 50–58 % peak. Causes, in order of effect: 32-step rollouts (3.2 s of LSTM backprop) could not cover the flip-to-burn sequence, and lr 1e-4 wrecked the policy within two updates. 128 steps x 4096 envs with lr 3e-5 and a KL stop of 0.01 passed it in ~125 iterations (98 % eval, 86 % train); lr 3e-5 with the KL stop alone held ~40 % train but a volatile eval.
+- Rollback and resume must restore a coherent state (envs, LSTM state, best score) and evals must count every episode; timeouts are terminal, not bootstrapped (fixed after an outside review).
 
-- Reward bisection on near-ground spawns (250 it from scratch): sanity reward 63% landed, + fuel cost 64%, + learner reward scaling ×0.05 only 2%, + speed term faded in with altitude only 7% (it penalizes descending at all, so policies hover). Scaling is back to 1.0 and speed shaping only penalizes speed above a safe descent profile v_safe(h) = sqrt(2·3.8·h) + 2 m/s. Validation (same setup): profile + fuel cost 46%, + lateral shaping 81% (best from scratch), so `reward.lateral_weight=0.05` is the default.
-- Value normalization (`runner.algorithm.value_normalization`) hurts on the same setup: 16% at it 150, then hovering and 0% by 250, vs 81% without (exact replay of the validation run). Off by default.
+- Stage 3 cycled between 45–64 % eval peaks and near-miss collapses (crashes at ~2 m/s, 16–62 m off) for ~1,000 iterations; GAE λ 0.95 → 0.98 (credit decay 1.9 → 4.7 s) passed it in ~200 iterations (96 % eval).
 
-- Controlled runs (300 it from `model_stage1_passed.pt`, promotion off, one change each; same checkpoint + seed replay identically, so differences are causal): lateral shaping near the ground (`reward.lateral_weight=0.05`) is the only change that recovers (eval ends 74–82%); lr 1e-4 + clip 0.1, 2 learning epochs, and soft touchdown credit (`reward.soft_touchdown_speed=10`) all stay collapsed.
-- CLI values lose to curriculum stage overrides for keys a stage sets (e.g. `reward.time_cost`); run controlled experiments without `curriculum=` and set the stage's values directly.
+## Carried over from 2D
 
-- Stage 0 cannot be held long enough to be promoted (curriculum run collapsed at it ~1399 exactly like stage_c_stable: same checkpoint and seed replay the same drift), so runs start at stage 1 with `curriculum.start_stage=1`.
-- Switching on mirrored spawns as something to learn collapsed the policy (84% → 2% within 10 iterations, curriculum_v4 it 1399). Mirrored episodes are now encoded in the mirror frame (observations flipped, left/right thrusters swapped), so the policy sees each mirrored start as its unmirrored twin.
-- Collapses were the speed term of the shaping potential rewarding braking at any altitude: policies braked and hovered at 0.5–1.5 km until the fuel ran out (traced curriculum_v3 it 1449). PPO's ~2 s GAE horizon follows shaping greedily.
-- Policies are good deterministically but poor when sampling (best policy: 100% vs 9–14%), so training rollouts mostly crash; entropy_coef 0.002 makes them decisive.
-- Without a time cost, long runs drift into ever slower descents and collapse (stage_c at it ~1175, stage_c_stable at lr 1e-4 at it ~1399); `policy_best.pt` keeps the peak.
-- Learning from the full 3 km scenario alone fails; near-ground starts first (stage_a, stage_b) made it learnable.
-- Fixed lr 3e-4 learns; rsl_rl's adaptive schedule pinned lr at 1e-2 and stalled.
+- Shaping must be γΦ′ − Φ with zero terminal potential; otherwise it biases or pays for survival.
+- Speed shaping only above a safe descent profile; braking at any altitude makes policies hover.
+- Fixed lr; rsl_rl's adaptive schedule pinned it at 1e-2. Reward scaling and value normalization hurt.
+- entropy_coef 0.002 with lr 1e-4 made policies decisive and broke plateaus.
+- Near-ground starts first; the full scenario alone was not learnable.

@@ -1,72 +1,51 @@
-"""Stage 1 reward: learn to land.
+"""Potential shaping and costs in physical units; terminal potential is always zero."""
 
-reward = gamma * potential(s') - potential(s) - fuel_cost * fuel burned - time_cost * dt
-         + terminal reward
-
-The potential scores how close the rocket is to a good touchdown: near the pad, upright near the
-ground, and not faster than a safe descent profile v_safe(h) = sqrt(2 a h) + v_touch. Only speed in
-excess of the profile counts: a plain speed term rewards braking at any altitude, and fading it in
-with altitude penalizes descending at all, and PPO's short advantage horizon follows either one
-greedily into hovering until the fuel runs out.
-
-With gamma equal to the learner's discount and a zero potential after the episode ends, the
-discounted shaping sums to -potential(start) for every trajectory, so it guides learning without
-changing which behavior is optimal; only the terminal reward decides that. A nonzero terminal
-potential would instead pay (1 - gamma) * |potential| per step for staying alive.
-
-The fuel cost makes burning propellant to stay airborne expensive. Without it, a policy that cannot
-land yet prefers to float and crash late, because discounting shrinks a later crash penalty.
-"""
-
-from dataclasses import dataclass
+from dataclasses import dataclass, fields
 
 import warp as wp
 
-from starship.sim.config import CRASHED, FLYING, LANDED, OUT_OF_BOUNDS, TIMEOUT, Params
-from starship.sim.physics import State, Terminal, lowest_point
+from starship.sim import CRASHED, LANDED, OUT_OF_BOUNDS, TIMEOUT, TUMBLED
+from starship.sim.mass import mass_properties
+from starship.sim.physics import Params, State, Terminal, lowest_point
+from starship.sim.rigid import Body
+from starship.train.actions import CONTINUOUS_HEADS
+from starship.train.encoding import fuel_fraction
 
-STATUS_FLYING = wp.constant(FLYING)
-STATUS_LANDED = wp.constant(LANDED)
-STATUS_CRASHED = wp.constant(CRASHED)
-STATUS_OUT_OF_BOUNDS = wp.constant(OUT_OF_BOUNDS)
-STATUS_TIMEOUT = wp.constant(TIMEOUT)
-
-
-# Columns of the per-step reward breakdown; the terminal reward is kept separately.
-REWARD_TERMS = ("distance", "speed", "lateral", "tilt", "fuel", "time")
+REWARD_TERMS = ("distance", "speed", "tilt", "angular_rate", "jerk", "fuel", "time", "terminal")
 
 
 @dataclass
 class RewardConfig:
-    # Must match the learner's discount factor for the shaping to be policy-invariant.
-    gamma: float = 0.999
-    # Multiplier on rewards handed to the learner, keeping returns near the O(1-10) range that
-    # PPO's value clipping and gradient clipping assume. Env metrics stay in unscaled units.
-    learner_scale: float = 1.0
-    distance_weight: float = 10.0  # per km to the pad center
-    speed_weight: float = 0.2  # per m/s above the safe descent profile
-    # Safe descent profile: braking at this deceleration from v_safe(h) stops at v_touch.
-    profile_decel: float = 3.8  # m/s^2, about half the engine's net deceleration
-    profile_touchdown_speed: float = 2.0  # m/s
-    # Horizontal distance from the pad, faded in near the ground where touching down off the
-    # pad (beyond its half-width) counts as a crash.
-    lateral_weight: float = 0.05  # per m
-    lateral_fade_altitude: float = 500.0  # m
-    # Partial landing credit for touching down on the pad slightly too hard: the landed reward
-    # scaled by (1 - impact speed / soft_touchdown_speed). Smooths the cliff between a 4 m/s
-    # landing and a 5 m/s crash, which exploration noise falls off. 0 disables it.
-    soft_touchdown_speed: float = 0.0  # m/s
-    tilt_weight: float = 10.0  # per rad, faded in near the ground
-    tilt_fade_altitude: float = 200.0  # m; tilt weight is exp(-altitude / this)
-    landed_reward: float = 100.0
-    fuel_bonus: float = 50.0  # on landing, times the fraction of fuel left
-    crash_penalty: float = 10.0
-    crash_speed_weight: float = 1.0  # extra penalty per m/s of impact speed
-    out_of_bounds_penalty: float = 100.0
-    # Without this, hovering until the time limit beats any crash.
-    timeout_penalty: float = 50.0
-    fuel_cost: float = 0.002  # per kg burned; a full 30 t tank is worth 60
-    time_cost: float = 0.0  # per second of flight; rewards landing quickly
+    gamma: float = 0.999  # Must equal PPO's discount.
+    distance_weight: float = 0.05  # per m
+    speed_weight: float = 1.0  # per m/s above the safe profile
+    # Horizontal speed is nearly free under the descent profile alone; without this term policies
+    # tip over and fly away sideways (2D needed the same lateral shaping, docs/curriculum.md).
+    horizontal_speed_weight: float = 0.5  # per m/s, part of the speed term
+    tilt_weight: float = 10.0  # per rad, faded out above tilt_height
+    safe_deceleration: float = 10.0  # m/s^2 net, well inside the three-engine landing burn
+    tilt_height: float = 1000.0  # m above ground contact
+    angular_rate_cost: float = 0.1  # per (rad/s)^2 s
+    jerk_cost: float = 0.1  # per squared change in squashed actuator targets
+    fuel_cost: float = 0.001  # per kg
+    time_cost: float = 0.01  # per s
+    landed_bonus: float = 100.0
+    fuel_bonus: float = 50.0
+    # Terminal ordering: landing > gentle crash > hard crash > timeout / out of bounds > tumble.
+    # A timeout must cost more than a typical crash, or policies learn to avoid the ground.
+    crash_penalty: float = 20.0
+    crash_vertical_weight: float = 1.0  # per m/s excess
+    crash_horizontal_weight: float = 1.0  # per m/s excess
+    crash_tilt_weight: float = 20.0  # per rad excess
+    crash_rate_weight: float = 5.0  # per rad/s excess
+    crash_miss_weight: float = 0.1  # per m outside the pad
+    # Crash penalty = crash_penalty + crash_excess_scale * log(1 + weighted excess). Linear
+    # penalties let km-scale misses swamp the value targets, and a hard cap ranks all bad crashes
+    # the same; the log keeps ranking them while a 2 km miss stays below the tumble penalty.
+    crash_excess_scale: float = 10.0
+    tumble_penalty: float = 200.0
+    out_of_bounds_penalty: float = 150.0
+    timeout_penalty: float = 150.0
 
 
 @wp.struct
@@ -74,112 +53,150 @@ class RewardParams:
     gamma: float
     distance_weight: float
     speed_weight: float
-    profile_decel: float
-    profile_touchdown_speed: float
-    lateral_weight: float
-    lateral_fade_altitude: float
-    soft_touchdown_speed: float
+    horizontal_speed_weight: float
     tilt_weight: float
-    tilt_fade_altitude: float
-    landed_reward: float
-    fuel_bonus: float
-    crash_penalty: float
-    crash_speed_weight: float
-    out_of_bounds_penalty: float
-    timeout_penalty: float
+    safe_deceleration: float
+    tilt_height: float
+    angular_rate_cost: float
+    jerk_cost: float
     fuel_cost: float
     time_cost: float
+    landed_bonus: float
+    fuel_bonus: float
+    crash_penalty: float
+    crash_vertical_weight: float
+    crash_horizontal_weight: float
+    crash_tilt_weight: float
+    crash_rate_weight: float
+    crash_miss_weight: float
+    crash_excess_scale: float
+    tumble_penalty: float
+    out_of_bounds_penalty: float
+    timeout_penalty: float
 
 
-def make_reward_params(cfg: RewardConfig) -> RewardParams:
-    rp = RewardParams()
-    for name in RewardParams.vars:
-        setattr(rp, name, getattr(cfg, name))
-    return rp
+def make_reward_params(config: RewardConfig) -> RewardParams:
+    import math
+
+    for field in fields(config):
+        value = getattr(config, field.name)
+        if not math.isfinite(value) or value < 0:
+            raise ValueError(f"reward {field.name} must be finite and nonnegative")
+    if config.gamma > 1 or config.tilt_height <= 0:
+        raise ValueError("gamma must be <= 1 and tilt_height must be positive")
+    params = RewardParams()
+    for field in fields(config):
+        setattr(params, field.name, float(getattr(config, field.name)))
+    return params
 
 
 @wp.func
-def potential(p: Params, rp: RewardParams, pos: wp.vec2, vel: wp.vec2, theta: float) -> wp.vec4:
-    """Potential split into its (distance, speed, lateral, tilt) terms; the potential is the sum."""
-    h = wp.max(lowest_point(pos[1], theta, p), 0.0)
-    distance = wp.sqrt(pos[0] * pos[0] + h * h)
-    safe_speed = wp.sqrt(2.0 * rp.profile_decel * h) + rp.profile_touchdown_speed
-    return -wp.vec4(
-        rp.distance_weight * distance / 1000.0,
-        rp.speed_weight * wp.max(wp.length(vel) - safe_speed, 0.0),
-        rp.lateral_weight * wp.abs(pos[0]) * wp.exp(-h / rp.lateral_fade_altitude),
-        rp.tilt_weight * wp.abs(theta) * wp.exp(-h / rp.tilt_fade_altitude),
+def potential(p: Params, r: RewardParams, b: Body, tanks: wp.vec4) -> wp.vec3:
+    com = mass_properties(p.mass, tanks).com
+    height = wp.max(lowest_point(p, b, com), 0.0)
+    safe_speed = wp.sqrt(2.0 * r.safe_deceleration * height) + p.max_vertical_speed
+    excess_speed = wp.max(wp.length(b.vel) - safe_speed, 0.0)
+    axis_z = wp.quat_rotate(b.rot, wp.vec3(1.0, 0.0, 0.0))[2]
+    tilt = wp.acos(wp.clamp(axis_z, -1.0, 1.0))
+    fade = wp.clamp(1.0 - height / r.tilt_height, 0.0, 1.0)
+    return wp.vec3(
+        -r.distance_weight * wp.length(b.pos),
+        -r.speed_weight * excess_speed
+        - r.horizontal_speed_weight * wp.length(wp.vec2(b.vel[0], b.vel[1])),
+        -r.tilt_weight * tilt * fade,
     )
 
 
 @wp.func
-def terminal_reward(
-    p: Params, rp: RewardParams, status: int, pos: wp.vec2, vel: wp.vec2, fuel: float
-) -> float:
-    if status == STATUS_LANDED:
-        bonus = 0.0
-        if p.fuel_mass > 0.0:
-            bonus = rp.fuel_bonus * fuel / p.fuel_mass
-        return rp.landed_reward + bonus
-    if status == STATUS_CRASHED:
-        speed = wp.length(vel)
-        credit = 0.0
-        if rp.soft_touchdown_speed > 0.0 and wp.abs(pos[0]) <= p.pad_half_width:
-            credit = rp.landed_reward * wp.max(1.0 - speed / rp.soft_touchdown_speed, 0.0)
-        return credit - (rp.crash_penalty + rp.crash_speed_weight * speed)
-    if status == STATUS_OUT_OF_BOUNDS:
-        return -rp.out_of_bounds_penalty
-    if status == STATUS_TIMEOUT:
-        return -rp.timeout_penalty
+def terminal_value(p: Params, r: RewardParams, t: Terminal, i: int, load: float) -> float:
+    status = t.status[i]
+    if status == LANDED:
+        return r.landed_bonus + r.fuel_bonus * fuel_fraction(t.tanks[i], load)
+    if status == CRASHED:
+        b = t.body[i]
+        axis = wp.quat_rotate(b.rot, wp.vec3(1.0, 0.0, 0.0))
+        base = b.pos - axis * mass_properties(p.mass, t.tanks[i]).com
+        horizontal = wp.length(wp.vec2(b.vel[0], b.vel[1]))
+        miss = wp.length(wp.vec2(base[0], base[1]))
+        tilt = wp.acos(wp.clamp(axis[2], -1.0, 1.0))
+        excess = (
+            r.crash_vertical_weight * wp.max(-b.vel[2] - p.max_vertical_speed, 0.0)
+            + r.crash_horizontal_weight * wp.max(horizontal - p.max_horizontal_speed, 0.0)
+            + r.crash_tilt_weight * wp.max(tilt - p.max_tilt, 0.0)
+            + r.crash_rate_weight * wp.max(wp.length(b.omega) - p.max_angular_rate, 0.0)
+            + r.crash_miss_weight * wp.max(miss - p.pad_radius, 0.0)
+        )
+        return -(r.crash_penalty + r.crash_excess_scale * wp.log(1.0 + excess))
+    if status == TUMBLED:
+        return -r.tumble_penalty
+    if status == OUT_OF_BOUNDS:
+        return -r.out_of_bounds_penalty
+    if status == TIMEOUT:
+        return -r.timeout_penalty
     return 0.0
 
 
 @wp.kernel
 def reward_kernel(
     p: Params,
-    rp: RewardParams,
-    s: State,
-    term: Terminal,
-    last_potential: wp.array(dtype=wp.vec4),
-    last_fuel: wp.array(dtype=float),
+    r: RewardParams,
+    state: State,
+    terminal: Terminal,
+    before: wp.array(dtype=wp.vec3),
+    fuel_before: wp.array(dtype=float),
+    time_before: wp.array(dtype=float),
+    landing_load: wp.array(dtype=float),
+    squashed: wp.array2d(dtype=float),
+    previous: wp.array2d(dtype=float),
+    has_previous: wp.array(dtype=int),
     reward: wp.array(dtype=float),
-    terminal: wp.array(dtype=float),
+    terminal_reward: wp.array(dtype=float),
     terms: wp.array2d(dtype=float),
+    terminated: wp.array(dtype=int),
+    truncated: wp.array(dtype=int),
 ):
-    tid = wp.tid()
-    current = potential(p, rp, s.pos[tid], s.vel[tid], s.theta[tid])
-    shaping = wp.vec4(0.0)
-    fuel = 0.0
-    time = 0.0
-    end = 0.0
-    if term.done[tid] != 0:
-        end = terminal_reward(p, rp, term.status[tid], term.pos[tid], term.vel[tid], term.fuel[tid])
-        shaping = -last_potential[tid]
-        fuel = -rp.fuel_cost * (last_fuel[tid] - term.fuel[tid])
-        time = -rp.time_cost * p.dt * float(p.substeps)
-    elif s.status[tid] == STATUS_FLYING:
-        shaping = rp.gamma * current - last_potential[tid]
-        fuel = -rp.fuel_cost * (last_fuel[tid] - s.fuel[tid])
-        time = -rp.time_cost * p.dt * float(p.substeps)
-    for i in range(4):
-        terms[tid, i] = shaping[i]
-    terms[tid, 4] = fuel
-    terms[tid, 5] = time
-    terminal[tid] = end
-    reward[tid] = shaping[0] + shaping[1] + shaping[2] + shaping[3] + fuel + time + end
-    # After an auto-reset `current` and the fuel already belong to the respawned state.
-    last_potential[tid] = current
-    last_fuel[tid] = s.fuel[tid]
-
-
-@wp.kernel
-def reset_potential_kernel(
-    p: Params,
-    rp: RewardParams,
-    s: State,
-    last_potential: wp.array(dtype=wp.vec4),
-    last_fuel: wp.array(dtype=float),
-):
-    tid = wp.tid()
-    last_potential[tid] = potential(p, rp, s.pos[tid], s.vel[tid], s.theta[tid])
-    last_fuel[tid] = s.fuel[tid]
+    i = wp.tid()
+    b = state.body[i]
+    tanks = state.tanks[i]
+    time = state.time[i]
+    done = terminal.done[i] != 0
+    phi = wp.vec3(0.0)
+    terminal_reward[i] = 0.0
+    terminated[i] = 0
+    truncated[i] = 0
+    if done:
+        b = terminal.body[i]
+        tanks = terminal.tanks[i]
+        time = terminal.time[i]
+        terminal_reward[i] = terminal_value(p, r, terminal, i, landing_load[i])
+        if terminal.status[i] == TIMEOUT:
+            truncated[i] = 1
+        else:
+            terminated[i] = 1
+    else:
+        phi = potential(p, r, b, tanks)
+    shaping = r.gamma * phi - before[i]
+    for j in range(3):
+        terms[i, j] = shaping[j]
+    dt = wp.max(time - time_before[i], 0.0)
+    jerk = 0.0
+    for j in range(CONTINUOUS_HEADS):
+        if has_previous[i] != 0:
+            delta = squashed[i, j] - previous[i, j]
+            jerk += delta * delta
+        previous[i, j] = squashed[i, j]
+        if done:
+            previous[i, j] = 0.0
+    has_previous[i] = 1
+    if done:
+        has_previous[i] = 0
+    terms[i, 3] = -r.angular_rate_cost * wp.dot(b.omega, b.omega) * dt
+    terms[i, 4] = -r.jerk_cost * jerk
+    burned = wp.max(fuel_before[i] - wp.dot(tanks, wp.vec4(1.0)), 0.0)
+    terms[i, 5] = -r.fuel_cost * burned
+    terms[i, 6] = -r.time_cost * dt
+    terms[i, 7] = terminal_reward[i]
+    total = 0.0
+    for j in range(8):
+        total += terms[i, j]
+    reward[i] = total

@@ -4,22 +4,15 @@ snapshots, all logged to TensorBoard."""
 import copy
 import json
 import time
-from dataclasses import replace
 from pathlib import Path
 
 import torch
 from rsl_rl.runners import OnPolicyRunner
 from torch.utils.tensorboard import SummaryWriter
 
-from starship.sim import SimConfig
 from starship.train.curriculum import Curriculum
 from starship.train.metrics import EpisodeTracker
 from starship.train.rsl_env import RslRocketEnv
-
-
-def _eval_only(sim: SimConfig) -> SimConfig:
-    """Eval measures the stage's real distribution, without the near-ground practice spawns."""
-    return replace(sim, easy_spawn_fraction=0.0)
 
 
 def standalone_copy(policy: torch.nn.Module) -> torch.nn.Module:
@@ -97,16 +90,31 @@ class StarshipRunner(OnPolicyRunner):
         self._evals = 0
         if curriculum is not None:
             self._apply_stage()
+            self._reset_rollout()
+
+    def _reset_rollout(self) -> None:
+        for env in (self.env, self.eval_env, self.target_eval_env):
+            if env is not None:
+                env.env.reset()
+        self.alg.actor.reset()
+        self.alg.critic.reset()
+        self.alg.transition.clear()
+        self.alg.storage.clear()
+        self.alg.storage.saved_hidden_state_a = None
+        self.alg.storage.saved_hidden_state_c = None
+        episodes = self.tracker.total_episodes
+        self.tracker = EpisodeTracker(self.env)
+        self.tracker.total_episodes = episodes
 
     def _apply_stage(self) -> None:
         """Configure training and eval envs for the current curriculum stage."""
         sim, reward = self.curriculum.configs()
         self.env.set_configs(sim, reward)
         if self.eval_env is not None:
-            self.eval_env.set_configs(_eval_only(sim), reward)
+            self.eval_env.set_configs(sim, reward)
         if self.target_eval_env is not None:
             target_sim, target_reward = self.curriculum.target_configs()
-            self.target_eval_env.set_configs(_eval_only(target_sim), target_reward)
+            self.target_eval_env.set_configs(target_sim, target_reward)
 
     def _promote(self, it: int) -> None:
         passed = self.curriculum.name
@@ -138,10 +146,10 @@ class StarshipRunner(OnPolicyRunner):
     def learn(self, num_learning_iterations: int, init_at_random_ep_len: bool = False) -> None:
         env, alg, cfg = self.env, self.alg, self.cfg
         steps_per_env = cfg["num_steps_per_env"]
-        obs = env.get_observations().to(self.device)
         alg.train_mode()
         start_it = self.next_iteration
         for it in range(start_it, start_it + num_learning_iterations):
+            obs = env.get_observations().to(self.device)
             self._sync()
             t0 = time.perf_counter()
             dones_in_batch = 0
@@ -228,6 +236,10 @@ class StarshipRunner(OnPolicyRunner):
         if self.curriculum is not None and infos and "curriculum" in infos:
             self.curriculum.load_state_dict(infos["curriculum"])
             self._apply_stage()
+        best = (infos or {}).get("best_eval")
+        self.best_eval = tuple(best) if best is not None else None
+        self._below_best = 0
+        self._reset_rollout()
         # The checkpoint carries the old learning rate; the configured one should win.
         self.alg.learning_rate = self.cfg["algorithm"]["learning_rate"]
         for group in self.alg.optimizer.param_groups:
@@ -240,6 +252,7 @@ class StarshipRunner(OnPolicyRunner):
         return infos
 
     def save(self, path: str, infos: dict | None = None) -> None:
+        infos = {**(infos or {}), "best_eval": self.best_eval}
         if self.curriculum is not None:
             infos = {**(infos or {}), "curriculum": self.curriculum.state_dict()}
         super().save(path, infos)
@@ -265,7 +278,7 @@ class StarshipRunner(OnPolicyRunner):
         obs = env.get_observations().to(self.device)
         pending = torch.ones(env.num_envs, dtype=torch.bool, device=env.device)
         with torch.inference_mode():
-            for _ in range(env.max_episode_length):
+            for _ in range(env.max_episode_length + 2):
                 actions = policy(obs, stochastic_output=False)
                 obs, _, dones, _ = env.step(actions)
                 tracker.step(dones, record=pending)
@@ -277,6 +290,8 @@ class StarshipRunner(OnPolicyRunner):
                     break
         if recorder is not None:
             recorder.close()
+        if pending.any() or tracker.total_episodes != env.num_envs:
+            raise RuntimeError("Evaluation did not finish exactly one episode per environment")
         return tracker.summarize(prefix)
 
     def _keep_best(self, it: int, m: dict[str, float]) -> None:
@@ -284,8 +299,10 @@ class StarshipRunner(OnPolicyRunner):
             return
         stage = self.curriculum.stage if self.curriculum is not None else 0
         score = (stage, m["eval/env/rate/landed"], m["eval/env/return"])
-        if self.best_eval is None or score > self.best_eval:
+        improved = self.best_eval is None or score > self.best_eval
+        if improved:
             self.best_eval = score
+        if improved or not (self.log_dir / "model_best.pt").exists():
             self.save(str(self.log_dir / "model_best.pt"))
             export_policy(self.alg.get_policy(), self.log_dir / "policy_best.pt")
             (self.log_dir / "best.txt").write_text(
@@ -298,7 +315,11 @@ class StarshipRunner(OnPolicyRunner):
             return
         stage = self.curriculum.stage if self.curriculum is not None else 0
         best_stage, best_landed, _ = self.best_eval
-        if best_stage != stage or m["eval/env/rate/landed"] > best_landed - self.rollback_drop:
+        # Relative to the stage's best: an absolute margin never fires while a hard stage's best
+        # is still low (best 0.19, margin 0.5). Below 10 % there is nothing worth restoring.
+        floor = best_landed * (1.0 - self.rollback_drop)
+        landed = m["eval/env/rate/landed"]
+        if best_stage != stage or best_landed < 0.1 or landed >= floor:
             self._below_best = 0
             return
         self._below_best += 1
@@ -306,10 +327,15 @@ class StarshipRunner(OnPolicyRunner):
             return
         self._below_best = 0
         self.rollbacks += 1
-        steps, next_it = self.total_env_steps, self.next_iteration
+        steps, next_it, current_it = (
+            self.total_env_steps,
+            self.next_iteration,
+            self.current_learning_iteration,
+        )
         self.load(str(self.log_dir / "model_best.pt"))
         # Keep counting forward; only the weights, optimizer and curriculum stage roll back.
         self.total_env_steps, self.next_iteration = steps, next_it
+        self.current_learning_iteration = current_it
         self.writer.add_text(
             "rollback",
             f"rollback {self.rollbacks} at iteration {it}: eval landed "

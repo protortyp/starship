@@ -17,6 +17,21 @@ from starship.train.runner import standalone_copy
 from tests.test_train import compose_cfg, make_runner
 
 
+@pytest.mark.parametrize("entropy", [-100.0, 0.0, 100.0])
+def test_diagnose_only_warns_on_collapsed_engine_entropy(tmp_path, entropy):
+    from starship.train.diagnose import run_summary
+
+    scalars = {"explore/entropy": [(0, entropy)]}
+    text = "\n".join(run_summary(tmp_path, scalars, {}))
+    assert "3 Bernoulli + 8 Gaussian heads; no fixed max" in text
+    assert "WARN" not in text
+    scalars["explore/entropy_head/engine0"] = [(0, 0.69)]
+    scalars["explore/entropy_head/engine1"] = [(0, 0.01)]
+    text = "\n".join(run_summary(tmp_path, scalars, {}))
+    assert "WARN engine1 entropy" in text
+    assert "WARN engine0 entropy" not in text
+
+
 def test_activation_stats_flags_dormant_and_dead_units():
     torch.manual_seed(0)
     acts = torch.randn(512, 4)
