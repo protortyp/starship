@@ -185,3 +185,35 @@ def test_learner_sees_scaled_rewards_while_metrics_stay_unscaled():
     scale = env.env.reward_config.learner_scale
     assert torch.allclose(rewards, env.reward * scale)
     assert not torch.allclose(rewards, env.reward)
+
+
+def test_mirrored_episodes_look_identical_to_the_policy():
+    from dataclasses import replace
+
+    from starship.sim import SimConfig, SpawnConfig
+
+    spawn = SpawnConfig(x=150.0, vx=6.0, theta=1.4, omega=0.03, mirror=True)
+    env = RslRocketEnv(RocketEnv(64, replace(SimConfig(), spawn=spawn), device="cpu"))
+    mirrored = env._mirrored.clone()
+    assert 0 < mirrored.sum() < 64
+    # The raw spawns really are mirror images of each other.
+    start = env.env.sim.snapshot()
+    assert np.all(np.sign(start.pos[:, 0]) == np.where(mirrored.numpy() == 1, -1, 1))
+    torch.manual_seed(0)
+    obs = env.get_observations()["policy"]
+    for _ in range(80):
+        assert torch.allclose(obs, obs[:1].expand_as(obs), atol=2e-4)
+        action = (torch.rand(1, 3) < 0.5).float().expand(64, 3)
+        td, _, dones, _ = env.step(action)
+        obs = td["policy"]
+        assert not dones.any()
+
+
+def test_bitmask_swaps_side_thrusters_when_mirrored():
+    actions = torch.tensor([[1.0, 1.0, 0.0], [0.0, 0.0, 1.0], [1.0, 1.0, 1.0]])
+    mirrored = torch.tensor([1, 1, 1])
+    assert actions_to_bitmask(actions, mirrored).tolist() == [
+        MAIN | RIGHT,
+        LEFT,
+        MAIN | LEFT | RIGHT,
+    ]

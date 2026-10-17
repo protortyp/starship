@@ -134,6 +134,8 @@ class State:
     status: wp.array(dtype=wp.int32)
     steps: wp.array(dtype=wp.int32)
     fuel: wp.array(dtype=float)
+    # 1 if the current episode was spawned mirrored (see SpawnConfig.mirror).
+    mirrored: wp.array(dtype=wp.int32)
     # Per-env random stream, advanced on every respawn.
     rng: wp.array(dtype=wp.uint32)
 
@@ -150,6 +152,7 @@ class Terminal:
     omega: wp.array(dtype=float)
     steps: wp.array(dtype=wp.int32)
     fuel: wp.array(dtype=float)
+    mirrored: wp.array(dtype=wp.int32)
 
 
 @wp.func
@@ -168,7 +171,9 @@ def spawn(p: Params, s: State, tid: int):
     )
     s.theta[tid] = wrap_angle(sp.theta + sp.theta_noise * wp.randf(rng, -1.0, 1.0))
     s.omega[tid] = sp.omega + sp.omega_noise * wp.randf(rng, -1.0, 1.0)
+    s.mirrored[tid] = 0
     if sp.mirror != 0 and wp.randf(rng) < 0.5:
+        s.mirrored[tid] = 1
         x = s.pos[tid]
         v = s.vel[tid]
         s.pos[tid] = wp.vec2(-x[0], x[1])
@@ -237,6 +242,7 @@ def step_kernel(
         term.omega[tid] = om
         term.steps[tid] = n_steps
         term.fuel[tid] = fuel
+        term.mirrored[tid] = s.mirrored[tid]
         if auto_reset != 0:
             spawn(p, s, tid)
 

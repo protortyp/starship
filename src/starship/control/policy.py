@@ -41,4 +41,5 @@ class PolicyController:
         with torch.no_grad():
             self.policy.reset(torch.as_tensor(s.steps == 0, device=self.device).long())
             actions = self.policy(obs, stochastic_output=False)
-        return actions_to_bitmask(actions).cpu().numpy()
+        mirrored = wp.to_torch(self.sim.state.mirrored)
+        return actions_to_bitmask(actions, mirrored).cpu().numpy()
