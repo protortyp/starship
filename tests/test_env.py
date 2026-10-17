@@ -11,10 +11,10 @@ ZERO_G_VACUUM = WorldConfig(gravity=0.0, sea_level_density=0.0)
 NOISY_SPAWN = SpawnConfig().with_noise(1.0)
 
 
-def make_env(num_envs=1, gamma=1.0, fuel_cost=0.0, **overrides) -> RocketEnv:
+def make_env(num_envs=1, gamma=1.0, fuel_cost=0.0, time_cost=0.0, **overrides) -> RocketEnv:
     # gamma = 1 and no fuel cost make the shaping telescope exactly, which the episode-level
     # checks rely on.
-    reward = RewardConfig(gamma=gamma, fuel_cost=fuel_cost)
+    reward = RewardConfig(gamma=gamma, fuel_cost=fuel_cost, time_cost=time_cost)
     return RocketEnv(
         num_envs, replace(SimConfig(), **overrides), reward_config=reward, device="cpu"
     )
@@ -217,3 +217,14 @@ def test_fuel_cost_is_charged_per_kg_burned():
         -0.01 * burned, rel=1e-3
     )
     assert first_reward(0.01, 0) == pytest.approx(first_reward(0.0, 0))
+
+
+def test_time_cost_is_charged_per_second_of_flight():
+    def episode_total(time_cost):
+        env = make_env(time_cost=time_cost, spawn=SpawnConfig(y=100.0, vy=-50.0))
+        total, _, term = run_episode(env, lambda _: np.zeros(1, dtype=np.int32))
+        return total, int(term.steps[0])
+
+    with_cost, steps = episode_total(2.0)
+    without_cost, _ = episode_total(0.0)
+    assert with_cost - without_cost == pytest.approx(-2.0 * steps * SimConfig().policy_dt, rel=1e-4)
