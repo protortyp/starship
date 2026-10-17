@@ -93,7 +93,7 @@ METRIC_GROUPS = [
     "train/reward/step_mean",
     "plasticity/actor/features/effective_rank",
     "plasticity/actor/lstm/forget_saturated",
-    "plasticity/critic/mlp.1/dormant",
+    "plasticity/critic/hidden1/dormant",
     "eval/env/return",
     "eval/env/rate/landed",
 ]
