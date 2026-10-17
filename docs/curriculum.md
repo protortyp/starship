@@ -14,12 +14,20 @@
 
 | # | change | status |
 |---|---|---|
-| 0 | upright near the ground, engines lit (landing burn only) | |
+| 0 | upright near the ground, engines lit (landing burn only) | passed (land3d_v6, it 1574) |
 | 1 | engines off at spawn (light them in time, 2 s spool) | |
 | 2 | low-altitude belly-flop (flip + burn) | |
 | 3 | 3 km belly-flop | |
 | 4 | altitude, speed, offset, pitch, spin ranges | |
 | 5 | wind and other `docs/gaps.md` items | |
+
+## Findings
+
+- Crash penalties must stay bounded but keep ranking crashes (log of the weighted limit excess); linear ones swamped the value targets (−1,300), hard caps made every bad crash equal.
+- Terminal ordering matters: with timeouts cheaper than crashes, policies climbed away from the ground.
+- Tumble checks must exclude roll: roll inertia is ~18× smaller, random flaps spun it past 40°/s.
+- Without horizontal-speed shaping and an upright term over the whole spawn range, policies tipped over and flew off sideways; with both, landings appeared at ~250 it and stage 0 passed (a 97 % peak, one collapse, recovered by rollback). A second seed reproduced it.
+- Lower exploration noise on the continuous heads (std 0.2 vs 0.5) did not help.
 
 ## Carried over from 2D
 
