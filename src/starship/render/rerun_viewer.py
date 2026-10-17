@@ -1,8 +1,7 @@
 """Stream batched 6-DOF flights to Rerun: rockets with moving flaps and plumes, trajectories and
 telemetry.
 
-    uv run starship-rerun                         # 8 belly-flops from 3 km, live viewer
-    uv run starship-rerun --controller idle       # passive fall
+    uv run starship-rerun                         # 8 passive belly-flops from 3 km, live viewer
     uv run starship-rerun --save out/run.rrd      # record to a file instead
 """
 
@@ -13,7 +12,6 @@ import numpy as np
 import rerun as rr
 import rerun.blueprint as rrb
 
-from starship.control import CONTROLLERS, body_axis_z
 from starship.sim import FLYING, SimConfig, Simulator
 from starship.sim.aero import make_aero_params
 from starship.sim.mass import make_mass_params
@@ -73,6 +71,12 @@ def flap_quad(f: dict, angle: float) -> np.ndarray:
     return np.array(
         [f["hinge"] - half, f["hinge"] + half, f["hinge"] + half + out, f["hinge"] - half + out]
     )
+
+
+def body_axis_z(rot: np.ndarray) -> np.ndarray:
+    """World z component of the body axis b1 for (N, 4) quaternions (x, y, z, w)."""
+    x, y, z, w = rot.T
+    return 2.0 * (x * z - w * y)
 
 
 def rotate(q: np.ndarray, v: np.ndarray) -> np.ndarray:
@@ -184,7 +188,6 @@ def main() -> None:
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
     )
     parser.add_argument("--envs", type=int, default=8)
-    parser.add_argument("--controller", choices=sorted(CONTROLLERS), default="bellyflop")
     parser.add_argument("--altitude", type=float, default=3000.0)
     parser.add_argument("--offset-noise", type=float, default=300.0)
     parser.add_argument("--seconds", type=float, default=120.0)
@@ -200,7 +203,6 @@ def main() -> None:
     cfg.spawn.offset_noise = args.offset_noise
     cfg.spawn.pitch_noise = math.radians(5.0)
     sim = Simulator(args.envs, cfg, device=args.device, seed=args.seed)
-    controller = CONTROLLERS[args.controller]()
     rr.init("starship", default_blueprint=blueprint())
     if args.save:
         rr.save(args.save, default_blueprint=blueprint())
@@ -219,7 +221,7 @@ def main() -> None:
         log_step(cfg, sim, flaps, trails, mass_params)
         if all(t is None for t in trails):
             break
-        sim.step(**controller(sim.snapshot()))
+        sim.step()
 
 
 if __name__ == "__main__":
