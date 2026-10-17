@@ -1,0 +1,59 @@
+# @package curriculum
+# Full curriculum from scratch: near-ground stages A-C, then the spawn stages of spawn.yaml.
+# Stages A and B move the main spawn itself so their evals measure them.
+enabled: true
+promote_landed: 0.9
+promote_evals: 2
+stages:
+  - name: A upright near ground (50-350 m)
+    overrides:
+      - reward.lateral_weight=0.05
+      - sim.spawn.y=200
+      - sim.spawn.y_noise=150
+      - sim.spawn.vy=-30
+      - sim.spawn.vy_noise=20
+      - sim.spawn.theta=0
+      - sim.spawn.theta_noise=0.3
+      - sim.spawn.x_noise=50
+      - sim.spawn.vx_noise=5
+      - sim.spawn.omega_noise=0.1
+  - name: B up to 1 km, tilted up to flat
+    overrides:
+      - sim.spawn.y=600
+      - sim.spawn.y_noise=400
+      - sim.spawn.vy=-50
+      - sim.spawn.vy_noise=30
+      - sim.spawn.theta_noise=1.5708
+      - sim.spawn.x_noise=100
+      - sim.spawn.omega_noise=0
+  - name: C randomized 3 km belly-flop
+    overrides:
+      - sim.spawn.y=3000
+      - sim.spawn.y_noise=0
+      - sim.spawn.vy=-90
+      - sim.spawn.vy_noise=10
+      - sim.spawn.theta=1.5708
+      - sim.spawn.theta_noise=0.2
+      - sim.spawn.x_noise=300
+      - sim.spawn.vx_noise=10
+      - sim.easy_spawn_fraction=0.2
+      - sim.easy_spawn.y=600
+      - sim.easy_spawn.y_noise=400
+      - sim.easy_spawn.theta_noise=1.5708
+      - sim.easy_spawn.vy=-50
+      - sim.easy_spawn.vy_noise=30
+      - sim.easy_spawn.x_noise=100
+  - name: time cost 0.25/s
+    overrides: [reward.time_cost=0.25]
+  - name: mirrored spawns
+    overrides: [sim.spawn.mirror=true, sim.easy_spawn.mirror=true]
+  - name: altitude 1.5-5 km
+    overrides: [sim.spawn.y=3250, sim.spawn.y_noise=1750]
+  - name: vertical speed -40 to -130 m/s
+    overrides: [sim.spawn.vy=-85, sim.spawn.vy_noise=45]
+  - name: horizontal speed 30 m/s, offset 500 m
+    overrides: [sim.spawn.vx_noise=30, sim.spawn.x_noise=500]
+  - name: orientation flat +-30 deg
+    overrides: [sim.spawn.theta_noise=0.5236]
+  - name: spin +-5 deg/s
+    overrides: [sim.spawn.omega_noise=0.0873]
