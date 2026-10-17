@@ -1,6 +1,7 @@
 """Deploy and run training on a vast.ai GPU instance.
 
-The active instance is remembered in .vast/instance.json, so every command after `up` targets it.
+Instances are named (`--name`, default "main") and remembered in .vast/<name>.json, so several
+experiments can run on separate instances; every command targets the named instance.
 Requires VAST_API_KEY (loaded from .env by just) and a local SSH key (~/.ssh/id_ed25519.pub).
 """
 
@@ -18,7 +19,8 @@ from datetime import datetime
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-STATE = ROOT / ".vast" / "instance.json"
+STATE_DIR = ROOT / ".vast"
+STATE = STATE_DIR / "main.json"  # replaced by main() with the --name instance's file
 REMOTE_DIR = "/root/starship"
 SSH_KEY = Path.home() / ".ssh" / "id_ed25519"
 DEFAULT_IMAGE = "nvidia/cuda:12.8.1-base-ubuntu24.04"
@@ -56,8 +58,21 @@ def vast(*args: str):
 
 def load_state() -> dict:
     if not STATE.exists():
-        sys.exit("no active instance; run `just vast up` first")
+        sys.exit(f"no instance named {STATE.stem!r}; run `just vast up --name {STATE.stem}` first")
     return json.loads(STATE.read_text())
+
+
+def tb_port(state: dict) -> int:
+    return state.get("tb_port", TB_LOCAL_PORT)
+
+
+def free_tb_port() -> int:
+    """Local tunnel port not used by another named instance."""
+    used = {json.loads(p.read_text()).get("tb_port") for p in STATE_DIR.glob("*.json")}
+    port = TB_LOCAL_PORT
+    while port in used:
+        port += 1
+    return port
 
 
 def save_state(state: dict) -> None:
@@ -113,33 +128,40 @@ def ensure_ssh_key() -> None:
         vast("create", "ssh-key", pub)
 
 
+def ssh_routes(info: dict) -> list[tuple[str, int]]:
+    """Direct connection (public IP and mapped port 22) first, then vast.ai's SSH proxy, which
+    sometimes stops answering while the instance keeps running."""
+    routes = []
+    mapped = (info.get("ports") or {}).get("22/tcp") or []
+    if info.get("public_ipaddr") and mapped:
+        routes.append((info["public_ipaddr"].strip(), int(mapped[0]["HostPort"])))
+    if info.get("ssh_host"):
+        routes.append((info["ssh_host"], int(info["ssh_port"])))
+    return routes
+
+
+def reachable(state: dict) -> bool:
+    *opts, host = ssh_base(state)
+    probe = [*opts, "-o", "ConnectTimeout=10", "-o", "BatchMode=yes", host, "true"]
+    return subprocess.run(probe, capture_output=True).returncode == 0
+
+
 def wait_for_ssh(instance_id: int, timeout: float = 900.0) -> dict:
     deadline = time.time() + timeout
     while time.time() < deadline:
         info = vast("show", "instance", str(instance_id))
         status = info.get("actual_status")
-        if status == "running" and info.get("ssh_host"):
-            state = {
-                "id": instance_id,
-                "ssh_host": info["ssh_host"],
-                "ssh_port": info["ssh_port"],
-                "gpu": info.get("gpu_name"),
-                "dph": info.get("dph_total"),
-            }
-            probe = subprocess.run(
-                [
-                    *ssh_base(state)[:-1],
-                    "-o",
-                    "ConnectTimeout=10",
-                    "-o",
-                    "BatchMode=yes",
-                    ssh_base(state)[-1],
-                    "true",
-                ],
-                capture_output=True,
-            )
-            if probe.returncode == 0:
-                return state
+        if status == "running":
+            for host, port in ssh_routes(info):
+                state = {
+                    "id": instance_id,
+                    "ssh_host": host,
+                    "ssh_port": port,
+                    "gpu": info.get("gpu_name"),
+                    "dph": info.get("dph_total"),
+                }
+                if reachable(state):
+                    return state
         print(f"  waiting for instance {instance_id} (status: {status})")
         time.sleep(15)
     sys.exit(f"instance {instance_id} not reachable after {timeout:.0f}s; check `just vast list`")
@@ -171,12 +193,13 @@ def cmd_up(args) -> None:
         "--ssh", "--direct", "--label", "starship",
     )  # fmt: skip
     instance_id = created["new_contract"]
-    save_state({"id": instance_id})
+    save_state({"id": instance_id, "tb_port": free_tb_port()})
     _finish_up(args, instance_id)
 
 
 def _finish_up(args, instance_id: int) -> None:
-    state = wait_for_ssh(instance_id)
+    previous = json.loads(STATE.read_text()) if STATE.exists() else {}
+    state = {**previous, **wait_for_ssh(instance_id)}
     save_state(state)
     print(f"instance {instance_id} is up: {state['gpu']} at ${state['dph']:.3f}/h")
     cmd_push(args)
@@ -267,13 +290,14 @@ def cmd_logs(args) -> None:
         "$HOME/.local/bin/uv run tensorboard --logdir logs --port 6006"
     )
     remote(state, f"tmux has-session -t tb 2>/dev/null || tmux new-session -d -s tb {tb}")
-    if not port_open(TB_LOCAL_PORT):
+    port = tb_port(state)
+    if not port_open(port):
         subprocess.run(
-            [*ssh_base(state)[:-1], "-f", "-N", "-L", f"{TB_LOCAL_PORT}:localhost:6006",
+            [*ssh_base(state)[:-1], "-f", "-N", "-L", f"{port}:localhost:6006",
              f"root@{state['ssh_host']}"],
             check=True,
         )  # fmt: skip
-    url = f"http://localhost:{TB_LOCAL_PORT}"
+    url = f"http://localhost:{port}"
     for _ in range(60):
         try:
             urllib.request.urlopen(url, timeout=2)
@@ -293,6 +317,14 @@ def cmd_pull(args) -> None:
     print(f"pulled remote logs into {ROOT / 'logs'}")
 
 
+def cmd_reconnect(args) -> None:
+    """Re-resolve how to reach the instance, e.g. when the SSH proxy stops answering."""
+    state = load_state()
+    state.update(wait_for_ssh(state["id"], timeout=120))
+    save_state(state)
+    print(f"reachable via {state['ssh_host']}:{state['ssh_port']}")
+
+
 def cmd_ssh(args) -> None:
     os.execvp("ssh", ssh_base(load_state()))
 
@@ -307,16 +339,17 @@ def cmd_stop(args) -> None:
 
 
 def cmd_list(args) -> None:
+    names = {json.loads(p.read_text()).get("id"): p.stem for p in STATE_DIR.glob("*.json")}
     for i in vast("show", "instances") or []:
         print(
             f"{i['id']:>10}  {i.get('actual_status')!s:<10} {i.get('gpu_name')!s:<10} "
-            f"${i.get('dph_total', 0):.3f}/h  {i.get('label') or ''}"
+            f"${i.get('dph_total', 0):.3f}/h  {names.get(i['id'], '(not tracked)')}"
         )
 
 
 def cmd_down(args) -> None:
     state = load_state()
-    subprocess.run(["pkill", "-f", f"{TB_LOCAL_PORT}:localhost:6006"], check=False)
+    subprocess.run(["pkill", "-f", f"{tb_port(state)}:localhost:6006"], check=False)
     vast("destroy", "instance", str(state["id"]))
     STATE.unlink()
     print(f"destroyed instance {state['id']}")
@@ -324,6 +357,7 @@ def cmd_down(args) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--name", default="main", help="instance name (default: main)")
     sub = parser.add_subparsers(dest="subcommand", required=True)
 
     def add(name, fn, help):
@@ -358,12 +392,18 @@ def main() -> None:
     add("ssh", cmd_ssh, "interactive shell on the instance")
     add("attach", cmd_attach, "attach to the training tmux session")
     add("stop", cmd_stop, "stop the training session")
+    add("reconnect", cmd_reconnect, "re-resolve the SSH route (direct first, then proxy)")
     add("list", cmd_list, "all instances on the account")
     add("down", cmd_down, "destroy the active instance")
 
     sys.stdout.reconfigure(line_buffering=True)
     # Unknown options belong to the remote command for exec and bench (e.g. --envs).
     args, extra = parser.parse_known_args()
+    global STATE
+    STATE = STATE_DIR / f"{args.name}.json"
+    legacy = STATE_DIR / "instance.json"
+    if legacy.exists() and not (STATE_DIR / "main.json").exists():
+        legacy.rename(STATE_DIR / "main.json")
     if args.fn is cmd_exec:
         args.command = [*args.command_args, *extra]
     if extra and args.fn is cmd_bench:
