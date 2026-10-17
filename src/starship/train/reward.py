@@ -28,7 +28,9 @@ class RewardConfig:
     time_cost: float = 0.01  # per s
     landed_bonus: float = 100.0
     fuel_bonus: float = 50.0
-    crash_penalty: float = 100.0
+    # Terminal ordering: landing > gentle crash > hard crash > timeout / out of bounds > tumble.
+    # A timeout must cost more than a typical crash, or policies learn to avoid the ground.
+    crash_penalty: float = 20.0
     crash_vertical_weight: float = 1.0  # per m/s excess
     crash_horizontal_weight: float = 1.0  # per m/s excess
     crash_tilt_weight: float = 20.0  # per rad excess
@@ -39,8 +41,8 @@ class RewardConfig:
     # the same; the log keeps ranking them while a 2 km miss stays below the tumble penalty.
     crash_excess_scale: float = 10.0
     tumble_penalty: float = 200.0
-    out_of_bounds_penalty: float = 100.0
-    timeout_penalty: float = 50.0
+    out_of_bounds_penalty: float = 150.0
+    timeout_penalty: float = 150.0
 
 
 @wp.struct

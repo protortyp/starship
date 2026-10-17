@@ -58,6 +58,8 @@ runner:
     obs_normalization: true
     distribution_cfg:
       class_name: starship.train.distribution:HybridDistribution
+      # Spread of the continuous heads before tanh squashing.
+      init_std: 0.5
   critic:
     class_name: RNNModel
     rnn_type: lstm
