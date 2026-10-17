@@ -32,6 +32,10 @@ STATUS_OUT_OF_BOUNDS = wp.constant(OUT_OF_BOUNDS)
 STATUS_TIMEOUT = wp.constant(TIMEOUT)
 
 
+# Columns of the per-step reward breakdown; the terminal reward is kept separately.
+REWARD_TERMS = ("distance", "speed", "lateral", "tilt", "fuel", "time")
+
+
 @dataclass
 class RewardConfig:
     # Must match the learner's discount factor for the shaping to be policy-invariant.
@@ -95,16 +99,16 @@ def make_reward_params(cfg: RewardConfig) -> RewardParams:
 
 
 @wp.func
-def potential(p: Params, rp: RewardParams, pos: wp.vec2, vel: wp.vec2, theta: float) -> float:
+def potential(p: Params, rp: RewardParams, pos: wp.vec2, vel: wp.vec2, theta: float) -> wp.vec4:
+    """Potential split into its (distance, speed, lateral, tilt) terms; the potential is the sum."""
     h = wp.max(lowest_point(pos[1], theta, p), 0.0)
     distance = wp.sqrt(pos[0] * pos[0] + h * h)
-    tilt_fade = wp.exp(-h / rp.tilt_fade_altitude)
     safe_speed = wp.sqrt(2.0 * rp.profile_decel * h) + rp.profile_touchdown_speed
-    return -(
-        rp.distance_weight * distance / 1000.0
-        + rp.speed_weight * wp.max(wp.length(vel) - safe_speed, 0.0)
-        + rp.lateral_weight * wp.abs(pos[0]) * wp.exp(-h / rp.lateral_fade_altitude)
-        + rp.tilt_weight * wp.abs(theta) * tilt_fade
+    return -wp.vec4(
+        rp.distance_weight * distance / 1000.0,
+        rp.speed_weight * wp.max(wp.length(vel) - safe_speed, 0.0),
+        rp.lateral_weight * wp.abs(pos[0]) * wp.exp(-h / rp.lateral_fade_altitude),
+        rp.tilt_weight * wp.abs(theta) * wp.exp(-h / rp.tilt_fade_altitude),
     )
 
 
@@ -136,25 +140,33 @@ def reward_kernel(
     rp: RewardParams,
     s: State,
     term: Terminal,
-    last_potential: wp.array(dtype=float),
+    last_potential: wp.array(dtype=wp.vec4),
     last_fuel: wp.array(dtype=float),
     reward: wp.array(dtype=float),
     terminal: wp.array(dtype=float),
+    terms: wp.array2d(dtype=float),
 ):
     tid = wp.tid()
     current = potential(p, rp, s.pos[tid], s.vel[tid], s.theta[tid])
-    step_cost = rp.time_cost * p.dt * float(p.substeps)
-    terminal[tid] = 0.0
+    shaping = wp.vec4(0.0)
+    fuel = 0.0
+    time = 0.0
+    end = 0.0
     if term.done[tid] != 0:
         end = terminal_reward(p, rp, term.status[tid], term.pos[tid], term.vel[tid], term.fuel[tid])
-        terminal[tid] = end
-        burned = last_fuel[tid] - term.fuel[tid]
-        reward[tid] = -last_potential[tid] - rp.fuel_cost * burned - step_cost + end
+        shaping = -last_potential[tid]
+        fuel = -rp.fuel_cost * (last_fuel[tid] - term.fuel[tid])
+        time = -rp.time_cost * p.dt * float(p.substeps)
     elif s.status[tid] == STATUS_FLYING:
-        burned = last_fuel[tid] - s.fuel[tid]
-        reward[tid] = rp.gamma * current - last_potential[tid] - rp.fuel_cost * burned - step_cost
-    else:
-        reward[tid] = 0.0
+        shaping = rp.gamma * current - last_potential[tid]
+        fuel = -rp.fuel_cost * (last_fuel[tid] - s.fuel[tid])
+        time = -rp.time_cost * p.dt * float(p.substeps)
+    for i in range(4):
+        terms[tid, i] = shaping[i]
+    terms[tid, 4] = fuel
+    terms[tid, 5] = time
+    terminal[tid] = end
+    reward[tid] = shaping[0] + shaping[1] + shaping[2] + shaping[3] + fuel + time + end
     # After an auto-reset `current` and the fuel already belong to the respawned state.
     last_potential[tid] = current
     last_fuel[tid] = s.fuel[tid]
@@ -165,7 +177,7 @@ def reset_potential_kernel(
     p: Params,
     rp: RewardParams,
     s: State,
-    last_potential: wp.array(dtype=float),
+    last_potential: wp.array(dtype=wp.vec4),
     last_fuel: wp.array(dtype=float),
 ):
     tid = wp.tid()

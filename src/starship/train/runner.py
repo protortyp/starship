@@ -138,6 +138,7 @@ class StarshipRunner(OnPolicyRunner):
             self._sync()
             t0 = time.perf_counter()
             dones_in_batch = 0
+            reward_sum = 0.0
             with torch.inference_mode():
                 for _ in range(steps_per_env):
                     actions = alg.act(obs)
@@ -145,6 +146,7 @@ class StarshipRunner(OnPolicyRunner):
                     alg.process_env_step(obs, rewards, dones, extras)
                     self.tracker.step(dones)
                     dones_in_batch += int(dones.sum())
+                    reward_sum += float(rewards.mean())
                 self._sync()
                 t1 = time.perf_counter()
                 alg.compute_returns(obs)
@@ -164,6 +166,8 @@ class StarshipRunner(OnPolicyRunner):
             metrics["train/episodes"] = float(self.tracker.total_episodes)
             metrics["train/dones_in_batch"] = float(dones_in_batch)
             metrics["train/batch_size"] = float(batch)
+            # Mean per-step reward as handed to the learner (after reward.learner_scale).
+            metrics["train/reward/step_mean"] = reward_sum / steps_per_env
 
             t_eval = 0.0
             if self.eval_env is not None and (it + 1) % self.eval_interval == 0:

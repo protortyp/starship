@@ -5,6 +5,7 @@ import math
 import torch
 
 from starship.sim import CRASHED, LANDED, OUT_OF_BOUNDS, TIMEOUT
+from starship.train.reward import REWARD_TERMS
 from starship.train.rsl_env import HEAD_NAMES, THRUSTER_BITS, RslRocketEnv
 
 OUTCOMES = {
@@ -24,6 +25,7 @@ class EpisodeTracker:
         self.policy_dt = env.env.config.policy_dt
         self._return = torch.zeros(n, device=device)
         self._terminal = torch.zeros(n, device=device)
+        self._terms = torch.zeros(n, len(REWARD_TERMS), device=device)
         self._thruster_steps = torch.zeros(n, len(THRUSTER_BITS), device=device)
         self._bits = torch.tensor(THRUSTER_BITS, dtype=torch.int32, device=device)
         self._finished: list[dict[str, torch.Tensor]] = []
@@ -34,6 +36,7 @@ class EpisodeTracker:
         env = self.env
         self._return += env.reward
         self._terminal += env.terminal_reward
+        self._terms += env.reward_terms
         self._thruster_steps += ((env.actions[:, None] & self._bits) != 0).float()
         done = dones.bool()
         keep = done if record is None else done & record
@@ -44,6 +47,7 @@ class EpisodeTracker:
                 {
                     "return": self._return[keep],
                     "terminal": self._terminal[keep],
+                    "terms": self._terms[keep],
                     "length_s": steps * self.policy_dt,
                     "status": env.final_status[keep],
                     "speed": vel.norm(dim=-1),
@@ -59,6 +63,7 @@ class EpisodeTracker:
         if done.any():
             self._return[done] = 0.0
             self._terminal[done] = 0.0
+            self._terms[done] = 0.0
             self._thruster_steps[done] = 0.0
 
     @property
@@ -78,6 +83,10 @@ class EpisodeTracker:
             "return_terminal": ep["terminal"].mean().item(),
             "length_s": ep["length_s"].mean().item(),
         }
+        # Episode sums of each reward term; they add up to `return`.
+        for i, term in enumerate(REWARD_TERMS):
+            out[f"reward/{term}"] = ep["terms"][:, i].mean().item()
+        out["reward/terminal"] = ep["terminal"].mean().item()
         for name, code in OUTCOMES.items():
             out[f"rate/{name}"] = (ep["status"] == code).float().mean().item()
         for i, head in enumerate(HEAD_NAMES):

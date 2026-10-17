@@ -44,6 +44,7 @@ class RslRocketEnv(VecEnv):
         self._mirrored = wp.to_torch(env.sim.state.mirrored)
         self.reward = wp.to_torch(env.reward)
         self.terminal_reward = wp.to_torch(env.terminal_reward)
+        self.reward_terms = wp.to_torch(env.reward_terms)
         self.final_status = wp.to_torch(term.status)
         self.final_vel = wp.to_torch(term.vel)
         self.final_theta = wp.to_torch(term.theta)
