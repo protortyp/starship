@@ -225,7 +225,7 @@ def test_kl_stops_remaining_minibatches(
     )
     runner = make_runner(cfg, tmp_path)
     alg = runner.alg
-    assert alg.max_kl is None
+    assert alg.max_kl == 0.01  # the default config enables the KL stop
     assert not alg.use_clipped_value_loss
     alg.max_kl = max_kl
     collect(runner)
