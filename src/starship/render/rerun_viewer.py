@@ -202,6 +202,9 @@ def main() -> None:
         rr.save(args.save, default_blueprint=blueprint())
     else:
         rr.spawn()
+    # Sent as the active blueprint: the viewer otherwise restores whatever layout it last saved
+    # for this application id.
+    rr.send_blueprint(blueprint())
     log_scene(cfg, args.envs)
     flaps = flap_geometry(cfg)
     mass_params = make_mass_params(cfg.vehicle)
