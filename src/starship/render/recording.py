@@ -22,6 +22,9 @@ class EvalRecorder:
         path = Path(path)
         path.parent.mkdir(parents=True, exist_ok=True)
         self.rec = rr.RecordingStream("starship")
+        # Run dirs are logs/<experiment>/<time>/rerun/<file>; the name tells recordings apart
+        # when several are open in one viewer.
+        self.rec.send_recording_name(f"{path.parent.parent.parent.name} {path.stem}")
         layout = blueprint()
         self.rec.save(path, default_blueprint=layout)
         # The recording stays active from here until close(): re-entering a RecordingStream's

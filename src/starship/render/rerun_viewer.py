@@ -150,7 +150,9 @@ def log_step(cfg, s, flaps, trails, mass_params) -> None:
     coms = mass_sample(mass_params, s.tanks[:n], device="cpu")[:, 1]
     pitch = np.degrees(np.arccos(np.clip(body_axis_z(s.rot), -1, 1)))
     engine = cfg.vehicle.engine
-    rr.log("world/chase", rr.Transform3D(translation=s.pos[0]))
+    # After rocket 0's episode ends its env may respawn elsewhere; the camera stays where it ended.
+    if trails[0] is not None:
+        rr.log("world/chase", rr.Transform3D(translation=s.pos[0]))
     for i in range(n):
         if trails[i] is None:
             continue
