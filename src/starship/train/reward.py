@@ -17,11 +17,14 @@ REWARD_TERMS = ("distance", "speed", "tilt", "angular_rate", "jerk", "fuel", "ti
 @dataclass
 class RewardConfig:
     gamma: float = 0.999  # Must equal PPO's discount.
-    distance_weight: float = 0.01  # per m
+    distance_weight: float = 0.05  # per m
     speed_weight: float = 1.0  # per m/s above the safe profile
+    # Horizontal speed is nearly free under the descent profile alone; without this term policies
+    # tip over and fly away sideways (2D needed the same lateral shaping, docs/curriculum.md).
+    horizontal_speed_weight: float = 0.5  # per m/s, part of the speed term
     tilt_weight: float = 10.0  # per rad, faded out above tilt_height
-    safe_deceleration: float = 20.0  # m/s^2 net; conservative three-engine landing burn
-    tilt_height: float = 200.0  # m above ground contact
+    safe_deceleration: float = 10.0  # m/s^2 net, well inside the three-engine landing burn
+    tilt_height: float = 1000.0  # m above ground contact
     angular_rate_cost: float = 0.1  # per (rad/s)^2 s
     jerk_cost: float = 0.1  # per squared change in squashed actuator targets
     fuel_cost: float = 0.001  # per kg
@@ -50,6 +53,7 @@ class RewardParams:
     gamma: float
     distance_weight: float
     speed_weight: float
+    horizontal_speed_weight: float
     tilt_weight: float
     safe_deceleration: float
     tilt_height: float
@@ -97,7 +101,8 @@ def potential(p: Params, r: RewardParams, b: Body, tanks: wp.vec4) -> wp.vec3:
     fade = wp.clamp(1.0 - height / r.tilt_height, 0.0, 1.0)
     return wp.vec3(
         -r.distance_weight * wp.length(b.pos),
-        -r.speed_weight * excess_speed,
+        -r.speed_weight * excess_speed
+        - r.horizontal_speed_weight * wp.length(wp.vec2(b.vel[0], b.vel[1])),
         -r.tilt_weight * tilt * fade,
     )
 

@@ -30,6 +30,8 @@ stages:
       - sim.spawn.pitch=1.5708
       - sim.spawn.offset_noise=100
       - sim.max_time=90
+      # The belly-flop is the right attitude up high; reward uprightness only near the flip.
+      - reward.tilt_height=300
   - name: 3 belly-flop from 3 km
     overrides:
       - sim.spawn.altitude=3000
