@@ -9,18 +9,25 @@ Health: `plasticity/*` in TensorBoard (dormant/dead units, feature rank, LSTM ga
 
 ## Stages
 
+`curriculum=scratch`; the best run so far is e2_ent002_lr1e4 (`entropy_coef=0.002`, fixed lr 1e-4, from scratch_v8's best).
+
 | # | change | status |
 |---|---|---|
-| 0 | randomized 3 km belly-flop (±300 m, ±10 m/s, ±11°), 20% near-ground practice spawns | solved (stage_c, it 1149: 100%) |
-| 1 | time cost 0.25/s | |
-| 2 | mirrored spawns (nose left/right) | |
-| 3 | altitude 1.5–5 km | |
-| 4 | vertical speed −40 to −130 m/s | |
-| 5 | horizontal speed ±30 m/s, offset ±500 m | |
-| 6 | orientation flat ±30° | |
-| 7 | spin ±5°/s | |
+| 0 | A upright near ground (50–350 m) | passed (e2, it 2074) |
+| 1 | B up to 1 km, tilted up to flat | passed (e2, it 2499) |
+| 2 | C randomized 3 km belly-flop, 20% near-ground practice spawns | passed (e2, it 2574: eval 0.99) |
+| 3 | time cost 0.25/s | passed (e2, it 2624: eval 1.00); `model_stage3_passed.pt` = baseline_v1 |
+| 4 | mirrored spawns (nose left/right) | training |
+| 5 | altitude 1.5–5 km | |
+| 6 | vertical speed −40 to −130 m/s | |
+| 7 | horizontal speed ±30 m/s, offset ±500 m | |
+| 8 | orientation flat ±30° | |
+| 9 | spin ±5°/s | |
 
 ## Findings
+
+- Stage A plateau broken by a decisive policy: from scratch_v8's best, `entropy_coef=0.002` with fixed lr 1e-4 passed A, B, C and the time cost in ~600 iterations (e2); lr 3e-4 (e1) and entropy 0 (e3) stayed at 85–92% on A. Before, 86% of thruster choices were undecided (0.1 < p < 0.9) at entropy 1.33.
+- The critic's last hidden layer has collapsed rank (12–31 of 128) in every run, with critic gradient norms above 1,000 before clipping; not yet shown to limit learning.
 
 - Stage A plateau (scratch_v8, it ~1100–2400 at 80–89% eval): best policy lands 87.8% of 1,024 stage-A starts; 98% of crashes exceed 4 m/s with a median impact of 22 m/s, 44% are also off the pad. The remaining failures are whole bad trajectories, not touchdowns just over the limits.
 
