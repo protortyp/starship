@@ -15,6 +15,7 @@ dependencies = [
 ]
 
 [project.scripts]
+starship-rerun = "starship.render.rerun_viewer:main"
 starship-train = "starship.train.train:main"
 starship-bench = "starship.train.bench:main"
 starship-diagnose = "starship.train.diagnose:main"
