@@ -32,7 +32,7 @@ CUDA_CHECK = (
     "'| torch cuda:', torch.cuda.is_available())"
 )
 BASE_QUERY = (
-    "num_gpus=1 reliability>0.99 cuda_vers>=13.0 inet_down>=500 rentable=true verified=true"
+    "num_gpus=1 reliability>0.99 cuda_vers>=13.0 inet_down>=2000 rentable=true verified=true"
 )
 RSYNC_EXCLUDES = [
     ".venv",
