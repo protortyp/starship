@@ -87,6 +87,9 @@ METRIC_GROUPS = [
     "train/env/return",
     "train/env/rate/crashed",
     "train/env/duty/main",
+    "train/env/reward/speed",
+    "train/env/reward/fuel",
+    "train/reward/step_mean",
     "eval/env/return",
     "eval/env/rate/landed",
 ]
@@ -267,3 +270,31 @@ def test_rollback_restores_the_best_policy(tmp_path):
     assert runner.total_env_steps == steps
     runner._maybe_roll_back(5, {"eval/env/rate/landed": 0.9})
     assert runner._below_best == 0
+
+
+def test_reward_terms_add_up_to_the_episode_return():
+    from starship.train.reward import REWARD_TERMS
+
+    cfg = compose_cfg(*SHORT_EPISODES, "reward.time_cost=0.5")
+    env = RslRocketEnv(
+        RocketEnv(
+            16,
+            OmegaConf.to_object(cfg.sim),
+            reward_config=OmegaConf.to_object(cfg.reward),
+            device="cpu",
+        )
+    )
+    tracker = EpisodeTracker(env)
+    done_once = torch.zeros(16, dtype=torch.bool)
+    torch.manual_seed(0)
+    for _ in range(300):
+        _, _, dones, _ = env.step((torch.rand(16, 3) < 0.5).float())
+        assert torch.allclose(env.reward, env.reward_terms.sum(-1) + env.terminal_reward, atol=1e-5)
+        tracker.step(dones, record=~done_once)
+        done_once |= dones.bool()
+        if done_once.all():
+            break
+    m = tracker.summarize("e")
+    parts = sum(m[f"e/reward/{t}"] for t in REWARD_TERMS) + m["e/reward/terminal"]
+    assert parts == pytest.approx(m["e/return"], rel=1e-4, abs=1e-3)
+    assert m["e/reward/time"] < 0.0

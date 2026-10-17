@@ -14,6 +14,7 @@ from starship.train.encoding import (
     observe,
 )
 from starship.train.reward import (
+    REWARD_TERMS,
     RewardConfig,
     make_reward_params,
     reset_potential_kernel,
@@ -65,7 +66,8 @@ class RocketEnv:
         self.final_obs = buffer((num_envs, OBS_DIM))
         self.reward = buffer(num_envs)
         self.terminal_reward = buffer(num_envs)
-        self._last_potential = buffer(num_envs)
+        self.reward_terms = buffer((num_envs, len(REWARD_TERMS)))
+        self._last_potential = buffer(num_envs, wp.vec4)
         self._last_fuel = buffer(num_envs)
         self.terminated = buffer(num_envs, wp.int32)
         self.truncated = buffer(num_envs, wp.int32)
@@ -128,6 +130,7 @@ class RocketEnv:
                 self._last_fuel,
                 self.reward,
                 self.terminal_reward,
+                self.reward_terms,
             ],
             device=self.device,
         )
