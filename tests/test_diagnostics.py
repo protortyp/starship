@@ -65,6 +65,36 @@ def test_model_diagnostics_on_the_lstm_policy(tmp_path):
     env = RslRocketEnv(RocketEnv(64, device="cpu"))
     actor = standalone_copy(runner.alg.get_policy())
     d = model_diagnostics(actor, env.get_observations())
-    assert any(k.endswith("/dormant") for k in d)
+    assert {"hidden0/dormant", "hidden1/dormant"} <= d.keys()
     assert 1 <= d["features/effective_rank"] <= d["features/width"]
     assert 0.0 <= d["lstm/forget_saturated"] <= 1.0
+
+
+def test_diagnose_report_on_a_short_run(tmp_path):
+    from omegaconf import OmegaConf
+
+    from starship.train.diagnose import (
+        find_run,
+        load_scalars,
+        plasticity_section,
+        probe_section,
+        run_summary,
+    )
+
+    cfg = compose_cfg("runner.algorithm.diagnostics_interval=1")
+    runner = make_runner(cfg, tmp_path)
+    runner.learn(2)
+    runner.writer.flush()
+    (tmp_path / ".hydra").mkdir()
+    OmegaConf.save(cfg, tmp_path / ".hydra" / "config.yaml")
+
+    run = find_run(str(tmp_path))
+    scalars = load_scalars(run)
+    report: dict = {}
+    lines = run_summary(run, scalars, report) + plasticity_section(scalars, report)
+    lines += probe_section(run, report, episodes=16, device="cpu")
+    text = "\n".join(lines)
+    assert "## Plasticity" in text
+    assert "## Probe" in text
+    assert report["probe"]["episodes"] == 16
+    assert "actor/hidden1/dormant" in " ".join(report["plasticity"])

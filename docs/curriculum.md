@@ -5,6 +5,8 @@ Run: `just vast train curriculum=spawn checkpoint=<model_*.pt> ...` (stages in `
 Each stage adds one change on top of all earlier ones. Promotion: stage eval lands ≥ 90% in 2 consecutive evals.
 TensorBoard: `curriculum/stage` (steps at promotions), Text tab `curriculum`, `eval/env/*` (current stage), `eval/target/*` (final stage). Run dir: `curriculum.json`, `model_stage<k>_passed.pt`, `policy_best.pt`, and every 4th eval Rerun recordings `rerun/eval_<it>.rrd` / `rerun/target_<it>.rrd` (`just vast pull`, then `uv run rerun <file>`).
 
+Health: `plasticity/*` in TensorBoard (dormant/dead units, feature rank, LSTM gate saturation, per-layer grad/weight norms and update ratios) and `uv run starship-diagnose <run> --probe`.
+
 ## Stages
 
 | # | change | status |
@@ -19,6 +21,8 @@ TensorBoard: `curriculum/stage` (steps at promotions), Text tab `curriculum`, `e
 | 7 | spin ±5°/s | |
 
 ## Findings
+
+- Stage A plateau (scratch_v8, it ~1100–2400 at 80–89% eval): best policy lands 87.8% of 1,024 stage-A starts; 98% of crashes exceed 4 m/s with a median impact of 22 m/s, 44% are also off the pad. The remaining failures are whole bad trajectories, not touchdowns just over the limits.
 
 - Collapses are stochastic, not caused by eval (an eval-on run replays the eval-off run exactly) or the LSTM (near-ground LSTM runs: seed 0 81–86%, seed 1 67–88% through 500 it; an MLP learned slower, 63%). Some random trajectories tip into hovering and never recover (scratch_v2, scratch_v5), so the runner rolls back to `model_best.pt` after `rollback_patience` evals more than `rollback_drop` below the stage's best.
 - A policy trained only on near-ground starts landed the full 3 km scenario at 100% (deterministic eval, arch_lstm_eval it 450–500).
