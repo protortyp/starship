@@ -132,9 +132,8 @@ class RcsConfig:
 @dataclass
 class AeroConfig:
     strips: int = 32  # hull slices for the crossflow model
-    crossflow_scale: float = 0.63  # finite-length factor eta (subsonic)
-    axial_nose: float = 0.4  # C_A at 0 deg AoA (nose first), reference area = cross-section
-    axial_tail: float = 0.9  # C_A at 180 deg AoA (tail first)
+    crossflow_scale: float = 0.63  # finite-length factor eta in subsonic crossflow
+    crossflow_scale_supersonic: float = 1.0  # eta once the crossflow Mach exceeds 1.2
 
 
 @dataclass

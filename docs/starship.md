@@ -43,7 +43,14 @@ Upper stage (Ship), V2 geometry, Raptor 2 unless noted. x = station from the eng
 | Drag area C_D·A at α = 90°, sea level | 280 m² | 230–340 m² | S | [11] derived |
 | Drag area C_D·A at α = 90°, M 0.8 | 600 m² | 550–700 m² | S | [12] |
 | Crossflow C_dn at Re ≈ 5e7 (tiles) | 0.7 | 0.5–0.9 | S | [25] [26] |
-| Finite-length factor η | 0.63 subsonic → 1 supersonic | | S | [25] [26] |
+| Finite-length factor η | 0.63 for crossflow M_n ≤ 0.8 → 1 for M_n ≥ 1.2 | 1 ± 0.15 supersonic | S | [25] [26] |
+| Stagnation Cp_max (pitot, γ 1.4) | 1.66 (M 2), 1.76 (M 3), 1.81 (M 5), 1.84 (M ≥ 12) | γ_eff 1.2 above ~5 km/s gives +4 % | S | [35] |
+| Axial C_A0 nose-first vs Mach | 0.40 subsonic, 0.65 (M 1.1), 0.47 (M 2), 0.34 (M 3), 0.32 (M 5), 0.28 (M 25) | ±30 % | E | [37] [38] |
+| Axial C_A0 tail-first vs Mach | 0.90 subsonic, 1.30 (M 1.1), 1.55 (M 2), 1.65 (M 5), 1.67 (M 25), ≈ 0.9 Cp_max | ±0.15 above M 1 | E | [35] [37] |
+| Hypersonic coefficients, M 12, flaps flat | C_L 4.2 → 2.9, C_D 8.5 → 10.4, L/D 0.5 → 0.3 at α 60 → 70°; C_L max near 50°, C_D max near 90°; max L/D 1.5–1.7 at 10–20° | | S | [12] [39] |
+| Supersonic coefficients, M 2, flaps flat | C_L 5 → 3.4, C_D 10 → 12.6 at α 60 → 70°; max L/D 1.7–1.9 | | S | [12] |
+| Hypersonic CoP from nose, M 12, α 60° | 0.57–0.62 L; forward flaps at 80° move it ≈ 0.03 L aft, aft flaps at 80° ≈ 0.07 L forward | | S | [12] |
+| Hypersonic trim α | 69° at X_cg 0.58 L with flaps flat (M 12); 28° with forward flaps at 80°; Mach-independent above M 4 | 60–70° flown | S | [12] [39] |
 | CoP from nose, body / flaps flat | 0.54 L / 0.60 L | 0.52–0.56 / 0.57–0.62 L | S | [12] |
 | Pitch stability | Cmα < 0 for α < 92–95°; damping stabilizing for α < 135° | | S | [27] |
 | Lateral-directional | Dutch roll unstable open-loop | | S | [27] |
@@ -60,9 +67,9 @@ Upper stage (Ship), V2 geometry, Raptor 2 unless noted. x = station from the eng
 | Component | Model | Sources |
 |---|---|---|
 | Atmosphere | U.S. Standard Atmosphere 1976, 7 layers to 86 km | NASA-TM-X-74335 |
-| Hull normal force | strip-wise viscous crossflow: dN/dx = η·C_dn(M_n, Re_n)·½ρV_n²·w(x), plus slender-body term (A_b/A)·sin2α·cos(α/2) | [25] [26] |
-| Hull axial force | C_A = C_A0·cos²α, C_A0 ≈ 0.4 nose-first, ≈ 0.9 tail-first | [25] |
-| Flap normal force | flat plate, subsonic C_N = 1.6·sinα·cosα + 1.17·sin²α; Newtonian for M ≥ 2 | [32] |
+| Hull normal force | strip-wise viscous crossflow: dN/dx = η(M_n)·C_dn(M_n, Re_n)·½ρV_n²·w(x) to M_n 25, plus slender-body term (A_b/A)·sin2α·cos(α/2); the ogive strips hand over to modified-Newtonian closed-form sector integrals (Cp = Cp_max(M)·cos²θ on the wetted sector, self-shadowing included) between M 1.1 and 3 | [25] [26] [35] [36] |
+| Hull axial force | C_A = C_A0(M)·cos²α from the Mach table (nose-first: wave + base + friction; tail-first: flat base ≈ 0.9 Cp_max above M 1) plus the Newtonian ogive axial integral, which peaks near α 60–70° | [25] [35] [37] [38] |
+| Flap normal force | flat plate, subsonic C_N = 1.6·sinα·cosα + 1.17·sin²α; C_N90 = Cp_max(M) from M 3 to 25; the span fraction whose upstream ray crosses the hull disc is unloaded (Newtonian shadow) | [32] [35] |
 | Terminal velocity check | V_t = sqrt(2mg / (ρ·C_D·A)) | |
 
 ## Sources
@@ -101,3 +108,8 @@ Upper stage (Ship), V2 geometry, Raptor 2 unless noted. x = station from the eng
 32. https://www.pdas.com/refs/rep1048.pdf (Allen & Perkins, NACA Report 1048)
 33. https://www.spacex.com/launches/starship-flight-13
 34. https://doi.org/10.1007/s12567-025-00625-8 (DLR 2025, V1 mass model)
+35. Anderson J.D., *Hypersonic and High-Temperature Gas Dynamics*, 2nd ed., AIAA 2006, ch. 3 (Lees' modified Newtonian law, pitot Cp_max); formulas also at https://pygasflow.readthedocs.io/en/latest/modules/atd/newton.html
+36. https://ntrs.nasa.gov/citations/19930084664 (Penland, NACA TN 3861, circular cylinder to α 90° at M 6.86 vs modified Newtonian theory)
+37. Fleeman E.L., *Tactical Missile Design*, 2nd ed., AIAA 2006, ch. 2 (wave, base and friction drag correlations)
+38. https://naca.central.cranfield.ac.uk/handle/1826.2/3925 (Love, NACA TN 3819, base pressure at supersonic speeds)
+39. https://doi.org/10.13009/EUCASS2019-337 (Cantou, Merlinge & Wuilbercq, ONERA 2019, modified-Newtonian database M 4–30 for a Starship-like vehicle)

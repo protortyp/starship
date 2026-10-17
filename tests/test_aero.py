@@ -19,6 +19,31 @@ def evaluate(velocities, **kwargs):
     return sample(velocities, device="cpu", **kwargs)
 
 
+ENTRY_ALTITUDE = 50_000.0  # near entry max-q; the Mach number sets the coefficients, not q
+REFERENCE_AREA = math.pi * 4.5**2
+
+
+def coefficients(mach, alphas, flap_angle=(0.0,) * 4, cfg=None, com=26.0):
+    """Rows of (C_A, C_N, C_L, C_D, X_cp/L from the nose) at the given angles of attack (deg)
+    with the belly windward; reference area is the cross-section as in Li et al. [12]."""
+    rho, sound = sample_air([ENTRY_ALTITUDE], device="cpu")[0, 2:4]
+    speed = mach * sound
+    q = 0.5 * rho * speed**2
+    radians = np.radians(alphas)
+    velocities = speed * np.stack([np.cos(radians), np.zeros_like(radians), np.sin(radians)], 1)
+    out = evaluate(
+        velocities, flap_angle=list(flap_angle), altitude=ENTRY_ALTITUDE, cfg=cfg, com=com
+    )
+    fx, fz, pitch = out[:, 0], out[:, 2], out[:, 4]
+    ca, cn = -fx / (q * REFERENCE_AREA), -fz / (q * REFERENCE_AREA)
+    cd = -(fx * np.cos(radians) + fz * np.sin(radians)) / (q * REFERENCE_AREA)
+    cl = (fx * np.sin(radians) - fz * np.cos(radians)) / (q * REFERENCE_AREA)
+    length = (cfg or VehicleConfig()).hull.length
+    with np.errstate(divide="ignore", invalid="ignore"):
+        xcp = (length - (com - pitch / fz)) / length
+    return np.stack([ca, cn, cl, cd, xcp], 1)
+
+
 @pytest.mark.parametrize(
     ("fold", "expected_low", "expected_transonic"),
     [(40.0, 297.54, 551.12), (45.0, 280.27, 531.41)],
@@ -74,15 +99,15 @@ def test_nose_first_drag_is_small_and_tail_first_drag_is_larger():
 def test_axial_coefficient_and_crossflow_mach_use_separate_velocities(sea_level):
     cfg = VehicleConfig()
     cfg.flaps = [replace(f, area=0) for f in cfg.flaps]
-    velocities = [[0, 0, 85], [300, 0, 85], [-300, 0, 85]]
+    velocities = [[0, 0, 85], [200, 0, 85], [-200, 0, 85]]
     out = evaluate(velocities, cfg=cfg)
     # Adding axial speed must not move the hull onto the transonic crossflow branch. Tail-first
     # flow has no slender-body term, so its normal force is the crossflow force alone.
     np.testing.assert_allclose(out[2, 2], out[0, 2], rtol=1e-6)
     assert abs(out[1, 2]) > abs(out[0, 2])
     area = math.pi * (cfg.hull.diameter / 2) ** 2
-    assert out[1, 0] == pytest.approx(-0.5 * sea_level[2] * 300**2 * area * 0.4, rel=1e-6)
-    assert out[2, 0] == pytest.approx(0.5 * sea_level[2] * 300**2 * area * 0.9, rel=1e-6)
+    assert out[1, 0] == pytest.approx(-0.5 * sea_level[2] * 200**2 * area * 0.4, rel=1e-6)
+    assert out[2, 0] == pytest.approx(0.5 * sea_level[2] * 200**2 * area * 0.9, rel=1e-6)
     assert out[2, 4] == pytest.approx(out[0, 4], rel=1e-6)
 
 
@@ -152,18 +177,26 @@ def _lookup_kernel(
 
 def test_coefficient_tables_interpolate_and_hold_endpoints():
     p = make_aero_params(VehicleConfig(), device="cpu")
-    mach = wp.array([-1, 0.3, 0.45, 0.8, 1.5, 2, 10], dtype=float, device="cpu")
-    crossflow = wp.zeros((7, 1), dtype=float, device="cpu")
-    plates = wp.zeros((7, 2), dtype=float, device="cpu")
-    wp.launch(_lookup_kernel, dim=7, inputs=[p.crossflow_table, mach, crossflow], device="cpu")
-    wp.launch(_lookup_kernel, dim=7, inputs=[p.plate_table, mach, plates], device="cpu")
+    mach = wp.array([-1, 0.3, 0.45, 0.8, 1.5, 2, 10, 30], dtype=float, device="cpu")
+    crossflow = wp.zeros((8, 2), dtype=float, device="cpu")
+    plates = wp.zeros((8, 2), dtype=float, device="cpu")
+    regimes = wp.zeros((8, 4), dtype=float, device="cpu")
+    wp.launch(_lookup_kernel, dim=8, inputs=[p.crossflow_table, mach, crossflow], device="cpu")
+    wp.launch(_lookup_kernel, dim=8, inputs=[p.plate_table, mach, plates], device="cpu")
+    wp.launch(_lookup_kernel, dim=8, inputs=[p.mach_table, mach, regimes], device="cpu")
     np.testing.assert_allclose(
-        crossflow.numpy()[:, 0], [0.7, 0.7, 0.85, 1.6, 1.52, 1.43, 1.275], rtol=1e-6
+        crossflow.numpy()[:, 0], [0.7, 0.7, 0.85, 1.6, 1.52, 1.43, 1.2725, 1.27], rtol=1e-6
     )
+    np.testing.assert_allclose(crossflow.numpy()[:, 1], [0, 0, 0, 0, 1, 1, 1, 1], atol=1e-6)
     np.testing.assert_allclose(plates.numpy()[0], [1.6, 1.17], rtol=1e-6)
     np.testing.assert_allclose(plates.numpy()[3], [1.6, 1.428], rtol=1e-6)
     np.testing.assert_allclose(plates.numpy()[4], [0.8, 1.65], rtol=1e-6)
-    np.testing.assert_allclose(plates.numpy()[5:], [[0, 1.7], [0, 1.8]], rtol=1e-6)
+    np.testing.assert_allclose(plates.numpy()[5:], [[0, 1.7], [0, 1.8312], [0, 1.84]], rtol=1e-4)
+    # Subsonic rows hold the Mach-independent model; the Newtonian weight is complete by M 3.
+    np.testing.assert_allclose(regimes.numpy()[:4], [[1.276, 0, 0.4, 0.9]] * 4, rtol=1e-6)
+    np.testing.assert_allclose(regimes.numpy()[4], [1.532, 0.21, 0.51, 1.45], rtol=1e-6)
+    np.testing.assert_allclose(regimes.numpy()[6:, 1], 1.0, rtol=1e-6)
+    np.testing.assert_allclose(regimes.numpy()[7], [1.838, 1, 0.06, 1.67], rtol=1e-6)
 
 
 def test_strip_quadrature_converges_and_body_cop_matches_planform_centroid():
@@ -215,3 +248,128 @@ def test_slender_body_term_gives_small_angle_normal_force(sea_level):
     potential = q * math.pi * (cfg.hull.diameter / 2) ** 2 * math.sin(2 * a) * math.cos(a / 2)
     assert -out[0, 2] == pytest.approx(potential, rel=0.2)
     assert -out[0, 2] > potential
+
+
+def test_m12_coefficients_match_li_et_al_cfd():
+    # docs/starship.md [12], M 12 flaps flat: C_L 4.2 -> 2.9 and C_D 8.5 -> 10.4 from 60 to 70
+    # deg, L/D 0.5 -> 0.3, max L/D 1.5-1.7 at 10-20 deg, X_cp 0.57-0.62 L at 60 deg, C_L max
+    # near 50 deg and C_D max near 90 deg.
+    alphas = [10, 20, 40, 50, 60, 70, 90]
+    ca, _, cl, cd, xcp = coefficients(12, alphas).T
+    at = dict(zip(alphas, range(len(alphas)), strict=True))
+    assert cl[at[60]] == pytest.approx(4.2, rel=0.1)
+    assert cd[at[60]] == pytest.approx(8.5, rel=0.1)
+    assert cl[at[70]] == pytest.approx(2.9, rel=0.1)
+    assert cd[at[70]] == pytest.approx(10.4, rel=0.1)
+    assert cl[at[60]] / cd[at[60]] == pytest.approx(0.5, abs=0.05)
+    assert cl[at[70]] / cd[at[70]] == pytest.approx(0.3, abs=0.05)
+    assert 1.5 < max(cl[at[10]] / cd[at[10]], cl[at[20]] / cd[at[20]]) < 1.8
+    assert xcp[at[60]] == pytest.approx(0.57, abs=0.02)
+    assert 0.55 < xcp[at[70]] < 0.62
+    assert cl[at[50]] > max(cl[at[40]], cl[at[60]])
+    assert cd[at[90]] > cd[at[70]]
+    assert 11 < cd[at[90]] < 12.5
+    # The windward ogive loads the axial force most at 60-70 deg, not at 0 deg.
+    assert 0.43 < ca[at[60]] < 0.53
+    assert ca[at[60]] > max(ca[at[90]], coefficients(12, [0])[0, 0])
+    print(
+        f"M 12: C_L(60)={cl[at[60]]:.2f} C_D(70)={cd[at[70]]:.2f} L/D(60,70)="
+        f"{cl[at[60]] / cd[at[60]]:.2f}/{cl[at[70]] / cd[at[70]]:.2f} X_cp(60)={xcp[at[60]]:.3f}"
+    )
+
+
+def test_m2_coefficients_approach_li_et_al_cfd():
+    # docs/starship.md [12], M 2: C_L 5 -> 3.4 and C_D 10 -> 12.6 from 60 to 70 deg. Newtonian
+    # pressures under-predict lee-side suction at low supersonic Mach (research note), so the
+    # drag tolerance is wider than at M 12.
+    cl60, cd60 = coefficients(2, [60])[0, 2:4]
+    cl70, cd70 = coefficients(2, [70])[0, 2:4]
+    assert cl60 == pytest.approx(5.0, rel=0.1)
+    assert cd60 == pytest.approx(10.0, rel=0.15)
+    assert cl70 == pytest.approx(3.4, rel=0.1)
+    assert cd70 == pytest.approx(12.6, rel=0.15)
+    assert cd70 > coefficients(12, [70])[0, 3]
+    print(f"M 2: C_L(60)={cl60:.2f} C_D(60)={cd60:.2f} C_L(70)={cl70:.2f} C_D(70)={cd70:.2f}")
+
+
+def test_supersonic_eta_raises_broadside_crossflow_drag():
+    # TR R-474: the finite-length factor reaches 1 in supersonic crossflow. On the cylinder the
+    # change is exactly (1 - 0.63) C_dn q A_cyl; the ogive strips are Newtonian at M 5.
+    cfg = VehicleConfig()
+    cfg.flaps = [replace(f, area=0) for f in cfg.flaps]
+    rho, sound = sample_air([ENTRY_ALTITUDE], device="cpu")[0, 2:4]
+    speed = 5 * sound
+    unity = evaluate([[0, 0, speed]], altitude=ENTRY_ALTITUDE, cfg=cfg)[0, 2]
+    cfg.aero.crossflow_scale_supersonic = cfg.aero.crossflow_scale
+    held = evaluate([[0, 0, speed]], altitude=ENTRY_ALTITUDE, cfg=cfg)[0, 2]
+    slope = make_aero_params(cfg, device="cpu").strip_slope.numpy()
+    cylinder = cfg.hull.diameter * np.sum(slope == 0) * cfg.hull.length / cfg.aero.strips
+    expected = 0.37 * 1.30 * 0.5 * rho * speed**2 * cylinder
+    assert held - unity == pytest.approx(expected, rel=1e-3)
+    # Flaps flat, the vehicle's hypersonic broadside drag rises from 8.5 (constant eta) to the
+    # Newtonian / Li et al. level, while the subsonic belly-flop keeps its calibrated value.
+    cd90 = coefficients(12, [90])[0, 3]
+    assert 11 < cd90 < 12.5
+    assert coefficients(0.8, [90])[0, 3] == pytest.approx(9.53, abs=0.05)
+
+
+def test_axial_drag_tables_follow_mach():
+    machs = [0.5, 0.8, 1.1, 2, 3, 5, 12, 25]
+    nose = np.array([coefficients(m, [0])[0, 0] for m in machs])
+    tail = np.array([-coefficients(m, [180])[0, 0] for m in machs])
+    # Nose-first: 0.4 subsonic, transonic peak, then wave + base + friction falling to ~0.28
+    # (research note section 3). Tail-first: flat face 0.9 subsonic, ~0.9 Cp_max supersonic.
+    np.testing.assert_allclose(nose, [0.40, 0.40, 0.65, 0.47, 0.34, 0.32, 0.30, 0.28], atol=0.02)
+    assert np.all(np.diff(nose[2:]) < 0)
+    np.testing.assert_allclose(tail[:2], 0.9, rtol=1e-6)
+    assert np.all((tail[4:] > 1.6) & (tail[4:] < 1.8))
+    assert np.all(tail > nose)
+    print("C_A0 nose-first:", np.round(nose, 3), "tail-first:", np.round(tail, 3))
+
+
+def test_folded_flaps_shift_hypersonic_pressure_center_as_in_the_panel_model():
+    # Research note section 1.4 (M 12): forward flaps at 80 deg move X_cp aft by ~0.03 L and
+    # cut C_D(90) by ~8 %; aft flaps at 80 deg move it forward by ~0.07 L and cut C_D(90) by
+    # ~20 %. Li et al. [12] see the same trend (trim 69 deg -> 28 deg with forward flaps up).
+    fold = math.radians(80)
+    flat = coefficients(12, [60, 90])
+    forward = coefficients(12, [60, 90], flap_angle=(0, 0, fold, fold))
+    aft = coefficients(12, [60, 90], flap_angle=(fold, fold, 0, 0))
+    assert forward[0, 4] - flat[0, 4] == pytest.approx(0.03, abs=0.01)
+    assert aft[0, 4] - flat[0, 4] == pytest.approx(-0.07, abs=0.015)
+    assert 1 - forward[1, 3] / flat[1, 3] == pytest.approx(0.08, abs=0.03)
+    assert 1 - aft[1, 3] / flat[1, 3] == pytest.approx(0.20, abs=0.04)
+
+
+def test_hull_shadow_removes_the_leeward_flap_force_at_hypersonic_speed():
+    # Sideslip towards +b2 with both aft flaps folded to the lee: the port plate hangs in the
+    # hull's shadow. Subsonic flow keeps both plates loaded (wake pressure is in C_N90).
+    cfg = VehicleConfig()
+    cfg.flaps = [f if i < 2 else replace(f, area=0) for i, f in enumerate(cfg.flaps)]
+    hull = VehicleConfig()
+    hull.flaps = [replace(f, area=0) for f in hull.flaps]
+    rho, sound = sample_air([ENTRY_ALTITUDE], device="cpu")[0, 2:4]
+    angles = (math.pi / 2, math.pi / 2, 0, 0)
+    for mach, plates, cn90 in [(12, 1, 1.8312), (0.5, 2, 1.17)]:
+        speed = mach * sound
+        for side in (1, -1):
+            velocity = [[0, side * speed, 0]]
+            kw = {"flap_angle": angles, "altitude": ENTRY_ALTITUDE}
+            flaps = evaluate(velocity, cfg=cfg, **kw)[0] - evaluate(velocity, cfg=hull, **kw)[0]
+            expected = plates * 0.5 * rho * speed**2 * 40 * cn90
+            assert -side * flaps[1] == pytest.approx(expected, rel=1e-3)
+
+
+def test_blends_are_continuous_through_the_transonic_and_supersonic_range():
+    machs = np.arange(0.6, 4.0, 0.02)
+    for alpha in (0, 40, 70, 90, 150, 180):
+        angle = (math.radians(45),) * 4
+        rows = np.array([coefficients(m, [alpha], flap_angle=angle)[0] for m in machs])
+        assert np.isfinite(rows[:, :4]).all()
+        drag = rows[:, 3]
+        assert np.all(drag > 0)
+        # The steepest gradient is the measured transonic C_dn rise below M_n 1; the eta,
+        # Newtonian and axial-table blends above M 1.1 must stay gentler than that.
+        steps = np.abs(np.diff(drag) / drag[:-1])
+        assert np.all(steps < 0.06)
+        assert np.all(steps[machs[:-1] >= 1.1] < 0.02)
