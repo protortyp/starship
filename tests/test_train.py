@@ -214,7 +214,7 @@ def collect(runner, steps=None):
     ("max_kl", "allowed_updates", "expected_updates"),
     [(None, 1, 4), (0.01, 1, 1), (0.01, 0, 0)],
 )
-def test_kl_stops_remaining_minibatches(
+def test_kl_stop_freezes_policy_but_keeps_training_critic(
     tmp_path, monkeypatch, max_kl, allowed_updates, expected_updates
 ):
     cfg = compose_cfg(
@@ -238,11 +238,22 @@ def test_kl_stops_remaining_minibatches(
         return log_prob(actions) - (1.0 if calls > allowed_updates else 0.0)
 
     monkeypatch.setattr(alg.actor, "get_output_log_prob", shifted_log_prob)
+    actor_before = [p.detach().clone() for p in alg.actor.parameters()]
+    critic_before = [p.detach().clone() for p in alg.critic.parameters()]
     metrics = alg.update()
     assert metrics["optim/updates"] == expected_updates
     assert metrics["optim/kl_early_stop"] == (max_kl is not None)
+    assert metrics["optim/critic_only_updates"] == 4 - expected_updates
     assert metrics["policy/last_approx_kl"] > 0.01
-    assert calls == (expected_updates + 1 if max_kl is not None else expected_updates)
+    assert calls == 4
+    actor_moved = any(
+        not torch.equal(a, p) for a, p in zip(actor_before, alg.actor.parameters(), strict=True)
+    )
+    critic_moved = any(
+        not torch.equal(a, p) for a, p in zip(critic_before, alg.critic.parameters(), strict=True)
+    )
+    assert actor_moved == (expected_updates > 0)
+    assert critic_moved
     assert alg.storage.step == 0
 
 

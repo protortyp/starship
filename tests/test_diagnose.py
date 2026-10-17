@@ -1,4 +1,6 @@
-from starship.train.diagnose import promotion_lines
+from pathlib import Path
+
+from starship.train.diagnose import promotion_lines, run_summary
 
 
 def scalars(landed, critic):
@@ -39,3 +41,16 @@ def test_promotion_lines_quiet_for_smooth_transition():
         "- stage 3 transition: train landed 0.95 -> low 0.90, recovered in 10 it, "
         "critic loss peak 1x the prior median"
     ]
+
+
+def test_run_summary_warns_when_kl_stop_starves_updates():
+    s = {"optim/updates": [(i, 1.0 if i % 2 else 20.0) for i in range(100)]}
+    lines = run_summary(Path("run"), s, {})
+    assert any(line.startswith("- WARN policy updates per iteration") for line in lines)
+    s = {"optim/updates": [(i, 20.0) for i in range(100)]}
+    lines = run_summary(Path("run"), s, {})
+    assert "- policy updates per iteration (last 100): mean 20.0" in lines
+
+
+def test_promotion_lines_without_promotions():
+    assert promotion_lines(scalars([0.9] * 20, [40.0] * 20), []) == []

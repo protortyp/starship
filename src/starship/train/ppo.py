@@ -148,6 +148,7 @@ class InstrumentedPPO(PPO):
         grad_norms: dict[str, dict[str, float]] = {}
 
         num_updates = 0
+        critic_only_updates, critic_only_loss = 0, 0.0
         early_stopped = False
         last_kl = 0.0
         for batch in generator:
@@ -191,10 +192,10 @@ class InstrumentedPPO(PPO):
                 ratio = torch.exp(log_ratio)
                 # k3 estimator of KL(old || new) from the sampled actions.
                 approx_kl = ((ratio.detach() - 1.0) - log_ratio.detach()).mean().item()
-                last_kl = approx_kl
+                if not early_stopped:
+                    last_kl = approx_kl
                 if self.max_kl is not None and approx_kl > self.max_kl:
                     early_stopped = True
-                    break
                 advantages = torch.squeeze(batch.advantages)
                 surrogate = -advantages * ratio
                 surrogate_clipped = -advantages * torch.clamp(
@@ -225,6 +226,16 @@ class InstrumentedPPO(PPO):
                 )
 
             self.optimizer.zero_grad()
+            if early_stopped:
+                # The KL stop freezes the policy, not the critic: a critic starved of updates
+                # lags behind the returns and its stale advantages then steer every later
+                # policy step. Actor parameters keep grad None, so Adam leaves them untouched.
+                (self.value_loss_coef * value_loss).backward()
+                nn.utils.clip_grad_norm_(self.critic.parameters(), self.max_grad_norm)
+                self.optimizer.step()
+                critic_only_updates += 1
+                critic_only_loss += value_loss.item()
+                continue
             loss.backward()
             if diagnose and not grad_norms:
                 # Gradients of the first minibatch, before clipping.
@@ -267,7 +278,7 @@ class InstrumentedPPO(PPO):
                 add("optim/grad_norm/critic", critic_grad.item())
             num_updates += 1
 
-        metrics = {k: v / num_updates for k, v in sums.items()}
+        metrics = {k: v / max(num_updates, 1) for k, v in sums.items()}
         if diagnose:
             for net, model in (("actor", self.actor), ("critic", self.critic)):
                 for layer, v in diag.layer_norms(model).items():
@@ -283,6 +294,9 @@ class InstrumentedPPO(PPO):
             metrics["value/norm_std"] = self.value_norm.var.sqrt().item()
         metrics["optim/updates"] = float(num_updates)
         metrics["optim/kl_early_stop"] = float(early_stopped)
+        metrics["optim/critic_only_updates"] = float(critic_only_updates)
+        if critic_only_updates:
+            metrics["loss/critic_after_kl_stop"] = critic_only_loss / critic_only_updates
         metrics["policy/last_approx_kl"] = last_kl
         metrics["optim/param_norm/policy"] = _norm(self.actor.parameters())
         metrics["optim/param_norm/critic"] = _norm(self.critic.parameters())
