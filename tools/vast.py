@@ -341,6 +341,53 @@ def cmd_pull(args) -> None:
     print(f"pulled remote logs into {ROOT / 'logs'}")
 
 
+def fetch_recordings(state: dict, count: int) -> list[Path]:
+    """Copy the newest finished eval recordings of any run into local logs/; returns new files."""
+    # Skip files touched in the last minute: the recorder may still be writing them.
+    listing = subprocess.run(
+        [
+            *ssh_base(state),
+            f"cd {REMOTE_DIR}/logs && find . -path '*/rerun/*.rrd' -mmin +1 -printf '%T@ %P\\n' "
+            f"| sort -rn | head -{count} | cut -d' ' -f2-",
+        ],
+        capture_output=True,
+        text=True,
+    )
+    fresh = [p for p in listing.stdout.split() if not (ROOT / "logs" / p).exists()]
+    if not fresh:
+        return []
+    ssh = " ".join(shlex.quote(p) for p in ssh_base(state)[:-1])
+    source = f"root@{state['ssh_host']}:{REMOTE_DIR}/logs/./"
+    files = [source + p for p in fresh]
+    subprocess.run(["rsync", "-az", "--relative", "-e", ssh, *files, f"{ROOT}/logs/"], check=True)
+    return [ROOT / "logs" / p for p in fresh]
+
+
+def cmd_rerun(args) -> None:
+    """Open the newest eval recordings in the Rerun viewer. A running viewer receives them as
+    extra recordings, so watching keeps one window."""
+    state = load_state()
+    while True:
+        try:
+            files = fetch_recordings(state, args.count)
+        except subprocess.CalledProcessError as e:
+            print(f"could not fetch recordings: {e}")
+            files = []
+        for f in sorted(files):
+            print(f"opening {f.relative_to(ROOT)}")
+            subprocess.Popen(
+                ["rerun", str(f)],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                start_new_session=True,
+            )
+        if not args.watch:
+            if not files:
+                print("no new recordings")
+            return
+        time.sleep(args.watch * 60)
+
+
 def cmd_reconnect(args) -> None:
     """Re-resolve how to reach the instance, e.g. when the SSH proxy stops answering."""
     state = load_state()
@@ -414,6 +461,9 @@ def main() -> None:
     add("status", cmd_status, "instance, GPU utilization, sessions and latest training log")
     add("logs", cmd_logs, f"remote TensorBoard via SSH tunnel on localhost:{TB_LOCAL_PORT}")
     add("pull", cmd_pull, "rsync remote logs/ (events, policies) into local logs/")
+    p = add("rerun", cmd_rerun, "pull the newest eval recordings and open them in Rerun")
+    p.add_argument("--count", type=int, default=2, help="newest recordings to open")
+    p.add_argument("--watch", type=float, default=0, help="keep checking every N minutes")
     add("ssh", cmd_ssh, "interactive shell on the instance")
     add("attach", cmd_attach, "attach to the training tmux session")
     add("stop", cmd_stop, "stop the training session")
