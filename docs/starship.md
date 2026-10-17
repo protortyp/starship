@@ -61,6 +61,13 @@ Upper stage (Ship), V2 geometry, Raptor 2 unless noted. x = station from the eng
 | Landing burn, relight to touchdown | 20 s | 16–28 s | O/S | [33] [19] [20] |
 | Landing accuracy | ~3 m (Flight 10) | | O | [30] |
 | Touchdown that destroyed the legs | 10 m/s (SN10, landed on 1 of 3 engines) | | O | [7] [29] [31] |
+| Surface wind, Brownsville (Starbase) | 5.0 m/s annual mean (11.3 mph); 6.1 m/s in April, 4.2 m/s in September; prevailing SE onshore | | S | [45] |
+| Winds aloft, Cape Canaveral RRA (coastal, 28.5° N) | annual mean 7.1 m/s at 1 km, 12.3 at 5 km, 23.8 at 10 km, max 28.9 at 13 km, 8.7 at 20 km; January 42.7 at 13 km (SD 13), July 11.3 | SD ≈ 15–17 m/s at the jet | S | [42] |
+| Boundary-layer shear exponent | 0.14 coastal land; 0.11 open water (Gulf of Mexico); 0.20 KSC design at 7–15 m/s | 0.10–0.20 | S | [43] [44] |
+| Dryden turbulence (MIL-F-8785C) | below 1000 ft σ_w = 0.1 W20, σ_u = σ_w/(0.177 + 0.000823 h)^0.4, L_w = h, L_u = h/(0.177 + 0.000823 h)^1.2; W20 15 / 30 / 45 kt light / moderate / severe; above 2000 ft L = 1750 ft and σ from figure 7: 2.0 / 2.6 / 4.8 m/s at 500 ft, 2.3 / 3.2 / 7.0 m/s at 3750 ft | | S | [40] [41] |
+| Discrete gust | 1-cosine; classical NASA 9 m/s with 30–150 m half-widths; KSC peak-wind gust factor 1.4 | 2–10 m/s | S | [43] |
+| Vortex-shedding Strouhal number | 0.2 (rough cylinder prior); 0.29 transcritical at Re 7.1e6 (Schewe); side force 0.1–0.2 of the crossflow force | 0.18–0.30 | S | [46] |
+| Flap normal-force fluctuation | 10–20 % rms in free stream (> 30 % near a wall), low-aspect-ratio plates | | S | [47] |
 
 ## Models
 
@@ -71,6 +78,8 @@ Upper stage (Ship), V2 geometry, Raptor 2 unless noted. x = station from the eng
 | Hull axial force | C_A = C_A0(M)·cos²α from the Mach table (nose-first: wave + base + friction; tail-first: flat base ≈ 0.9 Cp_max above M 1) plus the Newtonian ogive axial integral, which peaks near α 60–70° | [25] [35] [37] [38] |
 | Flap normal force | flat plate, subsonic C_N = 1.6·sinα·cosα + 1.17·sin²α; C_N90 = Cp_max(M) from M 3 to 25; the span fraction whose upstream ray crosses the hull disc is unloaded (Newtonian shadow) | [32] [35] |
 | Terminal velocity check | V_t = sqrt(2mg / (ρ·C_D·A)) | |
+| Wind (`starship.sim.wind`) | per-episode mean profile: power law to the boundary-layer top, linear to a jet at 12 km, linear decay above; Dryden transverse filters (MIL-F-8785C scales, severity 0–3) advanced by the distance flown through a frozen field; 1-cosine gust pulses; aero on v − wind | [40] [41] [42] [43] |
+| Unsteady aero noise | hull side force shedding_amplitude × strip crossflow drag × sin φ, φ̇ = 2π St V_n / D, random phase; flap force × (1 + first-order noise), 0.2 s correlation | [46] [47] |
 
 ## Sources
 
@@ -113,3 +122,11 @@ Upper stage (Ship), V2 geometry, Raptor 2 unless noted. x = station from the eng
 37. Fleeman E.L., *Tactical Missile Design*, 2nd ed., AIAA 2006, ch. 2 (wave, base and friction drag correlations)
 38. https://naca.central.cranfield.ac.uk/handle/1826.2/3925 (Love, NACA TN 3819, base pressure at supersonic speeds)
 39. https://doi.org/10.13009/EUCASS2019-337 (Cantou, Merlinge & Wuilbercq, ONERA 2019, modified-Newtonian database M 4–30 for a Starship-like vehicle)
+40. https://www.mathworks.com/help/aeroblks/drydenwindturbulencemodelcontinuous.html (MIL-F-8785C Dryden forms, length scales and intensities)
+41. https://jsbsim-team.github.io/jsbsim/FGWinds_8cpp_source.html (MIL-F-8785C figure 7 exceedance table as tabulated by JSBSim)
+42. https://ntrs.nasa.gov/api/citations/19830021664/downloads/19830021664.pdf (Range Commanders Council 361-83, Cape Canaveral Range Reference Atmosphere, tables I-1, I-7, I-13)
+43. https://www.scielo.br/j/jatm/a/Dwp5R8HGGL97QMvhTTP5jqr/?lang=en (Johnson & Vaughan, KSC wind environment: power law, gust factor, discrete gust, Press turbulence)
+44. Hsu, Meindl & Gilhousen 1994, J. Appl. Meteorol. 33, 757–765 (power-law exponent 0.11 ± 0.03 over water, Gulf of Mexico)
+45. https://www.climate-zone.com/climate/united-states/texas/brownsville (monthly mean wind speed)
+46. https://doi.org/10.1017/S0022112083001913 (Schewe 1983, cylinder force fluctuations up to transcritical Reynolds numbers)
+47. https://doi.org/10.3390/en8042438 (Ortiz, Rival & Wood 2015, forces on low-aspect-ratio flat plates)

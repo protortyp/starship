@@ -102,6 +102,7 @@ def _step_kernel(
         terminal.tanks[i] = state.tanks[i]
         terminal.time[i] = state.time[i]
         terminal.steps[i] = state.steps[i]
+        terminal.wind[i] = state.wind[i]
         # The simulator's terminal struct has no actuators, so encode before spawn discards them.
         encode(
             state.body[i],
@@ -125,6 +126,7 @@ def _terminal_views_kernel(
     rot: wp.array(dtype=wp.quat),
     omega: wp.array(dtype=wp.vec3),
     attitude: wp.array2d(dtype=float),
+    wind: wp.array2d(dtype=float),
 ):
     i = wp.tid()
     b = terminal.body[i]
@@ -139,6 +141,9 @@ def _terminal_views_kernel(
     attitude[i, 3] = a.peak_horizontal_rate
     attitude[i, 4] = float(a.flips)
     attitude[i, 5] = float(a.reflips)
+    w = terminal.wind[i]
+    wind[i, 0] = wp.length(w.surface)
+    wind[i, 1] = w.turbulence
 
 
 @dataclass
@@ -205,6 +210,7 @@ class RocketEnv:
         self.final_rot = zeros(wp.quat)
         self.final_omega = zeros(wp.vec3)
         self.final_attitude = zeros(width=len(ATTITUDE_FIELDS))
+        self.final_wind = zeros(width=2)  # episode's surface wind speed and turbulence level
         term = self.sim.terminal
         self.final_status, self.final_steps = term.status, term.steps
         self.final_tanks, self.final_time = term.tanks, term.time
@@ -255,6 +261,7 @@ class RocketEnv:
             self.sim.terminal.body,
             self.sim.terminal.attitude,
             self.sim.terminal.tanks,
+            self.sim.terminal.wind,
             self.reward,
             self.terminal_reward,
             self.reward_terms,
@@ -267,6 +274,7 @@ class RocketEnv:
             self.final_rot,
             self.final_omega,
             self.final_attitude,
+            self.final_wind,
             self.actions,
             self.squashed_actions,
         ):
@@ -342,6 +350,7 @@ class RocketEnv:
                 self.final_rot,
                 self.final_omega,
                 self.final_attitude,
+                self.final_wind,
             ],
         )
         self._respawn()

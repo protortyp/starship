@@ -23,6 +23,7 @@ from starship.sim.physics import (
 )
 from starship.sim.propulsion import EngineState, FlapState, make_propulsion_params
 from starship.sim.rigid import Body
+from starship.sim.wind import WindState, init_wind_kernel, make_wind_params
 
 TANK_ORDER = ("main_lox", "main_ch4", "header_lox", "header_ch4")
 COMMAND_FIELDS = {
@@ -111,6 +112,7 @@ def make_params(config: SimConfig, device) -> Params:
     p.mass = make_mass_params(v)
     p.propulsion = make_propulsion_params(v, config.dt)
     p.aero = make_aero_params(v, device=device)
+    p.wind = make_wind_params(config.wind, v.hull.diameter)
     return p
 
 
@@ -128,6 +130,7 @@ class Snapshot:
     time: np.ndarray
     steps: np.ndarray
     status: np.ndarray
+    wind: np.ndarray  # (N, 3) air velocity at the vehicle, world
 
 
 @dataclass
@@ -183,6 +186,7 @@ class Simulator:
         self.state.steps = zeros(wp.int32)
         self.state.status = zeros(wp.int32)
         self.state.rng = zeros(wp.uint32)
+        self.state.wind = zeros(WindState)
         self.terminal = Terminal()
         self.terminal.done = zeros(wp.int32)
         self.terminal.status = zeros(wp.int32)
@@ -191,10 +195,17 @@ class Simulator:
         self.terminal.tanks = zeros(wp.vec4)
         self.terminal.time = zeros(float)
         self.terminal.steps = zeros(wp.int32)
+        self.terminal.wind = zeros(WindState)
         self.commands = Commands()
         for name, dtype in COMMAND_FIELDS.items():
             setattr(self.commands, name, zeros(dtype))
         wp.launch(init_rng_kernel, dim=num_envs, inputs=[seed, self.state.rng], device=self.device)
+        wp.launch(
+            init_wind_kernel,
+            dim=num_envs,
+            inputs=[seed ^ 0x57494E44, self.state.wind],
+            device=self.device,
+        )
         self.reset()
 
     def set_config(self, config: SimConfig) -> None:
@@ -234,6 +245,7 @@ class Simulator:
                 "steps",
                 "status",
                 "rng",
+                "wind",
             ):
                 setattr(src, name, wp.clone(getattr(self.state, name)))
         wp.launch(
@@ -276,6 +288,7 @@ class Simulator:
             time=s.time.numpy().copy(),
             steps=s.steps.numpy().copy(),
             status=s.status.numpy().copy(),
+            wind=np.array(s.wind.numpy()["wind"]),
         )
 
     def terminal_snapshot(self) -> TerminalSnapshot:

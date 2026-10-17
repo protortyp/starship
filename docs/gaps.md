@@ -4,9 +4,7 @@ Physics not modelled in `starship.sim`. Refs point to `docs/starship.md` sources
 
 | Gap | Effect | Approach | Refs |
 |---|---|---|---|
-| Wind and gusts | Lateral drift, AoA disturbances | Mean wind profile + Dryden turbulence in the air-relative velocity | MIL-F-8785C |
-| Vortex shedding | Unsteady hull side force at St ≈ 0.2 (≈ 2 Hz at 85 m/s), 0.1–0.2 of crossflow force | Sinusoidal side force with random phase per env | [25] |
-| Flap force noise | 10–20 % rms flap normal force | Correlated noise at St ≈ 0.1 | [12] |
+| Wind structure along the hull | Turbulence and gusts are uniform over the vehicle (no rotational gusts, no nose-to-tail wind difference); mean wind and turbulence are parametric envelopes, not sampled soundings | Dryden p, q, r filters; IGRA Brownsville profiles for 20 km starts | [40] |
 | Plume–aero interaction | Changed hull and flap loads while engines fire into crossflow during the flip | No public data; scale crossflow force near the tail with thrust | [13] |
 | Propellant slosh | CoM and inertia oscillation during flip and burn | Pendulum or spring–mass per tank | |
 | Propellant settling | Liquid position follows acceleration, not the body axis | Fill tanks along the local acceleration direction | |

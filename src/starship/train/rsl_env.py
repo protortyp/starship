@@ -42,6 +42,8 @@ class RslRocketEnv(VecEnv):
         attitude = wp.to_torch(env.final_attitude)
         for i, name in enumerate(ATTITUDE_FIELDS):
             setattr(self, f"final_{name}", attitude[:, i])
+        wind = wp.to_torch(env.final_wind)
+        self.final_wind_speed, self.final_turbulence = wind[:, 0], wind[:, 1]
         # Physical engine order; final_mirrored identifies the policy frame of ended episodes.
         self.engine_on = wp.to_torch(env.sim.commands.engine_on)
         self._obs = wp.to_torch(env.obs)
