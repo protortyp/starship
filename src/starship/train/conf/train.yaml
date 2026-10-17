@@ -41,8 +41,9 @@ runner:
     clip_param: 0.2
     value_loss_coef: 1.0
     max_grad_norm: 1.0
-    # Critic predicts returns normalized by their running mean and std.
-    value_normalization: true
+    # Critic predicts returns normalized by their running mean and std. Off: it made learning
+    # collapse on near-ground spawns (16% then 0% at 250 it, vs 81% without; docs/curriculum.md).
+    value_normalization: false
   actor:
     class_name: RNNModel
     rnn_type: lstm
