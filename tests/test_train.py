@@ -236,7 +236,7 @@ def test_value_normalizer_tracks_running_moments():
 
 
 def test_value_normalization_is_saved_with_checkpoints(tmp_path):
-    cfg = compose_cfg(*SHORT_EPISODES)
+    cfg = compose_cfg(*SHORT_EPISODES, "runner.algorithm.value_normalization=true")
     runner = make_runner(cfg, tmp_path / "a")
     runner.learn(2)
     norm = runner.alg.value_norm
