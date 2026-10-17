@@ -23,6 +23,8 @@
 
 ## Findings
 
+- The first telemetry calibration (IFT-5, 2026-10-17) fits speed to 4.16 m/s RMSE but does not complete IFT-6’s held-descent window. Mass, drag and flap effectiveness remain coupled; keep the training defaults neutral. Details and cross-flight errors: [calibration.md](calibration.md).
+
 - Crash penalties must stay bounded but keep ranking crashes (log of the weighted limit excess); linear ones swamped the value targets (−1,300), hard caps made every bad crash equal.
 - Terminal ordering matters: with timeouts cheaper than crashes, policies climbed away from the ground.
 - Tumble checks must exclude roll: roll inertia is ~18× smaller, random flaps spun it past 40°/s.

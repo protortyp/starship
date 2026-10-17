@@ -18,9 +18,13 @@ uv run starship-rerun --save out/run.rrd       # or record to a file, open with 
 uv run python -m starship.plan.cem --device cuda:0   # Monte Carlo search for a landing trajectory
 uv run starship-rerun --schedule out/cem_best.npz    # replay it
 uv run python -m starship.sim.bench --device cuda:0  # raw simulator throughput
+uv run python -m starship.sim.calibrate --flight IFT-5 --device cpu --data-dir telemetry
 ```
 
 Warp runs on the CPU on macOS; pass `--device cuda:0` on a machine with an NVIDIA GPU.
+
+The calibration harness fits held-descent aerodynamics to webcast altitude/speed, then validates
+the same parameters on the other flights. Data setup, assumptions and results: [docs/calibration.md](docs/calibration.md).
 
 ## Training
 

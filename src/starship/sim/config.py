@@ -131,6 +131,8 @@ class RcsConfig:
 
 @dataclass
 class AeroConfig:
+    crossflow_drag_scale: float = 1.0
+    flap_force_scale: float = 1.0
     strips: int = 32  # hull slices for the crossflow model
     crossflow_scale: float = 0.63  # finite-length factor eta in subsonic crossflow
     crossflow_scale_supersonic: float = 1.0  # eta once the crossflow Mach exceeds 1.2

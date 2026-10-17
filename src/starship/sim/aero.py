@@ -97,6 +97,8 @@ class AeroParams:
     crossflow_table: wp.array2d(dtype=float)
     plate_table: wp.array2d(dtype=float)
     mach_table: wp.array2d(dtype=float)
+    crossflow_drag_scale: float
+    flap_force_scale: float
     crossflow_scale: float
     crossflow_scale_supersonic: float
     reference_area: float
@@ -174,6 +176,8 @@ def make_aero_params(cfg: VehicleConfig, device: str | None = None) -> AeroParam
     p.crossflow_table = wp.array(CROSS_FLOW_TABLE, dtype=float, ndim=2, device=device)
     p.plate_table = wp.array(PLATE_TABLE, dtype=float, ndim=2, device=device)
     p.mach_table = wp.array(MACH_TABLE, dtype=float, ndim=2, device=device)
+    p.crossflow_drag_scale = cfg.aero.crossflow_drag_scale
+    p.flap_force_scale = cfg.aero.flap_force_scale
     p.crossflow_scale = cfg.aero.crossflow_scale
     p.crossflow_scale_supersonic = cfg.aero.crossflow_scale_supersonic
     p.reference_area = math.pi * radius**2
@@ -323,7 +327,7 @@ def aero_wrench(
         crossflow = wp.vec3(0.0, local[1], local[2])
         crossflow_speed = wp.length(crossflow)
         crossflow_row = _interpolate2(p.crossflow_table, crossflow_speed / air.speed_of_sound, 1)
-        cdn = crossflow_row[0]
+        cdn = crossflow_row[0] * p.crossflow_drag_scale
         eta = wp.lerp(p.crossflow_scale, p.crossflow_scale_supersonic, crossflow_row[1])
         slope = p.strip_slope[i]
         # Viscous crossflow drag exceeds the Newtonian value up to M_n ~4 (lee-side suction),
@@ -396,6 +400,7 @@ def aero_wrench(
                 exposed = 1.0 - newton * _shadow_fraction(p, p.hinge[i], tip, local)
             pressure = -wp.sign(vn) * 0.5 * air.density * local_speed * local_speed * exposed
             f = pressure * p.flap_area[i] * cn * normal
+            f = f * p.flap_force_scale
             force = force + f
             torque = torque + wp.cross(r, f)
 
