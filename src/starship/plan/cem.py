@@ -12,6 +12,7 @@ import argparse
 import math
 import time
 from dataclasses import dataclass, replace
+from pathlib import Path
 
 import numpy as np
 import warp as wp
@@ -19,10 +20,12 @@ import warp as wp
 from starship.sim import CRASHED, FLYING, LANDED, TIMEOUT, SimConfig, Simulator
 from starship.sim.physics import Commands
 
-# Knot parameters: engines lit (0..3, rounded), throttle, gimbal towards +b2 and +b3 (shared by
-# the lit engines) and the four flap angles.
+# Knot parameters: engines lit after ignition (1..3, rounded), throttle, gimbal towards +b2 and
+# +b3 (shared by the lit engines) and the four flap angles. A single ignition time per schedule
+# gates the engines: a Raptor needs ~2 s of continuous "on" to spool up, so independent on/off
+# knots would almost never produce thrust.
 KNOT_DIM = 8
-LOW = np.array([0.0, 0.4, -0.26, -0.26, 0.0, 0.0, 0.0, 0.0], dtype=np.float32)
+LOW = np.array([1.0, 0.4, -0.26, -0.26, 0.0, 0.0, 0.0, 0.0], dtype=np.float32)
 HIGH = np.array([3.0, 1.0, 0.26, 0.26, 1.48, 1.48, 1.48, 1.48], dtype=np.float32)
 vec8 = wp.types.vector(length=KNOT_DIM, dtype=float)
 
@@ -30,6 +33,7 @@ vec8 = wp.types.vector(length=KNOT_DIM, dtype=float)
 @wp.kernel
 def schedule_kernel(
     knots: wp.array3d(dtype=float),  # (samples, knots, KNOT_DIM)
+    ignite: wp.array(dtype=float),  # (samples,) time the engines light
     knot_interval: float,
     t: float,
     c: Commands,
@@ -42,7 +46,9 @@ def schedule_kernel(
     u = vec8()
     for d in range(8):
         u[d] = wp.lerp(knots[i, k, d], knots[i, k + 1, d], a)
-    lit = int(u[0] + 0.5)
+    lit = 0
+    if t >= ignite[i]:
+        lit = int(u[0] + 0.5)
     on = wp.vec3(0.0)
     for e in range(3):
         if e < lit:
@@ -113,18 +119,22 @@ class CrossEntropyPlanner:
         self.elites = max(int(samples * elite_fraction), 8)
         self.rng = np.random.default_rng(seed)
         self.mean = np.tile((LOW + HIGH) / 2, (self.knots, 1)).astype(np.float32)
-        self.mean[:, 0] = 0.0  # engines off until the search lights them
         self.std = np.tile((HIGH - LOW) / 2, (self.knots, 1)).astype(np.float32)
+        self.ignite_mean, self.ignite_std = 0.5 * horizon, 0.25 * horizon
+        self.horizon = horizon
 
-    def rollout(self, knots: np.ndarray, start: Simulator, index: int = 0) -> Outcome:
+    def rollout(
+        self, knots: np.ndarray, ignite: np.ndarray, start: Simulator, index: int = 0
+    ) -> Outcome:
         sim = self.sim
         sim.copy_from(start, np.full(self.samples, index, dtype=np.int32))
         plan = wp.array(knots, dtype=float, device=sim.device)
+        ignition = wp.array(ignite, dtype=float, device=sim.device)
         for k in range(self.steps):
             wp.launch(
                 schedule_kernel,
                 dim=self.samples,
-                inputs=[plan, self.knot_interval, k * self.control_dt, sim.commands],
+                inputs=[plan, ignition, self.knot_interval, k * self.control_dt, sim.commands],
                 device=sim.device,
             )
             sim.step()
@@ -132,15 +142,19 @@ class CrossEntropyPlanner:
                 break
         return score(sim)
 
-    def iterate(self, start: Simulator, index: int = 0) -> tuple[Outcome, np.ndarray]:
+    def iterate(self, start: Simulator, index: int = 0) -> tuple[Outcome, np.ndarray, float]:
         noise = self.rng.standard_normal((self.samples, self.knots, KNOT_DIM)).astype(np.float32)
         knots = np.clip(self.mean + self.std * noise, LOW, HIGH)
-        knots[0] = self.mean  # always re-evaluate the current mean
-        out = self.rollout(knots, start, index)
+        ignite = self.ignite_mean + self.ignite_std * self.rng.standard_normal(self.samples)
+        ignite = np.clip(ignite, 0.0, self.horizon).astype(np.float32)
+        knots[0], ignite[0] = self.mean, self.ignite_mean  # always re-evaluate the current mean
+        out = self.rollout(knots, ignite, start, index)
         elite = np.argsort(out.cost)[: self.elites]
         self.mean = 0.3 * self.mean + 0.7 * knots[elite].mean(axis=0)
         self.std = np.maximum(0.3 * self.std + 0.7 * knots[elite].std(axis=0), 0.02 * (HIGH - LOW))
-        return out, knots[elite[0]]
+        self.ignite_mean = 0.3 * self.ignite_mean + 0.7 * float(ignite[elite].mean())
+        self.ignite_std = max(0.3 * self.ignite_std + 0.7 * float(ignite[elite].std()), 0.05)
+        return out, knots[elite[0]], float(ignite[elite[0]])
 
 
 def main() -> None:
@@ -151,9 +165,9 @@ def main() -> None:
     parser.add_argument("--samples", type=int, default=4096)
     parser.add_argument("--iterations", type=int, default=50)
     parser.add_argument("--altitude", type=float, default=3000.0)
-    parser.add_argument("--horizon", type=float, default=80.0)
+    parser.add_argument("--horizon", type=float, default=50.0)
     parser.add_argument("--knot-interval", type=float, default=2.0)
-    parser.add_argument("--out", default="out/cem_best.npy")
+    parser.add_argument("--out", default="out/cem_best.npz")
     args = parser.parse_args()
 
     cfg = SimConfig()
@@ -165,21 +179,23 @@ def main() -> None:
     best_cost, best = math.inf, None
     for it in range(args.iterations):
         t0 = time.perf_counter()
-        out, top = planner.iterate(start)
+        out, top, top_ignite = planner.iterate(start)
         i = int(np.argmin(out.cost))
         if out.cost[i] < best_cost:
-            best_cost, best = float(out.cost[i]), top
+            best_cost, best, best_ignite = float(out.cost[i]), top, top_ignite
         landed = float(np.mean(out.status == LANDED))
         print(
             f"it {it:3d}  best {out.cost[i]:9.1f}  landed {landed:5.1%}  "
             f"vz {out.vertical_speed[i]:6.1f}  vh {out.horizontal_speed[i]:5.1f}  "
             f"tilt {out.tilt_deg[i]:5.1f}  miss {out.miss[i]:6.1f}  "
             f"fuel {out.fuel_left[i] / 1000:5.1f} t  "
-            f"t {out.time[i]:5.1f} s  ({time.perf_counter() - t0:.1f} s)",
+            f"t {out.time[i]:5.1f} s  ignite {top_ignite:5.1f} s  "
+            f"({time.perf_counter() - t0:.1f} s)",
             flush=True,
         )
     if best is not None:
-        np.save(args.out, best)
+        Path(args.out).parent.mkdir(parents=True, exist_ok=True)
+        np.savez(args.out, knots=best, ignite=best_ignite, knot_interval=args.knot_interval)
         print(f"saved best schedule to {args.out}")
 
 
