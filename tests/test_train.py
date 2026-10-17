@@ -91,13 +91,16 @@ METRIC_GROUPS = [
     "train/env/reward/speed",
     "train/env/reward/fuel",
     "train/reward/step_mean",
+    "plasticity/actor/features/effective_rank",
+    "plasticity/actor/lstm/forget_saturated",
+    "plasticity/critic/mlp.1/dormant",
     "eval/env/return",
     "eval/env/rate/landed",
 ]
 
 
 def test_training_logs_metrics_and_exports_usable_policies(tmp_path):
-    cfg = compose_cfg(*SHORT_EPISODES)
+    cfg = compose_cfg(*SHORT_EPISODES, "runner.algorithm.diagnostics_interval=1")
     runner = make_runner(cfg, tmp_path)
     runner.learn(2)
     missing = [k for k in METRIC_GROUPS if k not in runner.last_metrics]

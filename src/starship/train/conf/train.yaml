@@ -48,6 +48,8 @@ runner:
     # Critic predicts returns normalized by their running mean and std. Off: it made learning
     # collapse on near-ground spawns (16% then 0% at 250 it, vs 81% without; docs/curriculum.md).
     value_normalization: false
+    # Log network health (dormant/dead units, feature rank, LSTM gates, per-layer norms) every N updates.
+    diagnostics_interval: 10
   actor:
     class_name: RNNModel
     rnn_type: lstm
