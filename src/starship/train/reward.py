@@ -3,11 +3,14 @@
 reward = gamma * potential(s') - potential(s) - fuel_cost * fuel burned - time_cost * dt
          + terminal reward
 
-The potential scores how close the rocket is to a good touchdown: near the pad, slow, and (only
-near the ground) upright. With gamma equal to the learner's discount and a zero potential after the
-episode ends, the discounted shaping sums to -potential(start) for every trajectory, so it guides
-learning without changing which behavior is optimal; only the terminal reward decides that. A
-nonzero terminal potential would instead pay (1 - gamma) * |potential| per step for staying alive.
+The potential scores how close the rocket is to a good touchdown: near the pad, and (only near the
+ground) slow and upright. A speed term at altitude would reward braking high up, which PPO's short
+advantage horizon chases greedily, burning the fuel needed for the landing.
+
+With gamma equal to the learner's discount and a zero potential after the episode ends, the
+discounted shaping sums to -potential(start) for every trajectory, so it guides learning without
+changing which behavior is optimal; only the terminal reward decides that. A nonzero terminal
+potential would instead pay (1 - gamma) * |potential| per step for staying alive.
 
 The fuel cost makes burning propellant to stay airborne expensive. Without it, a policy that cannot
 land yet prefers to float and crash late, because discounting shrinks a later crash penalty.
@@ -35,7 +38,8 @@ class RewardConfig:
     # PPO's value clipping and gradient clipping assume. Env metrics stay in unscaled units.
     learner_scale: float = 0.05
     distance_weight: float = 10.0  # per km to the pad center
-    speed_weight: float = 0.2  # per m/s
+    speed_weight: float = 0.2  # per m/s, faded in near the ground
+    speed_fade_altitude: float = 300.0  # m; speed weight is exp(-altitude / this)
     tilt_weight: float = 10.0  # per rad, faded in near the ground
     tilt_fade_altitude: float = 200.0  # m; tilt weight is exp(-altitude / this)
     landed_reward: float = 100.0
@@ -54,6 +58,7 @@ class RewardParams:
     gamma: float
     distance_weight: float
     speed_weight: float
+    speed_fade_altitude: float
     tilt_weight: float
     tilt_fade_altitude: float
     landed_reward: float
@@ -80,7 +85,7 @@ def potential(p: Params, rp: RewardParams, pos: wp.vec2, vel: wp.vec2, theta: fl
     tilt_fade = wp.exp(-h / rp.tilt_fade_altitude)
     return -(
         rp.distance_weight * distance / 1000.0
-        + rp.speed_weight * wp.length(vel)
+        + rp.speed_weight * wp.length(vel) * wp.exp(-h / rp.speed_fade_altitude)
         + rp.tilt_weight * wp.abs(theta) * tilt_fade
     )
 
