@@ -25,6 +25,8 @@ VANISHING_RATIO = 0.10
 RIGID_UPDATE_RATIO = 1e-5
 COLLAPSE_DROP = 0.30
 ENGINE_ENTROPY_MIN = 0.05
+CRITIC_SPIKE_RATIO = 20.0
+PROMOTION_WINDOW = 300  # iterations after a promotion that count as its transition
 
 
 def find_run(target: str) -> Path:
@@ -65,6 +67,7 @@ def run_summary(run: Path, s: dict, report: dict) -> list[str]:
         lines.append(
             f"- promoted to stage {e['stage']} ({e['name']}) at iteration {e['iteration']}"
         )
+    lines += promotion_lines(s, promotions)
     rollbacks = last(s, "train/rollbacks", 0)
     if rollbacks:
         lines.append(f"- rollbacks: {rollbacks:.0f}")
@@ -99,6 +102,55 @@ def run_summary(run: Path, s: dict, report: dict) -> list[str]:
         "target_landed": target[-8:],
         "entropy": entropy,
     }
+    return lines
+
+
+def promotion_lines(s: dict, promotions: list[dict]) -> list[str]:
+    """Training landing rate and critic loss around each promotion.
+
+    A new stage shifts the returns; a critic that lags behind feeds large, wrong advantages to the
+    policy, which shows up as a landing-rate crash right after the promotion.
+    """
+    # Rates from iterations where few episodes ended are noise.
+    counts = dict(s.get("train/env/episodes", []))
+    landed = [(t, v) for t, v in s.get("train/env/rate/landed", []) if counts.get(t, 100) >= 100]
+    critic = s.get("loss/critic", [])
+    iteration = s.get("train/iteration", [])
+    if not landed or len(iteration) < 2:
+        return []
+    steps_per_it = (iteration[-1][0] - iteration[0][0]) / max(iteration[-1][1] - iteration[0][1], 1)
+    window = PROMOTION_WINDOW * steps_per_it
+    lines = []
+    for e, following in zip(promotions, [*promotions[1:], None], strict=True):
+        start = e["env_steps"]
+        end = start + window if following is None else min(start + window, following["env_steps"])
+        before = [v for t, v in landed if start - 20 * steps_per_it <= t < start]
+        # Promotion resets every env, so the first iterations only see episodes that end early.
+        settle = start + 10 * steps_per_it
+        after = [(t, v) for t, v in landed if settle <= t < end]
+        if not before or not after:
+            continue
+        reference = float(np.mean(before))
+        low = min(v for _, v in after)
+        recovered = next((t for t, v in after if v >= 0.9 * reference), None)
+        recovery = (
+            f"recovered in {(recovered - start) / steps_per_it:.0f} it"
+            if recovered is not None
+            else f"not recovered within {(end - start) / steps_per_it:.0f} it"
+        )
+        critic_before = [v for t, v in critic if start - 50 * steps_per_it <= t < start]
+        critic_after = [v for t, v in critic if start <= t < end]
+        spike = ""
+        if critic_before and critic_after:
+            ratio = max(critic_after) / max(float(np.median(critic_before)), 1e-9)
+            spike = f", critic loss peak {ratio:.0f}x the prior median"
+        else:
+            ratio = 0.0
+        warn = reference - low > COLLAPSE_DROP or ratio > CRITIC_SPIKE_RATIO
+        lines.append(
+            f"- {'WARN ' if warn else ''}stage {e['stage']} transition: train landed "
+            f"{reference:.2f} -> low {low:.2f}, {recovery}{spike}"
+        )
     return lines
 
 

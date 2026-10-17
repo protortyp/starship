@@ -1,0 +1,41 @@
+from starship.train.diagnose import promotion_lines
+
+
+def scalars(landed, critic):
+    steps = [i * 100 for i in range(len(landed))]
+    return {
+        "train/iteration": [(t, i) for i, t in enumerate(steps)],
+        "train/env/rate/landed": list(zip(steps, landed, strict=True)),
+        "loss/critic": list(zip(steps, critic, strict=True)),
+    }
+
+
+def test_promotion_lines_flag_collapse_and_critic_spike():
+    # Promotion at iteration 60; the first 10 iterations after it are ignored.
+    landed = [0.95] * 60 + [0.0] * 10 + [0.3] * 40 + [0.9] * 100
+    critic = [40.0] * 60 + [40.0, 4000.0] + [40.0] * 148
+    lines = promotion_lines(scalars(landed, critic), [{"stage": 3, "env_steps": 6000}])
+    assert lines == [
+        "- WARN stage 3 transition: train landed 0.95 -> low 0.30, recovered in 50 it, "
+        "critic loss peak 100x the prior median"
+    ]
+
+
+def test_promotion_lines_ignore_iterations_with_few_episodes():
+    landed = [0.95] * 60 + [0.0] * 10 + [0.9] * 140
+    s = scalars(landed, [40.0] * 210)
+    s["train/env/episodes"] = [
+        (t, 3.0 if i == 100 else 1000.0) for i, (t, _) in enumerate(s["loss/critic"])
+    ]
+    s["train/env/rate/landed"][100] = (10000, 0.0)
+    lines = promotion_lines(s, [{"stage": 3, "env_steps": 6000}])
+    assert "low 0.90" in lines[0]
+
+
+def test_promotion_lines_quiet_for_smooth_transition():
+    landed = [0.95] * 60 + [0.0] * 10 + [0.9] * 140
+    lines = promotion_lines(scalars(landed, [40.0] * 210), [{"stage": 3, "env_steps": 6000}])
+    assert lines == [
+        "- stage 3 transition: train landed 0.95 -> low 0.90, recovered in 10 it, "
+        "critic loss peak 1x the prior median"
+    ]
