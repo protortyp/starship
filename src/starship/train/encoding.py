@@ -9,6 +9,10 @@ Features, in order:
     5  cos(theta)                              sin/cos avoid the wrap-around jump at +/-pi
     6  angular velocity                        omega / angular_rate_scale
     7  fuel remaining                          fuel / fuel capacity
+
+Mirrored episodes (SpawnConfig.mirror) are encoded in the mirror frame: x, vx, sin(theta) and
+omega change sign, so the policy sees every mirrored start as its unmirrored twin. The action
+mapping swaps the left and right thrusters to match (see rsl_env.actions_to_bitmask).
 """
 
 from dataclasses import dataclass
@@ -60,16 +64,20 @@ def encode(
     theta: float,
     omega: float,
     fuel: float,
+    mirrored: int,
     obs: wp.array2d(dtype=float),
     tid: int,
 ):
-    obs[tid, 0] = pos[0] / scales.position
+    m = 1.0
+    if mirrored != 0:
+        m = -1.0
+    obs[tid, 0] = m * pos[0] / scales.position
     obs[tid, 1] = lowest_point(pos[1], theta, p) / scales.position
-    obs[tid, 2] = vel[0] / scales.velocity
+    obs[tid, 2] = m * vel[0] / scales.velocity
     obs[tid, 3] = vel[1] / scales.velocity
-    obs[tid, 4] = wp.sin(theta)
+    obs[tid, 4] = m * wp.sin(theta)
     obs[tid, 5] = wp.cos(theta)
-    obs[tid, 6] = omega / scales.angular_rate
+    obs[tid, 6] = m * omega / scales.angular_rate
     obs[tid, 7] = 0.0
     if p.fuel_mass > 0.0:
         obs[tid, 7] = fuel / p.fuel_mass
@@ -84,10 +92,13 @@ def observe_kernel(
     theta: wp.array(dtype=float),
     omega: wp.array(dtype=float),
     fuel: wp.array(dtype=float),
+    mirrored: wp.array(dtype=wp.int32),
     obs: wp.array2d(dtype=float),
 ):
     tid = wp.tid()
-    encode(p, scales, pos[tid], vel[tid], theta[tid], omega[tid], fuel[tid], obs, tid)
+    encode(
+        p, scales, pos[tid], vel[tid], theta[tid], omega[tid], fuel[tid], mirrored[tid], obs, tid
+    )
 
 
 def observe(sim: "Simulator", scales: ObsScales, out: wp.array) -> None:
@@ -96,7 +107,7 @@ def observe(sim: "Simulator", scales: ObsScales, out: wp.array) -> None:
     wp.launch(
         observe_kernel,
         dim=sim.num_envs,
-        inputs=[sim.params, scales, s.pos, s.vel, s.theta, s.omega, s.fuel, out],
+        inputs=[sim.params, scales, s.pos, s.vel, s.theta, s.omega, s.fuel, s.mirrored, out],
         device=sim.device,
     )
 
@@ -126,6 +137,7 @@ def episode_end_kernel(
         term.theta[tid],
         term.omega[tid],
         term.fuel[tid],
+        term.mirrored[tid],
         final_obs,
         tid,
     )
