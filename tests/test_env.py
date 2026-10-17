@@ -118,6 +118,7 @@ def potential(env: RocketEnv, pos, vel, theta) -> float:
     return -(
         w.distance_weight * math.hypot(pos[0], h) / 1000.0
         + w.speed_weight * float(np.linalg.norm(vel)) * math.exp(-h / w.speed_fade_altitude)
+        + w.lateral_weight * abs(pos[0]) * math.exp(-h / w.lateral_fade_altitude)
         + w.tilt_weight * abs(theta) * math.exp(-h / w.tilt_fade_altitude)
     )
 
@@ -261,3 +262,23 @@ def test_braking_high_up_earns_no_shaping():
     # The main engine slows the descent by ~1.7 m/s per step; that only pays off near the ground.
     assert abs(braking_gain(3000.0)) < 0.01
     assert braking_gain(100.0) > 0.1
+
+
+def test_lateral_shaping_rewards_moving_toward_the_pad_near_the_ground():
+    def step_reward(lateral_weight, vx):
+        env = RocketEnv(
+            1,
+            replace(
+                SimConfig(),
+                world=ZERO_G_VACUUM,
+                spawn=SpawnConfig(x=100.0, y=60.0, vx=vx, vy=0.0, theta=0.0),
+            ),
+            reward_config=RewardConfig(gamma=1.0, fuel_cost=0.0, lateral_weight=lateral_weight),
+            device="cpu",
+        )
+        env.reset()
+        return env.step(np.zeros(1, dtype=np.int32)).reward.numpy()[0]
+
+    # Moving 1 m toward the pad (vx = -10 m/s for 0.1 s) at 60 m altitude.
+    gain = step_reward(0.1, -10.0) - step_reward(0.0, -10.0)
+    assert gain == pytest.approx(0.1 * 1.0 * math.exp(-35.0 / 500.0), rel=1e-3)
