@@ -234,3 +234,18 @@ def test_spawn_with_engines_lit():
     assert np.allclose(sim.snapshot().spool, 1.0)
     sim.step(engine_on=(1, 1, 1), throttle=(0.7, 0.7, 0.7))
     assert sim.snapshot().vel[0, 2] > -40.0  # already decelerating, no 2 s spool-up
+
+
+@pytest.mark.parametrize(
+    ("omega_deg", "tumbles"),
+    [((60, 0, 0), False), ((120, 0, 0), True), ((0, 50, 0), True), ((0, 0, 30), False)],
+)
+def test_roll_has_its_own_limit(omega_deg, tumbles):
+    from starship.sim import TUMBLED
+
+    sim = Simulator(1, config(altitude=3000.0, pitch=0.0, vertical_speed=0.0), device=DEVICE)
+    body = sim.state.body.numpy()
+    body["omega"][0] = tuple(np.radians(omega_deg))
+    sim.state.body.assign(body)
+    sim.step()
+    assert (sim.snapshot().status[0] == TUMBLED) == tumbles

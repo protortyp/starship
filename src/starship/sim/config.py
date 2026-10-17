@@ -192,6 +192,9 @@ class SimConfig:
     max_time: float = 180.0
     max_altitude: float = 25_000.0
     max_offset: float = 10_000.0
-    # Tumble limits: the real flip turns ~90 deg in 4-6 s (docs/starship.md), well inside both.
+    # Tumble limits: pitch from vertical and end-over-end (pitch/yaw) rate; the real flip turns
+    # ~90 deg in 4-6 s (docs/starship.md), well inside both. Roll about the axis is not a flip and
+    # has its own, looser limit: roll inertia is ~18x smaller, so flaps spin it up easily.
     max_pitch: float = math.radians(115.0)
     max_rate: float = math.radians(40.0)
+    max_roll_rate: float = math.radians(90.0)

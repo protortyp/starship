@@ -60,6 +60,7 @@ class Params:
     max_offset: float
     max_pitch: float  # from vertical; beyond it the vehicle counts as tumbling
     max_rate: float
+    max_roll_rate: float
     length: float
     radius: float
     nose_length: float
@@ -249,7 +250,12 @@ def advance(p: Params, s: State, c: Commands, tid: int):
             status = OUT_OF_BOUNDS
             break
         axis_z = wp.quat_rotate(b.rot, wp.vec3(1.0, 0.0, 0.0))[2]
-        if axis_z < wp.cos(p.max_pitch) or wp.length(b.omega) > p.max_rate:
+        transverse = wp.sqrt(b.omega[1] * b.omega[1] + b.omega[2] * b.omega[2])
+        if (
+            axis_z < wp.cos(p.max_pitch)
+            or transverse > p.max_rate
+            or wp.abs(b.omega[0]) > p.max_roll_rate
+        ):
             status = TUMBLED
             break
     if status == FLYING and t >= p.max_time:

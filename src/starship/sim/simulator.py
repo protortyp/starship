@@ -63,6 +63,7 @@ def make_params(config: SimConfig, device) -> Params:
     p.max_offset = config.max_offset
     p.max_pitch = config.max_pitch
     p.max_rate = config.max_rate
+    p.max_roll_rate = config.max_roll_rate
     p.length = v.hull.length
     p.radius = v.hull.diameter / 2
     p.nose_length = v.hull.nose_length

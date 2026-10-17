@@ -7,7 +7,7 @@
 - **Actions**: 3 Bernoulli engine-on heads; 8 continuous (shared throttle, shared 2-axis gimbal, 4 flaps, roll RCS) as absolute targets; actuator lag and rate limits come from the sim.
 - **Observations** (body frame, heading-invariant): up vector, velocity, pad position, angular velocity, altitude, flap angles, engine spool, throttle, gimbal, fuel fraction. Port/starboard mirror as augmentation.
 - **Reward**: γΦ(s′) − Φ(s) shaping on distance, speed above a safe descent profile and tilt near the ground; penalties on angular rate and actuator jerk; fuel and time cost; terminal landing bonus scaled by fuel left, crash penalty scaled by limit excess.
-- **Termination**: landed, crashed, out of bounds, timeout, **tumbled** (pitch > 115° from vertical or angular rate > 40°/s) with a large penalty.
+- **Termination**: landed, crashed, out of bounds, timeout, **tumbled** (pitch > 115° from vertical, pitch/yaw rate > 40°/s, or roll rate > 90°/s) with the largest penalty.
 - **Metrics**: landing rate; touchdown speed, tilt, miss; crash and tumble breakdown by limit; reward per term; per-actuator usage and saturation; plasticity (`starship-diagnose`).
 
 ## Stages
