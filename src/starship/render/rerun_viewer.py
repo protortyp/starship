@@ -214,12 +214,10 @@ def run_configs(run: Path, stage: int | None):
     """Sim, obs and reward configs of a training run at a curriculum stage (default: last)."""
     from omegaconf import OmegaConf
 
-    from starship.train.conf import TrainConfig
+    from starship.train.conf import load_run_config
     from starship.train.curriculum import Curriculum
 
-    run_cfg = OmegaConf.merge(
-        OmegaConf.structured(TrainConfig), OmegaConf.load(run / ".hydra/config.yaml")
-    )
+    run_cfg = load_run_config(run)
     sim_cfg, reward_cfg = OmegaConf.to_object(run_cfg.sim), OmegaConf.to_object(run_cfg.reward)
     name = "no curriculum"
     if run_cfg.curriculum.enabled:

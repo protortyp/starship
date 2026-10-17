@@ -202,3 +202,18 @@ def test_rollback_refreshes_next_training_observations(tmp_path, monkeypatch):
     monkeypatch.setattr(runner.alg, "act", check_obs)
     runner.learn(2)
     assert checked == [True]
+
+
+def test_old_run_configs_with_removed_settings_still_load(tmp_path):
+    from starship.train.conf import load_run_config
+
+    cfg = compose_cfg()
+    hydra = tmp_path / ".hydra"
+    hydra.mkdir()
+    saved = OmegaConf.to_container(cfg, resolve=False)
+    saved["sim"]["vehicle"]["aero"]["axial_nose"] = 0.4  # a setting the schema no longer has
+    (hydra / "config.yaml").write_text(OmegaConf.to_yaml(saved))
+    loaded = load_run_config(tmp_path)
+    assert "axial_nose" not in loaded.sim.vehicle.aero
+    assert loaded.num_envs == cfg.num_envs
+    assert loaded.runner.algorithm.lam == cfg.runner.algorithm.lam  # free-form section kept
