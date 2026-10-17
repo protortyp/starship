@@ -259,6 +259,7 @@ def fly_progress(args) -> None:
     layout = blueprint()
     rr.init("starship", default_blueprint=layout)
     if args.save:
+        Path(args.save).parent.mkdir(parents=True, exist_ok=True)
         rr.save(args.save, default_blueprint=layout)
     else:
         rr.spawn()
@@ -337,6 +338,7 @@ def fly_policy(args) -> None:
     layout = blueprint()
     rr.init("starship", default_blueprint=layout)
     if args.save:
+        Path(args.save).parent.mkdir(parents=True, exist_ok=True)
         rr.save(args.save, default_blueprint=layout)
     else:
         rr.spawn()
@@ -410,6 +412,7 @@ def main() -> None:
     layout = blueprint()
     rr.init("starship", default_blueprint=layout)
     if args.save:
+        Path(args.save).parent.mkdir(parents=True, exist_ok=True)
         rr.save(args.save, default_blueprint=layout)
     else:
         rr.spawn()
