@@ -1,5 +1,6 @@
 defaults:
   - train_schema
+  - curriculum: none
   - _self_
 
 experiment: landing

@@ -2,15 +2,24 @@
 snapshots, all logged to TensorBoard."""
 
 import copy
+import json
 import time
+from dataclasses import replace
 from pathlib import Path
 
 import torch
 from rsl_rl.runners import OnPolicyRunner
 from torch.utils.tensorboard import SummaryWriter
 
+from starship.sim import SimConfig
+from starship.train.curriculum import Curriculum
 from starship.train.metrics import EpisodeTracker
 from starship.train.rsl_env import RslRocketEnv
+
+
+def _eval_only(sim: SimConfig) -> SimConfig:
+    """Eval measures the stage's real distribution, without the near-ground practice spawns."""
+    return replace(sim, easy_spawn_fraction=0.0)
 
 
 def standalone_copy(policy: torch.nn.Module) -> torch.nn.Module:
@@ -50,6 +59,8 @@ class StarshipRunner(OnPolicyRunner):
         eval_env: RslRocketEnv | None = None,
         eval_interval: int = 25,
         verbose: bool = True,
+        curriculum: Curriculum | None = None,
+        target_eval_env: RslRocketEnv | None = None,
     ):
         # rsl_rl's own logger stays disabled; this runner writes its own TensorBoard metrics.
         super().__init__(env, train_cfg, log_dir=None, device=device)
@@ -61,10 +72,48 @@ class StarshipRunner(OnPolicyRunner):
         self.tracker = EpisodeTracker(env)
         self.total_env_steps = 0
         self.next_iteration = 0
-        # Best eval so far as (landed rate, return); runs can collapse late, so keep the peak.
-        self.best_eval: tuple[float, float] | None = None
+        # Best eval so far as (stage, landed rate, return); runs can collapse late, so keep the
+        # peak. A later curriculum stage always ranks above an earlier one.
+        self.best_eval: tuple[int, float, float] | None = None
         self.last_metrics: dict[str, float] = {}
         self.verbose = verbose
+        self.curriculum = curriculum
+        self.target_eval_env = target_eval_env
+        if curriculum is not None:
+            self._apply_stage()
+
+    def _apply_stage(self) -> None:
+        """Configure training and eval envs for the current curriculum stage."""
+        sim, reward = self.curriculum.configs()
+        self.env.set_configs(sim, reward)
+        if self.eval_env is not None:
+            self.eval_env.set_configs(_eval_only(sim), reward)
+        if self.target_eval_env is not None:
+            target_sim, target_reward = self.curriculum.target_configs()
+            self.target_eval_env.set_configs(_eval_only(target_sim), target_reward)
+
+    def _promote(self, it: int) -> None:
+        passed = self.curriculum.name
+        self.save(str(self.log_dir / f"model_stage{self.curriculum.stage}_passed.pt"))
+        self.curriculum.advance()
+        self._apply_stage()
+        event = {
+            "stage": self.curriculum.stage,
+            "name": self.curriculum.name,
+            "passed": passed,
+            "iteration": it,
+            "env_steps": self.total_env_steps,
+        }
+        history = self.log_dir / "curriculum.json"
+        events = json.loads(history.read_text()) if history.exists() else []
+        history.write_text(json.dumps([*events, event], indent=2))
+        self.writer.add_text(
+            "curriculum",
+            f"stage {event['stage']} ({event['name']}) at iteration {it}, "
+            f"{self.total_env_steps / 1e6:.1f}M env steps; passed: {passed}",
+            self.total_env_steps,
+        )
+        print(f"curriculum: passed '{passed}', now stage {event['stage']} '{event['name']}'")
 
     def _sync(self) -> None:
         if torch.device(self.device).type == "cuda":
@@ -113,7 +162,16 @@ class StarshipRunner(OnPolicyRunner):
                 eval_metrics = self.evaluate()
                 self._keep_best(it, eval_metrics)
                 metrics.update(eval_metrics)
+                if self.target_eval_env is not None:
+                    metrics.update(self.evaluate(self.target_eval_env, "eval/target"))
+                if self.curriculum is not None and self.curriculum.observe_eval(
+                    eval_metrics.get("eval/env/rate/landed", 0.0)
+                ):
+                    self._promote(it)
                 t_eval = time.perf_counter() - t_eval
+            if self.curriculum is not None:
+                metrics["curriculum/stage"] = float(self.curriculum.stage)
+                metrics["curriculum/passes"] = float(self.curriculum.passes)
             if (it + 1) % cfg["save_interval"] == 0:
                 self.save_all(it)
 
@@ -137,6 +195,9 @@ class StarshipRunner(OnPolicyRunner):
 
     def load(self, path: str, load_cfg=None, strict: bool = True, map_location=None) -> dict:
         infos = super().load(path, load_cfg, strict, map_location or self.device)
+        if self.curriculum is not None and infos and "curriculum" in infos:
+            self.curriculum.load_state_dict(infos["curriculum"])
+            self._apply_stage()
         # The checkpoint carries the old learning rate; the configured one should win.
         self.alg.learning_rate = self.cfg["algorithm"]["learning_rate"]
         for group in self.alg.optimizer.param_groups:
@@ -148,9 +209,14 @@ class StarshipRunner(OnPolicyRunner):
         )
         return infos
 
-    def evaluate(self) -> dict[str, float]:
+    def save(self, path: str, infos: dict | None = None) -> None:
+        if self.curriculum is not None:
+            infos = {**(infos or {}), "curriculum": self.curriculum.state_dict()}
+        super().save(path, infos)
+
+    def evaluate(self, env: RslRocketEnv | None = None, prefix: str = "eval/env") -> dict:
         """Run every eval env for one full episode with the deterministic policy."""
-        env = self.eval_env
+        env = env or self.eval_env
         policy = standalone_copy(self.alg.get_policy()).eval()
         policy.reset()
         tracker = EpisodeTracker(env)
@@ -166,20 +232,21 @@ class StarshipRunner(OnPolicyRunner):
                 pending &= ~dones.bool()
                 if not pending.any():
                     break
-        return tracker.summarize("eval/env")
+        return tracker.summarize(prefix)
 
     def _keep_best(self, it: int, m: dict[str, float]) -> None:
         if "eval/env/rate/landed" not in m:
             return
-        score = (m["eval/env/rate/landed"], m["eval/env/return"])
+        stage = self.curriculum.stage if self.curriculum is not None else 0
+        score = (stage, m["eval/env/rate/landed"], m["eval/env/return"])
         if self.best_eval is None or score > self.best_eval:
             self.best_eval = score
             self.save(str(self.log_dir / "model_best.pt"))
             export_policy(self.alg.get_policy(), self.log_dir / "policy_best.pt")
             (self.log_dir / "best.txt").write_text(
-                f"iteration {it}\nlanded {score[0]:.3f}\nreturn {score[1]:.2f}\n"
+                f"iteration {it}\nstage {stage}\nlanded {score[1]:.3f}\nreturn {score[2]:.2f}\n"
             )
-        m["eval/best_landed"] = self.best_eval[0]
+        m["eval/best_landed"] = self.best_eval[1]
 
     def save_all(self, it: int) -> None:
         self.save(str(self.log_dir / f"model_{it}.pt"))
@@ -194,5 +261,9 @@ class StarshipRunner(OnPolicyRunner):
             parts.append(f"len {m['train/env/length_s']:5.1f}s")
         if "eval/env/return" in m:
             parts.append(f"eval landed {m['eval/env/rate/landed']:.2f}")
+        if "eval/target/return" in m:
+            parts.append(f"target landed {m['eval/target/rate/landed']:.2f}")
+        if "curriculum/stage" in m:
+            parts.append(f"stage {int(m['curriculum/stage'])}")
         parts.append(f"fps {m['time/train_fps']:,.0f}")
         print("  ".join(parts), flush=True)

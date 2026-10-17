@@ -9,6 +9,7 @@ from hydra.core.hydra_config import HydraConfig
 from omegaconf import DictConfig, OmegaConf
 
 import starship.train.conf  # noqa: F401  (registers the config schema)
+from starship.train.curriculum import Curriculum
 from starship.train.env import RocketEnv
 from starship.train.rsl_env import RslRocketEnv
 from starship.train.runner import StarshipRunner
@@ -37,6 +38,10 @@ def main(cfg: DictConfig) -> None:
     eval_env = (
         make_env(cfg, cfg.eval_envs, cfg.seed + 1, for_eval=True) if cfg.eval_envs > 0 else None
     )
+    curriculum = Curriculum(cfg, cfg.curriculum) if cfg.curriculum.enabled else None
+    target_env = None
+    if curriculum is not None and eval_env is not None:
+        target_env = make_env(cfg, cfg.eval_envs, cfg.seed + 2, for_eval=True)
     runner = StarshipRunner(
         env,
         OmegaConf.to_container(cfg.runner, resolve=True),
@@ -44,6 +49,8 @@ def main(cfg: DictConfig) -> None:
         device=str(env.device),
         eval_env=eval_env,
         eval_interval=cfg.eval_interval,
+        curriculum=curriculum,
+        target_eval_env=target_env,
     )
     if cfg.checkpoint:
         runner.load(cfg.checkpoint)
