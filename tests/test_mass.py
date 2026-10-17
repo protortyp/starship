@@ -59,3 +59,14 @@ def test_landing_values_match_reference():
     assert 2.5e7 < i2 < 7e7
     assert 2.5e7 < i3 < 7e7
     assert 1.8e6 < i1 < 3e6
+
+
+def test_header_tanks_sit_in_the_nose():
+    # docs/starship.md: CH4 header ~47 m, LOX header ~50 m from the engine plane.
+    p = make_mass_params(CFG)
+    _, com_lox, *_ = props([0.0, 0.0, 18_000.0, 0.0], p)
+    _, com_dry, *_ = props([0.0] * 4, p)
+    lox_station = (
+        com_lox * (CFG.mass.dry_mass + 18_000.0) - com_dry * CFG.mass.dry_mass
+    ) / 18_000.0
+    assert 48.0 < lox_station < 51.0

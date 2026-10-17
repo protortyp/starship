@@ -1,10 +1,11 @@
-"""Quasi-steady hull crossflow and four hinged flat plates, in body axes.
+"""Quasi-steady aerodynamics in body axes: strip-wise hull crossflow, a slender-body nose term,
+axial drag and four hinged flat-plate flaps.
 
-Sources: docs/starship.md [25,26] (Jorgensen TN D-6996/TR R-474) and claude_aero.md
-sections 4.2-4.5 (digitized cylinder data and the Ortiz et al. low-AR plate fit).
-This uses the high-Re cylinder branch throughout, without a drag-crisis model. Potential
-flow, skin friction, wake shielding and plume interference are omitted; it is a high-AoA
-engineering model, not a flight-identified aerodynamic database.
+Sources (docs/starship.md): Jorgensen TN D-6996 / TR R-474 [25] [26] for the hull, Allen-Perkins
+[32] and Ortiz et al. low aspect ratio plate data for the flaps, Li et al. 2022 [12] for flap
+geometry and validation. High-Re cylinder branch throughout, no drag crisis. Skin friction, wake
+shielding and plume interference are omitted (docs/gaps.md); an engineering model, not a
+flight-identified aerodynamic database.
 """
 
 import math
@@ -40,7 +41,7 @@ CROSS_FLOW_TABLE = (
 
 # (local Mach, K_p, C_N90), C_N = K_p sin(a) cos(a) + C_N90 sin^2(a).
 # Ortiz, Rival & Wood (2015), doi:10.3390/en8042438: effective AR~1 gives K_p=1.6,
-# ESDU plate drag gives C_N90=1.17. claude_aero.md 4.5 supplies the estimated transonic
+# ESDU plate drag gives C_N90=1.17. docs/starship.md [12] supplies the estimated transonic
 # bridge and Newtonian-like 1.7/1.8 limits; fading K_p from M=1 to 2 is our interpolation.
 PLATE_TABLE = (
     (0.0, 1.6, 1.17),
@@ -61,6 +62,7 @@ class AeroParams:
     reference_area: float
     axial_nose: float
     axial_tail: float
+    potential_station: float  # where the slender-body normal force acts (nose centroid)
     hinge: wp.array(dtype=wp.vec3)  # absolute body positions measured from station zero
     span_open: wp.array(dtype=wp.vec3)  # unit span perpendicular to the canted hinge
     span_folded: wp.array(dtype=wp.vec3)
@@ -84,7 +86,7 @@ def make_aero_params(cfg: VehicleConfig, device: str | None = None) -> AeroParam
     ogive_radius = (h.nose_length**2 + radius**2) / (2 * radius)
 
     def hull_radius(station):
-        # Tangent-ogive proxy from codex_report.md section 1, not a surveyed Ship profile.
+        # Tangent-ogive proxy (docs/starship.md [4]), not a surveyed Ship profile.
         if station <= nose_base:
             return radius
         return max(
@@ -103,7 +105,7 @@ def make_aero_params(cfg: VehicleConfig, device: str | None = None) -> AeroParam
         axial = np.array([1.0, 0.0, 0.0])
         axis = math.cos(f.cant) * axial - math.sin(f.cant) * radial
         span = math.sin(f.cant) * axial + math.cos(f.cant) * radial
-        # Li et al. hinge proxy (claude_aero.md 1.1): a straight canted hinge tangent near
+        # Li et al. hinge proxy (docs/starship.md [12]): a straight canted hinge tangent near
         # its midpoint on the tapered hull. A uniform plate puts its CP half a span out.
         hinge = np.array([station, 0.0, 0.0]) + hull_radius(station) * radial
         # phi is measured from +b3: increasing |phi| folds both sides leeward. Thus the
@@ -127,6 +129,7 @@ def make_aero_params(cfg: VehicleConfig, device: str | None = None) -> AeroParam
     p.reference_area = math.pi * radius**2
     p.axial_nose = cfg.aero.axial_nose
     p.axial_tail = cfg.aero.axial_tail
+    p.potential_station = h.length - 0.5 * h.nose_length
     p.hinge = wp.array(hinges, dtype=wp.vec3, device=device)
     p.hinge_axis = wp.array(axes, dtype=wp.vec3, device=device)
     p.span_open = wp.array(spans_open, dtype=wp.vec3, device=device)
@@ -168,6 +171,22 @@ def aero_wrench(
         cdn = _interpolate(p.crossflow_table, speed / air.speed_of_sound, 1)
         # TR R-474 strip crossflow: speed * velocity avoids dividing by zero at rest.
         f = -0.5 * air.density * p.crossflow_scale * cdn * p.strip_area[i] * speed * crossflow
+        force = force + f
+        torque = torque + wp.cross(r, f)
+
+    # Slender-body (potential) normal force, TN D-6996 eq. 1: C_N = (A_b/A) sin(2a) cos(a/2) with
+    # reference area A_b, carried by the nose. Only for nose-first flow: the flat base of a
+    # tail-first body generates no potential lift.
+    speed = wp.length(v_air)
+    lateral = wp.vec3(0.0, v_air[1], v_air[2])
+    lateral_speed = wp.length(lateral)
+    if v_air[0] > 0.0 and lateral_speed > 0.0:
+        cos_a = v_air[0] / speed
+        sin_a = lateral_speed / speed
+        half = wp.sqrt(0.5 * (1.0 + cos_a))  # cos(a/2)
+        cn = 2.0 * sin_a * cos_a * half
+        r = wp.vec3(p.potential_station - com, 0.0, 0.0)
+        f = -(0.5 * air.density * speed * speed * p.reference_area * cn / lateral_speed) * lateral
         force = force + f
         torque = torque + wp.cross(r, f)
 

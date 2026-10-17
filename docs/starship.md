@@ -7,15 +7,15 @@ Upper stage (Ship), V2 geometry, Raptor 2 unless noted. x = station from the eng
 | Length / diameter | 52.1 m / 9 m (V1 50.3 m, V3 ~52–53 m) | | O | [1] [2] [3] |
 | Nose cone (ogive) length | 14 m | 13–15 m | S | [4] |
 | Engine skirt height | 7.3 m | | S | [5] |
-| Common dome / header tanks CH4, LOX | x ≈ 22 m / ≈ 47 m, ≈ 50 m | ±1.5 m | E | [4] [6] |
+| Common dome / header tanks CH4, LOX | x ≈ 23.5 m / ≈ 46 m, ≈ 49.5 m (LOX header in the nose tip) | ±1.5 m | E | [4] [6] |
 | Dry mass | 160 t (V2, telemetry 161 ± 4 t; V1 149 t); design studies 118–120 t | 120–165 t | S/E | [8] [9] [34] |
 | Propellant capacity | 1,500 t (1,170 LOX + 330 CH4); V1 1,200 t, V3 ~1,600 t | | O | [2] [6] [10] |
 | Mixture ratio O/F | 3.6 | | O | [2] |
 | Header (landing) propellant | 23 t (18 LOX + 5 CH4) | 15–30 t | E | [6] [11] |
 | Propellant used in flip + landing | 10–20 t | | E | [8] |
 | Landing-start mass | ~183 t (dry 160 t + 23 t header) | 140–195 t | E | derived |
-| CoM from engine plane, dry / landing | 21.4 m (0.41 L) / 23.4 m (0.45 L) | 19–23 / 21–26 m | E | `starship.sim.mass` with 30 t aft structure; studies assume 0.58–0.60 L from nose [12] [13] |
-| Inertia pitch = yaw, landing | 4.25e7 kg·m² | 2.5e7–7e7 | E | `starship.sim.mass`, [13] |
+| CoM from engine plane, dry / landing | 21.4 m (0.41 L) / 24.9 m (0.48 L) | 19–23 / 22–27 m | E | `starship.sim.mass` with 30 t aft structure; studies assume 0.58–0.60 L from nose [12] [13] |
+| Inertia pitch = yaw, dry / landing | 3.7e7 / 5.2e7 kg·m² | 2.5e7–7e7 | E | `starship.sim.mass`, [13] |
 | Inertia roll | 2.9e6 kg·m² | 1.8e6–3e6 | E | `starship.sim.mass` |
 | Sea-level Raptors (landing) | 3, gimballed, radius ≈ 1.15 m, pivot x ≈ 3.1 m | radius 1.0–1.3 m | E | [4] [5] |
 | Thrust per engine, sea level | 2.26 MN (230 tf); R3 2.75 MN (280 tf, Wikipedia 250 tf) | ±5 % | O | [14] [15] [16] |

@@ -62,6 +62,7 @@ def make_params(config: SimConfig, device) -> Params:
     p.length = v.hull.length
     p.radius = v.hull.diameter / 2
     p.nose_length = v.hull.nose_length
+    p.ogive_radius = (v.hull.nose_length**2 + p.radius**2) / (2 * p.radius)
     p.pad_radius = ld.pad_radius
     p.max_vertical_speed = ld.max_vertical_speed
     p.max_horizontal_speed = ld.max_horizontal_speed

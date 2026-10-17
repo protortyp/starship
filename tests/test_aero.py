@@ -24,7 +24,7 @@ def evaluate(velocities, **kwargs):
     [(40.0, 297.54, 551.12), (45.0, 280.27, 531.41)],
 )
 def test_broadside_drag_area(sea_level, fold, expected_low, expected_transonic):
-    # claude_aero.md 4.6: 230-340 m^2 low-M, 550-700 m^2 at M=.8, flaps near mid.
+    # docs/starship.md: 230-340 m^2 low-M, 550-700 m^2 at M=.8, flaps near mid.
     # 40 deg meets both; exact 45 deg with the configured leeward forward hinges falls
     # below the second envelope. Preserve this discrepancy instead of inflating C_dn.
     rho, sound = sea_level[2:4]
@@ -51,7 +51,7 @@ def test_terminal_velocity_and_weight_balance(sea_level, fold):
     if fold == 0:
         assert 75 < terminal < 95
     else:
-        # The 75-95 m/s target is for lighter SN ships (claude_aero.md 2.3). At 183 t,
+        # The 75-95 m/s target is for lighter SN ships (docs/starship.md). At 183 t,
         # 95 m/s needs >=324.65 m^2; the specified mid-flap model gives less than that.
         assert 98 < terminal < 103
         required_area = 2 * 183_000 * G0 / (rho * 95**2)
@@ -76,12 +76,14 @@ def test_axial_coefficient_and_crossflow_mach_use_separate_velocities(sea_level)
     cfg.flaps = [replace(f, area=0) for f in cfg.flaps]
     velocities = [[0, 0, 85], [300, 0, 85], [-300, 0, 85]]
     out = evaluate(velocities, cfg=cfg)
-    # Adding axial speed must not move the hull onto the transonic crossflow branch.
-    np.testing.assert_allclose(out[:, 2], out[0, 2], rtol=1e-6)
+    # Adding axial speed must not move the hull onto the transonic crossflow branch. Tail-first
+    # flow has no slender-body term, so its normal force is the crossflow force alone.
+    np.testing.assert_allclose(out[2, 2], out[0, 2], rtol=1e-6)
+    assert abs(out[1, 2]) > abs(out[0, 2])
     area = math.pi * (cfg.hull.diameter / 2) ** 2
     assert out[1, 0] == pytest.approx(-0.5 * sea_level[2] * 300**2 * area * 0.4, rel=1e-6)
     assert out[2, 0] == pytest.approx(0.5 * sea_level[2] * 300**2 * area * 0.9, rel=1e-6)
-    assert out[1, 4] == pytest.approx(out[0, 4], rel=1e-6)
+    assert out[2, 4] == pytest.approx(out[0, 4], rel=1e-6)
 
 
 @pytest.mark.parametrize("fold", [0.0, 45.0, 85.0])
@@ -200,3 +202,16 @@ def test_density_scaling_and_batched_six_dof_power_dissipation():
     air = sample_air(altitudes, device="cpu")
     low_speed = evaluate([[0, 0, 50]] * 2, altitude=altitudes)
     np.testing.assert_allclose(low_speed[1], low_speed[0] * air[1, 2] / air[0, 2], rtol=2e-6)
+
+
+def test_slender_body_term_gives_small_angle_normal_force(sea_level):
+    # TN D-6996 eq. 1 at 5 deg nose-first, 85 m/s: q A_b sin(10 deg) cos(2.5 deg) ~ 49 kN on top
+    # of a few kN of crossflow force.
+    cfg = VehicleConfig()
+    cfg.flaps = [replace(f, area=0) for f in cfg.flaps]
+    a = math.radians(5.0)
+    out = evaluate([[85 * math.cos(a), 0, 85 * math.sin(a)]], cfg=cfg)
+    q = 0.5 * sea_level[2] * 85**2
+    potential = q * math.pi * (cfg.hull.diameter / 2) ** 2 * math.sin(2 * a) * math.cos(a / 2)
+    assert -out[0, 2] == pytest.approx(potential, rel=0.2)
+    assert -out[0, 2] > potential

@@ -54,8 +54,8 @@ def default_tanks() -> dict[str, TankConfig]:
     return {
         "main_lox": TankConfig(bottom=7.3, top=23.5, capacity=1_170_000.0, density=1141.0),
         "main_ch4": TankConfig(bottom=23.5, top=36.0, capacity=330_000.0, density=423.0),
-        "header_lox": TankConfig(bottom=33.0, top=35.0, capacity=18_000.0, density=1141.0),
-        "header_ch4": TankConfig(bottom=46.0, top=48.0, capacity=5_000.0, density=423.0),
+        "header_lox": TankConfig(bottom=48.5, top=50.5, capacity=18_000.0, density=1141.0),
+        "header_ch4": TankConfig(bottom=45.0, top=47.0, capacity=5_000.0, density=423.0),
     }
 
 

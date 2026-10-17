@@ -219,6 +219,20 @@ def draw_propellant(p: PropulsionParams, tanks: wp.vec4, mdot: float, dt: float)
     )
 
 
+@wp.func
+def burn_fraction(p: PropulsionParams, tanks: wp.vec4, mdot: float, dt: float) -> float:
+    """Share of the demanded burn the tanks can supply at the mixture ratio; thrust scales with
+    it, so engines starve instead of firing on an empty tank."""
+    burned = wp.max(mdot, 0.0) * dt
+    if burned <= 0.0:
+        return 1.0
+    ox = burned * p.oxidizer_fraction
+    fuel = burned - ox
+    have_ox = wp.max(tanks[0], 0.0) + wp.max(tanks[2], 0.0)
+    have_fuel = wp.max(tanks[1], 0.0) + wp.max(tanks[3], 0.0)
+    return wp.clamp(wp.min(have_ox / ox, have_fuel / fuel), 0.0, 1.0)
+
+
 # Host helpers for tests: single-env rollouts and evaluations.
 
 

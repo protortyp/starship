@@ -132,3 +132,54 @@ def test_auto_reset_respawns_and_keeps_terminal_state():
     s = sim.snapshot()
     assert np.all(s.status == FLYING)
     assert np.allclose(s.pos[:, 2], 300.0)
+
+
+def test_empty_tanks_give_no_thrust():
+    cfg = config(altitude=5000.0, vertical_speed=0.0, pitch=0.0, header_fill=0.0, main_fill=0.0)
+    dry = Simulator(1, cfg, device=DEVICE)
+    coast = Simulator(1, cfg, device=DEVICE)
+    dry.set_commands(engine_on=(1, 1, 1), throttle=(1, 1, 1))
+    for _ in range(30):
+        dry.step()
+        coast.step()
+    assert dry.snapshot().vel[0, 2] == pytest.approx(coast.snapshot().vel[0, 2], abs=1e-3)
+
+
+def test_spinning_touchdown_crashes():
+    sim = Simulator(1, config(), device=DEVICE)
+    com = sample(make_mass_params(sim.config.vehicle), sim.snapshot().tanks, device=DEVICE)[0, 1]
+    cfg = config(altitude=float(com) + 0.05, vertical_speed=-1.0, pitch=0.0)
+    sim = Simulator(1, cfg, device=DEVICE)
+    body = sim.state.body.numpy()
+    body["omega"][0] = (2.0, 0.0, 0.0)  # fast roll about the axis
+    sim.state.body.assign(body)
+    for _ in range(20):
+        sim.step()
+        if sim.snapshot().status[0] != FLYING:
+            break
+    assert sim.snapshot().status[0] == CRASHED
+
+
+@pytest.mark.parametrize("tilt_deg", [100.0, 110.0, 130.0, 160.0])
+def test_nose_down_contact_finds_the_ogive_surface(tilt_deg):
+    # Place the vehicle so the true lowest point of the ogive is 5 cm below ground: the first
+    # step must end the episode.
+    cfg = SimConfig()
+    h = cfg.vehicle.hull
+    r0, nose = h.diameter / 2, h.nose_length
+    big_r = (nose**2 + r0**2) / (2 * r0)
+    tilt = np.radians(tilt_deg)
+    a_z, s = np.cos(tilt), np.sin(tilt)
+    u = np.linspace(0.0, nose, 20001)
+    r = np.sqrt(big_r**2 - u**2) + r0 - big_r
+    lowest = np.min((h.length - nose + u) * a_z - np.maximum(r, 0) * s)
+    sim = Simulator(1, config(pitch=tilt), device=DEVICE)
+    com = sample(make_mass_params(cfg.vehicle), sim.snapshot().tanks, device=DEVICE)[0, 1]
+    # Height of the CoM so that the lowest hull point sits at -5 cm, with all other points above.
+    lowest_rel = min(lowest, -r0 * s, (h.length - nose) * a_z - r0 * s, h.length * a_z)
+    altitude = -0.05 - (lowest_rel - com * a_z)
+    sim = Simulator(
+        1, config(pitch=tilt, altitude=float(altitude), vertical_speed=0.0), device=DEVICE
+    )
+    sim.step()
+    assert sim.snapshot().status[0] == CRASHED

@@ -14,6 +14,7 @@ from starship.sim.propulsion import (
     EngineState,
     FlapState,
     PropulsionParams,
+    burn_fraction,
     draw_propellant,
     engine_mass_flow,
     engine_step,
@@ -58,6 +59,7 @@ class Params:
     length: float
     radius: float
     nose_length: float
+    ogive_radius: float  # radius of the tangent-ogive arc
     pad_radius: float
     max_vertical_speed: float
     max_horizontal_speed: float
@@ -152,14 +154,29 @@ def spawn(p: Params, s: State, tid: int):
 
 @wp.func
 def lowest_point(p: Params, b: Body, com: float) -> float:
-    """Height of the lowest hull point: the engine-plane rim, the nose-base rim or the tip."""
+    """Height of the lowest hull point: the engine-plane rim, the nose-base rim, the tip, or the
+    point of the tangent-ogive nose whose surface slope matches the tilt."""
     axis = wp.quat_rotate(b.rot, wp.vec3(1.0, 0.0, 0.0))
-    rim = p.radius * wp.sqrt(wp.max(1.0 - axis[2] * axis[2], 0.0))
+    s = wp.sqrt(wp.max(1.0 - axis[2] * axis[2], 0.0))
     base = b.pos[2] - com * axis[2]
-    tail = base - rim
-    shoulder = base + (p.length - p.nose_length) * axis[2] - rim
+    nose_base = p.length - p.nose_length
+    tail = base - p.radius * s
+    shoulder = base + nose_base * axis[2] - p.radius * s
     tip = base + p.length * axis[2]
-    return wp.min(wp.min(tail, shoulder), tip)
+    lowest = wp.min(wp.min(tail, shoulder), tip)
+    # Surface height along the nose: z(u) = z(nose_base) + u a_z - r(u) s, with the ogive radius
+    # r(u) = sqrt(R^2 - u^2) + radius - R. Its minimum sits where u / sqrt(R^2 - u^2) = -a_z / s,
+    # which exists only when the nose points down.
+    if axis[2] < 0.0 and s > 0.0:
+        k = -axis[2] / s
+        u = wp.min(p.ogive_radius * k / wp.sqrt(1.0 + k * k), p.nose_length)
+        r = (
+            wp.sqrt(wp.max(p.ogive_radius * p.ogive_radius - u * u, 0.0))
+            + p.radius
+            - p.ogive_radius
+        )
+        lowest = wp.min(lowest, base + (nose_base + u) * axis[2] - wp.max(r, 0.0) * s)
+    return lowest
 
 
 @wp.func
@@ -169,7 +186,7 @@ def touchdown_status(p: Params, b: Body, com: float) -> int:
     horizontal_speed = wp.sqrt(b.vel[0] * b.vel[0] + b.vel[1] * b.vel[1])
     miss = wp.sqrt(base[0] * base[0] + base[1] * base[1])
     tilt = wp.acos(wp.clamp(axis[2], -1.0, 1.0))
-    rate = wp.sqrt(b.omega[1] * b.omega[1] + b.omega[2] * b.omega[2])
+    rate = wp.length(b.omega)
     if (
         -b.vel[2] <= p.max_vertical_speed
         and horizontal_speed <= p.max_horizontal_speed
@@ -206,11 +223,16 @@ def advance(p: Params, s: State, c: Commands, tid: int):
         f = flap_step(p.propulsion, f, c.flaps[tid])
         v_air = wp.quat_rotate_inv(b.rot, b.vel)
         w = aero_wrench(p.aero, v_air, b.omega, mp.com, f.angle, air)
-        w = add_wrench(w, engine_wrench(p.propulsion, e, air.pressure, mp.com))
+        mdot = engine_mass_flow(p.propulsion, e)
+        supply = burn_fraction(p.propulsion, tanks, mdot, p.dt)
+        thrust = engine_wrench(p.propulsion, e, air.pressure, mp.com)
+        thrust.force = thrust.force * supply
+        thrust.torque = thrust.torque * supply
+        w = add_wrench(w, thrust)
         w = add_wrench(w, rcs_wrench(p.propulsion, c.rcs[tid]))
         force = wp.quat_rotate(b.rot, w.force) - wp.vec3(0.0, 0.0, gravity(b.pos[2]) * mp.mass)
         b = integrate(b, force, w.torque, mp.mass, mp.inertia, p.dt)
-        tanks = draw_propellant(p.propulsion, tanks, engine_mass_flow(p.propulsion, e), p.dt)
+        tanks = draw_propellant(p.propulsion, tanks, mdot * supply, p.dt)
         t += p.dt
         if lowest_point(p, b, mp.com) <= 0.0:
             status = touchdown_status(p, b, mp.com)
