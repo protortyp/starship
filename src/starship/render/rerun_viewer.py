@@ -89,12 +89,22 @@ def blueprint() -> rrb.Blueprint:
     return rrb.Blueprint(
         rrb.Horizontal(
             rrb.Vertical(
-                # Rooted at the rocket's own transform, so the camera rides along with it.
-                rrb.Spatial3DView(name="follow (rocket 0)", origin="/world/rocket/0"),
+                # /world/chase moves with rocket 0 but never rotates, so this camera follows the
+                # rocket while its pitch and roll stay visible against the world.
+                rrb.Spatial3DView(
+                    name="chase (rocket 0)",
+                    origin="/world/chase",
+                    contents="/world/**",
+                    eye_controls=rrb.EyeControls3D(
+                        position=(90.0, -90.0, 30.0), look_target=(0.0, 0.0, 0.0)
+                    ),
+                ),
                 rrb.Spatial3DView(
                     name="flights",
                     origin="/world",
-                    eye_controls=rrb.EyeControls3D(tracking_entity="/world/rocket/0"),
+                    eye_controls=rrb.EyeControls3D(
+                        position=(2500.0, -2500.0, 1500.0), look_target=(0.0, 0.0, 1000.0)
+                    ),
                 ),
             ),
             rrb.Vertical(
@@ -137,6 +147,7 @@ def log_step(cfg, sim, flaps, trails, mass_params) -> None:
     coms = mass_sample(mass_params, s.tanks, device="cpu")[:, 1]
     pitch = np.degrees(np.arccos(np.clip(body_axis_z(s.rot), -1, 1)))
     engine = cfg.vehicle.engine
+    rr.log("world/chase", rr.Transform3D(translation=s.pos[0]))
     for i in range(sim.num_envs):
         if s.status[i] != FLYING and trails[i] is None:
             continue
@@ -218,14 +229,15 @@ def main() -> None:
         from starship.plan.cem import ScheduleReplay
 
         schedule = ScheduleReplay(args.schedule, sim)
-    rr.init("starship", default_blueprint=blueprint())
+    layout = blueprint()
+    rr.init("starship", default_blueprint=layout)
     if args.save:
-        rr.save(args.save, default_blueprint=blueprint())
+        rr.save(args.save, default_blueprint=layout)
     else:
         rr.spawn()
     # Sent as the active blueprint: the viewer otherwise restores whatever layout it last saved
     # for this application id.
-    rr.send_blueprint(blueprint())
+    rr.send_blueprint(layout)
     log_scene(cfg, args.envs)
     flaps = flap_geometry(cfg)
     mass_params = make_mass_params(cfg.vehicle)
