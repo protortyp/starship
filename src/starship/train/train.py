@@ -53,6 +53,8 @@ def main(cfg: DictConfig) -> None:
         target_eval_env=target_env,
         rollback_drop=cfg.rollback_drop,
         rollback_patience=cfg.rollback_patience,
+        record_every=cfg.record_every,
+        record_envs=cfg.record_envs,
     )
     if cfg.checkpoint:
         runner.load(cfg.checkpoint)

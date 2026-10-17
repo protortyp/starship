@@ -3,7 +3,7 @@
 From scratch: `just vast train curriculum=scratch` (near-ground stages A–C first, then the spawn stages).
 Run: `just vast train curriculum=spawn checkpoint=<model_*.pt> ...` (stages in `src/starship/train/conf/curriculum/spawn.yaml`).
 Each stage adds one change on top of all earlier ones. Promotion: stage eval lands ≥ 90% in 2 consecutive evals.
-TensorBoard: `curriculum/stage` (steps at promotions), Text tab `curriculum`, `eval/env/*` (current stage), `eval/target/*` (final stage). Run dir: `curriculum.json`, `model_stage<k>_passed.pt`, `policy_best.pt`.
+TensorBoard: `curriculum/stage` (steps at promotions), Text tab `curriculum`, `eval/env/*` (current stage), `eval/target/*` (final stage). Run dir: `curriculum.json`, `model_stage<k>_passed.pt`, `policy_best.pt`, and every 4th eval Rerun recordings `rerun/eval_<it>.rrd` / `rerun/target_<it>.rrd` (`just vast pull`, then `uv run rerun <file>`).
 
 ## Stages
 

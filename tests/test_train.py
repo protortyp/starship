@@ -1,4 +1,5 @@
 import math
+import subprocess
 
 import numpy as np
 import pytest
@@ -298,3 +299,18 @@ def test_reward_terms_add_up_to_the_episode_return():
     parts = sum(m[f"e/reward/{t}"] for t in REWARD_TERMS) + m["e/reward/terminal"]
     assert parts == pytest.approx(m["e/return"], rel=1e-4, abs=1e-3)
     assert m["e/reward/time"] < 0.0
+
+
+def test_eval_episodes_are_recorded_for_rerun(tmp_path):
+    cfg = compose_cfg(*SHORT_EPISODES)
+    runner = make_runner(cfg, tmp_path)
+    runner.record_every, runner.record_envs, runner.eval_interval = 1, 4, 1
+    runner.learn(2)
+    recordings = sorted((tmp_path / "rerun").glob("eval_*.rrd"))
+    assert [p.name for p in recordings] == ["eval_0.rrd", "eval_1.rrd"]
+    stats = subprocess.run(
+        ["rerun", "rrd", "stats", str(recordings[-1])], capture_output=True, text=True
+    ).stdout
+    # Per-step data, not only the static scene, must reach the file.
+    assert "/world/rockets" in stats
+    assert "/plots/altitude" in stats
