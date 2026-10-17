@@ -45,8 +45,8 @@ class RewardConfig:
     profile_decel: float = 3.8  # m/s^2, about half the engine's net deceleration
     profile_touchdown_speed: float = 2.0  # m/s
     # Horizontal distance from the pad, faded in near the ground where touching down off the
-    # pad (beyond its half-width) counts as a crash. Off by default.
-    lateral_weight: float = 0.0  # per m
+    # pad (beyond its half-width) counts as a crash.
+    lateral_weight: float = 0.05  # per m
     lateral_fade_altitude: float = 500.0  # m
     # Partial landing credit for touching down on the pad slightly too hard: the landed reward
     # scaled by (1 - impact speed / soft_touchdown_speed). Smooths the cliff between a 4 m/s
