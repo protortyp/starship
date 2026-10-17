@@ -33,6 +33,7 @@ class MassConfig:
     engines_mass: float = 6 * 1630.0  # 3 sea-level + 3 vacuum Raptors
     engines_station: float = 2.5
     flaps_mass: float = 4 * 2_500.0
+    aft_mass: float = 30_000.0  # skirt, thrust structure and aft dome, spread over the skirt
     # Remaining dry mass is spread over the hull: this fraction as a uniform cylinder shell over
     # the tank section, the rest in the nose (payload bay, header tanks, flap hinges).
     shell_fraction: float = 0.75
@@ -51,8 +52,8 @@ class TankConfig:
 def default_tanks() -> dict[str, TankConfig]:
     # Header tanks feed the landing burn; main tanks hold the residuals after the ascent.
     return {
-        "main_lox": TankConfig(bottom=7.3, top=22.0, capacity=1_170_000.0, density=1141.0),
-        "main_ch4": TankConfig(bottom=22.0, top=34.0, capacity=330_000.0, density=423.0),
+        "main_lox": TankConfig(bottom=7.3, top=23.5, capacity=1_170_000.0, density=1141.0),
+        "main_ch4": TankConfig(bottom=23.5, top=36.0, capacity=330_000.0, density=423.0),
         "header_lox": TankConfig(bottom=33.0, top=35.0, capacity=18_000.0, density=1141.0),
         "header_ch4": TankConfig(bottom=46.0, top=48.0, capacity=5_000.0, density=423.0),
     }

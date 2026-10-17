@@ -14,9 +14,9 @@ Upper stage (Ship), V2 geometry, Raptor 2 unless noted. x = station from the eng
 | Header (landing) propellant | 23 t (18 LOX + 5 CH4) | 15–30 t | E | [6] [11] |
 | Propellant used in flip + landing | 10–20 t | | E | [8] |
 | Landing-start mass | ~183 t (dry 160 t + 23 t header) | 140–195 t | E | derived |
-| CoM from engine plane, dry / landing | 20.6 m (0.40 L) / 25.3 m (0.49 L) | 19–23 / 22–28 m | E | own mass model; studies assume 0.58–0.60 L from nose [12] [13] |
-| Inertia pitch = yaw, landing | 4e7–6e7 kg·m² (scales with dry mass) | 2.5e7–7e7 | E | own mass model, [13] |
-| Inertia roll | 2.2e6 kg·m² | 1.8e6–3e6 | E | own mass model |
+| CoM from engine plane, dry / landing | 21.4 m (0.41 L) / 23.4 m (0.45 L) | 19–23 / 21–26 m | E | `starship.sim.mass` with 30 t aft structure; studies assume 0.58–0.60 L from nose [12] [13] |
+| Inertia pitch = yaw, landing | 4.25e7 kg·m² | 2.5e7–7e7 | E | `starship.sim.mass`, [13] |
+| Inertia roll | 2.9e6 kg·m² | 1.8e6–3e6 | E | `starship.sim.mass` |
 | Sea-level Raptors (landing) | 3, gimballed, radius ≈ 1.15 m, pivot x ≈ 3.1 m | radius 1.0–1.3 m | E | [4] [5] |
 | Thrust per engine, sea level | 2.26 MN (230 tf); R3 2.75 MN (280 tf, Wikipedia 250 tf) | ±5 % | O | [14] [15] [16] |
 | Thrust vs ambient pressure | F = F_vac − p_a·A_e; F_vac 2.39 MN (R3 2.88 MN) | | S | [15] [16] |
@@ -39,7 +39,7 @@ Upper stage (Ship), V2 geometry, Raptor 2 unless noted. x = station from the eng
 | Flap rate / lag | 25 °/s, 0.15 s | 15–40 °/s, 0.1–0.3 s | E | |
 | RCS | V2 has no dedicated thrusters; vents act as thrusters, incl. 6 roll; 2 kN each | 0.5–5 kN, Isp 60–110 s | E | [6] [23] |
 | Belly-flop angle of attack | 90° | trim 65–120° | S | [12] [13] |
-| Terminal velocity, sea level | 85 m/s | 75–95 m/s | S | [11] [24] |
+| Terminal velocity, sea level | 85 m/s at SN-era ~120 t; ~100 m/s at 183 t (∝ √m) | 75–105 m/s | S | [11] [24] |
 | Drag area C_D·A at α = 90°, sea level | 280 m² | 230–340 m² | S | [11] derived |
 | Drag area C_D·A at α = 90°, M 0.8 | 600 m² | 550–700 m² | S | [12] |
 | Crossflow C_dn at Re ≈ 5e7 (tiles) | 0.7 | 0.5–0.9 | S | [25] [26] |
