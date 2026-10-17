@@ -32,7 +32,7 @@ CUDA_CHECK = (
     "'| torch cuda:', torch.cuda.is_available())"
 )
 BASE_QUERY = (
-    "num_gpus=1 reliability>0.98 cuda_vers>=13.0 inet_down>=200 rentable=true verified=true"
+    "num_gpus=1 reliability>0.99 cuda_vers>=13.0 inet_down>=500 rentable=true verified=true"
 )
 RSYNC_EXCLUDES = [
     ".venv",
@@ -217,17 +217,41 @@ def cmd_push(args) -> None:
     print(f"pushed code to {target}")
 
 
-def cmd_setup(args) -> None:
-    script = f"""
+def cmd_setup(args, timeout: float = 1800.0) -> None:
+    state = load_state()
+    tools = """
 set -e
 command -v rsync >/dev/null && command -v tmux >/dev/null && command -v curl >/dev/null || \
   (apt-get update -qq && DEBIAN_FRONTEND=noninteractive apt-get install -y -qq rsync tmux curl)
 command -v uv >/dev/null || curl -LsSf https://astral.sh/uv/install.sh | sh
-export PATH=$HOME/.local/bin:$PATH
-cd {REMOTE_DIR} && uv sync --locked -q
-uv run python -c "{CUDA_CHECK}"
 """
-    remote(state=load_state(), command=script)
+    remote(state, tools)
+    # The dependency install takes minutes; run it in tmux on the instance so a dropped SSH
+    # connection cannot kill it, and poll for its exit code.
+    job = (
+        f"export PATH=$HOME/.local/bin:$PATH && cd {REMOTE_DIR} && "
+        f'(uv sync --locked -q && uv run python -c "{CUDA_CHECK}") > /root/setup.log 2>&1; '
+        "echo $? > /root/setup.done"
+    )
+    remote(
+        state,
+        "rm -f /root/setup.done; tmux kill-session -t setup 2>/dev/null; "
+        f"tmux new-session -d -s setup {shlex.quote(job)}",
+    )
+    deadline = time.time() + timeout
+    while time.time() < deadline:
+        time.sleep(15)
+        probe = subprocess.run(
+            [*ssh_base(state), "cat /root/setup.done 2>/dev/null"], capture_output=True, text=True
+        )
+        code = probe.stdout.strip()
+        if code:
+            remote(state, "tail -n 3 /root/setup.log", check=False)
+            if code != "0":
+                sys.exit(f"setup failed with exit code {code}; see /root/setup.log on the instance")
+            return
+        print("  installing dependencies...")
+    sys.exit("setup did not finish in time; check /root/setup.log on the instance")
 
 
 def cmd_train(args) -> None:
@@ -350,7 +374,8 @@ def cmd_list(args) -> None:
 def cmd_down(args) -> None:
     state = load_state()
     subprocess.run(["pkill", "-f", f"{tb_port(state)}:localhost:6006"], check=False)
-    vast("destroy", "instance", str(state["id"]))
+    # --yes: the CLI otherwise waits for an interactive confirmation it never gets.
+    vast("destroy", "instance", str(state["id"]), "--yes")
     STATE.unlink()
     print(f"destroyed instance {state['id']}")
 
