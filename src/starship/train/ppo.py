@@ -1,6 +1,7 @@
 """rsl_rl PPO with the update loop reimplemented to measure policy health, exploration and
-optimizer statistics. The optimization itself matches rsl_rl's update (without RND, symmetry
-augmentation and multi-GPU, which are rejected at construction)."""
+optimizer statistics, plus optional value normalization. Otherwise the optimization matches
+rsl_rl's update (without RND, symmetry augmentation and multi-GPU, which are rejected at
+construction)."""
 
 import torch
 from rsl_rl.algorithms import PPO
@@ -13,11 +14,78 @@ def _norm(tensors) -> float:
     return torch.linalg.vector_norm(torch.stack([t.detach().norm() for t in tensors])).item()
 
 
+class ValueNormalizer(nn.Module):
+    """Running mean and variance of returns. The critic predicts normalized values, so its targets
+    stay at unit scale while the return distribution shifts during training."""
+
+    def __init__(self, eps: float = 1e-5):
+        super().__init__()
+        self.eps = eps
+        self.register_buffer("mean", torch.zeros(()))
+        self.register_buffer("var", torch.ones(()))
+        self.register_buffer("count", torch.zeros(()))
+
+    @torch.no_grad()
+    def update(self, x: torch.Tensor) -> None:
+        x = x.detach().float().flatten()
+        batch_mean, batch_var, n = x.mean(), x.var(unbiased=False), float(x.numel())
+        total = self.count + n
+        delta = batch_mean - self.mean
+        self.mean += delta * n / total
+        self.var = (
+            self.var * self.count + batch_var * n + delta**2 * self.count * n / total
+        ) / total
+        self.count = total
+
+    def normalize(self, x: torch.Tensor) -> torch.Tensor:
+        return (x - self.mean) / torch.sqrt(self.var + self.eps)
+
+    def denormalize(self, x: torch.Tensor) -> torch.Tensor:
+        return x * torch.sqrt(self.var + self.eps) + self.mean
+
+
 class InstrumentedPPO(PPO):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, value_normalization: bool = False, **kwargs):
         super().__init__(*args, **kwargs)
         if self.rnd or self.symmetry or self.is_multi_gpu:
             raise ValueError("InstrumentedPPO does not support RND, symmetry or multi-GPU")
+        # Lives on the critic so it is saved and restored with the critic's state dict.
+        self.value_norm = None
+        if value_normalization:
+            self.critic.value_norm = ValueNormalizer().to(self.device)
+            self.value_norm = self.critic.value_norm
+
+    def _values(self, critic_output: torch.Tensor) -> torch.Tensor:
+        """Critic output in return units."""
+        if self.value_norm is None:
+            return critic_output
+        return self.value_norm.denormalize(critic_output)
+
+    def act(self, obs):
+        actions = super().act(obs)
+        self.transition.values = self._values(self.transition.values)
+        return actions
+
+    def compute_returns(self, obs) -> None:
+        if self.value_norm is None:
+            return super().compute_returns(obs)
+        # Same as rsl_rl's compute_returns, with the bootstrap value in return units.
+        st = self.storage
+        hidden = self.critic.get_hidden_state()
+        last_values = self._values(self.critic(obs).detach())
+        self.critic.reset(hidden_state=hidden)
+        advantage = 0
+        for step in reversed(range(st.num_transitions_per_env)):
+            next_values = (
+                last_values if step == st.num_transitions_per_env - 1 else st.values[step + 1]
+            )
+            not_terminal = 1.0 - st.dones[step].float()
+            delta = st.rewards[step] + not_terminal * self.gamma * next_values - st.values[step]
+            advantage = delta + not_terminal * self.gamma * self.lam * advantage
+            st.returns[step] = advantage + st.values[step]
+        st.advantages = st.returns - st.values
+        if not self.normalize_advantage_per_mini_batch:
+            st.advantages = (st.advantages - st.advantages.mean()) / (st.advantages.std() + 1e-8)
 
     def update(self) -> dict[str, float]:
         sums: dict[str, float] = {}
@@ -33,6 +101,9 @@ class InstrumentedPPO(PPO):
             generator = self.storage.mini_batch_generator(
                 self.num_mini_batches, self.num_learning_epochs
             )
+
+        if self.value_norm is not None:
+            self.value_norm.update(self.storage.returns)
 
         num_updates = 0
         for batch in generator:
@@ -81,15 +152,20 @@ class InstrumentedPPO(PPO):
                 )
                 policy_loss = torch.max(surrogate, surrogate_clipped).mean()
 
+                # Value loss in the critic's own units (normalized when value normalization is on).
+                old_values, returns = batch.values, batch.returns
+                if self.value_norm is not None:
+                    old_values = self.value_norm.normalize(old_values)
+                    returns = self.value_norm.normalize(returns)
                 if self.use_clipped_value_loss:
-                    value_clipped = batch.values + (values - batch.values).clamp(
+                    value_clipped = old_values + (values - old_values).clamp(
                         -self.clip_param, self.clip_param
                     )
                     value_loss = torch.max(
-                        (values - batch.returns).pow(2), (value_clipped - batch.returns).pow(2)
+                        (values - returns).pow(2), (value_clipped - returns).pow(2)
                     ).mean()
                 else:
-                    value_loss = (batch.returns - values).pow(2).mean()
+                    value_loss = (returns - values).pow(2).mean()
 
                 entropy_bonus = entropy.mean()
                 loss = (
@@ -133,6 +209,9 @@ class InstrumentedPPO(PPO):
 
         metrics = {k: v / num_updates for k, v in sums.items()}
         metrics["explore/entropy_coef"] = self.entropy_coef
+        if self.value_norm is not None:
+            metrics["value/norm_mean"] = self.value_norm.mean.item()
+            metrics["value/norm_std"] = self.value_norm.var.sqrt().item()
         metrics["optim/updates"] = float(num_updates)
         metrics["optim/param_norm/policy"] = _norm(self.actor.parameters())
         metrics["optim/param_norm/critic"] = _norm(self.critic.parameters())
