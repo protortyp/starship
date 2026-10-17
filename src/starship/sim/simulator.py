@@ -14,6 +14,7 @@ from starship.sim.physics import (
     SpawnParams,
     State,
     Terminal,
+    gather_kernel,
     init_rng_kernel,
     reset_kernel,
     step_kernel,
@@ -171,6 +172,22 @@ class Simulator:
             dim=self.num_envs,
             inputs=[self.params, mask, self.state],
             device=self.device,
+        )
+
+    def copy_from(self, other: "Simulator", sources) -> None:
+        """Set env i to the state of `other`'s env sources[i] (other may be this simulator).
+        Random streams stay per env, so copies of one state diverge under noise."""
+        if not isinstance(sources, wp.array):
+            sources = wp.array(
+                np.asarray(sources, dtype=np.int32), dtype=wp.int32, device=self.device
+            )
+        src = other.state
+        if other is self:
+            src = State()
+            for name in ("body", "engine", "flaps", "tanks", "time", "steps", "status", "rng"):
+                setattr(src, name, wp.clone(getattr(self.state, name)))
+        wp.launch(
+            gather_kernel, dim=self.num_envs, inputs=[sources, src, self.state], device=self.device
         )
 
     def set_commands(self, **commands) -> None:

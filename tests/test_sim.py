@@ -183,3 +183,30 @@ def test_nose_down_contact_finds_the_ogive_surface(tilt_deg):
     )
     sim.step()
     assert sim.snapshot().status[0] == CRASHED
+
+
+def test_copied_states_evolve_identically_to_the_original():
+    source = Simulator(3, config(), device=DEVICE, seed=5)
+    for _ in range(20):
+        source.step(flaps=belly_flop_controller(source))
+    copies = Simulator(4, config(), device=DEVICE, seed=9)
+    copies.copy_from(source, [1, 1, 2, 0])
+    assert np.allclose(copies.snapshot().pos, source.snapshot().pos[[1, 1, 2, 0]])
+    for _ in range(20):
+        source.step(flaps=belly_flop_controller(source))
+        copies.step(flaps=belly_flop_controller(copies))
+    s, c = source.snapshot(), copies.snapshot()
+    assert np.allclose(c.pos, s.pos[[1, 1, 2, 0]], atol=1e-3)
+    assert np.allclose(c.rot, s.rot[[1, 1, 2, 0]], atol=1e-5)
+    assert np.allclose(c.time, s.time[[1, 1, 2, 0]])
+
+
+def test_copy_within_the_same_simulator():
+    sim = Simulator(4, config(), device=DEVICE, seed=3)
+    for _ in range(5):
+        sim.step()
+    before = sim.snapshot()
+    sim.copy_from(sim, [3, 2, 1, 0])
+    after = sim.snapshot()
+    assert np.allclose(after.pos, before.pos[::-1])
+    assert np.allclose(after.rot, before.rot[::-1])

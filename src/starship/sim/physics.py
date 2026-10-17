@@ -271,6 +271,20 @@ def step_kernel(p: Params, auto_reset: int, c: Commands, s: State, term: Termina
 
 
 @wp.kernel
+def gather_kernel(sources: wp.array(dtype=wp.int32), src: State, dst: State):
+    """dst[i] = src[sources[i]] for everything but the random stream, so copies diverge."""
+    tid = wp.tid()
+    j = sources[tid]
+    dst.body[tid] = src.body[j]
+    dst.engine[tid] = src.engine[j]
+    dst.flaps[tid] = src.flaps[j]
+    dst.tanks[tid] = src.tanks[j]
+    dst.time[tid] = src.time[j]
+    dst.steps[tid] = src.steps[j]
+    dst.status[tid] = src.status[j]
+
+
+@wp.kernel
 def reset_kernel(p: Params, mask: wp.array(dtype=wp.int32), s: State):
     tid = wp.tid()
     if mask[tid] != 0:
