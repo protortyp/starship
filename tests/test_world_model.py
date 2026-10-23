@@ -11,7 +11,7 @@ from starship.train.encoding import ObsConfig
 from starship.train.env import RocketEnv
 from starship.train.model_experiment import sensitivity_metrics, simulator_rollout
 from starship.train.model_state import PHYSICAL_DIM, STATE_DIM, capture_state, restore_state
-from starship.train.world_model import Replay, WorldModel, fit_step
+from starship.train.world_model import Replay, WorldModel, fit_step, physical_errors
 
 
 def test_recording_preserves_terminal_state_and_default_behavior():
@@ -109,3 +109,22 @@ def test_actuator_alignment_cannot_hide_wrong_vehicle_gradients():
         assert metrics[group]["samples"] == 2
         assert metrics[group]["cosine_mean"] == pytest.approx(-1)
         assert metrics[group]["relative_l2"] == pytest.approx(2)
+
+
+def test_attitude_error_handles_quaternion_sign_and_exact_replay():
+    state = torch.randn(3, PHYSICAL_DIM)
+    state[:, 6:10] = torch.nn.functional.normalize(state[:, 6:10], dim=-1)
+    target = state.clone()
+    target[:, 6:10] *= -1
+    assert physical_errors(state, state)["attitude_rmse_deg"] == 0
+    assert physical_errors(state, target)["attitude_rmse_deg"] == 0
+
+
+def test_null_sensitivity_reports_invented_vehicle_response():
+    metrics = sensitivity_metrics(
+        torch.zeros(4, PHYSICAL_DIM), torch.ones(4, PHYSICAL_DIM), torch.ones(4, dtype=torch.bool)
+    )
+    assert metrics["translation"]["samples"] == 0
+    assert metrics["translation"]["null_samples"] == 4
+    assert metrics["translation"]["null_predicted_norm_mean"] == pytest.approx(6**0.5)
+    assert metrics["translation"]["absolute_rmse"] == pytest.approx(1)

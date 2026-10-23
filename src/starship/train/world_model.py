@@ -111,7 +111,11 @@ def physical_errors(predicted: torch.Tensor, target: torch.Tensor) -> dict[str, 
     q1 = nn.functional.normalize(predicted[..., 6:10], dim=-1)
     q2 = nn.functional.normalize(target[..., 6:10], dim=-1)
     # q and -q represent the same orientation.
-    angle = 2 * torch.acos((q1 * q2).sum(-1).abs().clamp(max=1.0))
+    difference_norm = (q1 - q2).norm(dim=-1)
+    sum_norm = (q1 + q2).norm(dim=-1)
+    angle = 4 * torch.atan2(
+        torch.minimum(difference_norm, sum_norm), torch.maximum(difference_norm, sum_norm)
+    )
     return {
         "position_rmse_m": difference[..., :3].square().mean().sqrt().item(),
         "velocity_rmse_m_s": difference[..., 3:6].square().mean().sqrt().item(),

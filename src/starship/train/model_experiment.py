@@ -105,18 +105,31 @@ def sensitivity_metrics(actual, predicted, alive) -> dict:
         ("tanks", slice(39, 43)),
     ):
         a, p = actual[:, channels], predicted[:, channels]
+        null = alive & (a.norm(dim=-1) <= 1e-7)
+        null_metrics = {
+            "null_samples": int(null.sum()),
+            "null_predicted_norm_mean": p[null].norm(dim=-1).mean().item() if null.any() else None,
+            "absolute_rmse": (p[alive] - a[alive]).square().mean().sqrt().item()
+            if alive.any()
+            else None,
+        }
         keep = alive & (a.norm(dim=-1) > 1e-7)
         if keep.any():
             a, p = a[keep], p[keep]
             cosine = torch.nn.functional.cosine_similarity(a, p, dim=-1)
             result[name] = {
+                **null_metrics,
                 "samples": int(keep.sum()),
                 "cosine_mean": cosine.mean().item(),
                 "positive_alignment_fraction": (cosine > 0).float().mean().item(),
                 "relative_l2": ((p - a).norm() / a.norm().clamp_min(1e-8)).item(),
             }
         else:
-            result[name] = {"samples": 0, "status": "no nonterminal measurable sensitivity"}
+            result[name] = {
+                **null_metrics,
+                "samples": 0,
+                "status": "no nonterminal measurable sensitivity",
+            }
     return result
 
 
