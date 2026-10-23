@@ -1,6 +1,6 @@
 """Collect and validate calm-flight world-model dynamics before policy optimization.
 
-uv run starship-world-model --policy logs/.../policy_best.pt --device cuda:0
+uv run starship-world-model --policy logs/.../policy_best.pt --out logs/wm --device cuda:0
 No policy weights are changed. Each invocation owns its output directory.
 """
 
