@@ -41,8 +41,16 @@ class Replay:
             raise ValueError(f"no nonterminal {horizon}-step windows in requested split")
         return indices
 
-    def sample(self, indices: torch.Tensor, count: int, horizon: int) -> dict[str, torch.Tensor]:
-        selected = indices[torch.randint(len(indices), (count,), device=indices.device)]
+    def sample(
+        self,
+        indices: torch.Tensor,
+        count: int,
+        horizon: int,
+        generator: torch.Generator | None = None,
+    ) -> dict[str, torch.Tensor]:
+        selected = indices[
+            torch.randint(len(indices), (count,), device=indices.device, generator=generator)
+        ]
         time = selected[:, 0][None] + torch.arange(horizon, device=indices.device)[:, None]
         env = selected[:, 1][None].expand_as(time)
         return {key: value[time, env] for key, value in self.data.items()}
@@ -55,18 +63,20 @@ class WorldModel(nn.Module):
     reward/termination heads must be added before imagined policy training.
     """
 
-    def __init__(self, width: int = 256):
+    def __init__(self, width: int = 256, depth: int = 2):
         super().__init__()
+        if width < 1 or depth < 1:
+            raise ValueError("width and depth must be positive")
+        self.width, self.depth = width, depth
         self.register_buffer("scale", torch.tensor(STATE_SCALE))
         self.register_buffer("center", torch.zeros(PHYSICAL_DIM))
         self.register_buffer("delta_scale", torch.ones(PHYSICAL_DIM))
-        self.net = nn.Sequential(
-            nn.Linear(PHYSICAL_DIM + ACTION_DIM, width),
-            nn.ELU(),
-            nn.Linear(width, width),
-            nn.ELU(),
-            nn.Linear(width, PHYSICAL_DIM),
-        )
+        layers = []
+        inputs = PHYSICAL_DIM + ACTION_DIM
+        for _ in range(depth):
+            layers.extend((nn.Linear(inputs, width), nn.ELU()))
+            inputs = width
+        self.net = nn.Sequential(*layers, nn.Linear(width, PHYSICAL_DIM))
         nn.init.zeros_(self.net[-1].weight)
         nn.init.zeros_(self.net[-1].bias)
 

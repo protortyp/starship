@@ -80,11 +80,44 @@ at this horizon reproduces position exactly, velocity to 3e-7 m/s RMSE,
 attitude to 2e-6 degrees and tank masses exactly. The bad model sensitivities
 therefore persist after checking replay and perturbation size.
 
-**Decision:** do not feed this model's gradients to the policy. More data and
-fitting improve endpoint accuracy without fixing important action derivatives.
-Next test: independent counterfactual action perturbations from the same saved
-states, with balanced flip/ignition/landing coverage, to separate action effects
-from correlations in successful-policy trajectories. Compare to this same model
-and held-out sensitivity protocol before implementing imagined policy updates.
-An analytical kinematics/actuator component is another candidate if action
-coverage alone does not help. No landing-rate gain has been measured.
+**Pilot conclusion:** this 5,000-update checkpoint has unreliable gradients.
+Training loss was still falling (about 1.20 at update 3,000 to 0.83 at the end),
+so these runs do not establish convergence or a need to change the data. Do not
+feed this checkpoint's gradients to the policy. No landing-rate gain has been
+measured.
+
+## Controlled comparison
+
+Freeze the existing 524,288-transition replay, its 80/20 environment split,
+8-step objective, batch size 512, Adam learning rate 0.0003, gradient clipping,
+physical scales and float32 precision (TF32 disabled). Fit normalization is
+copied from the original training-only checkpoint for every architecture.
+
+1. **Duration:** resume the original 2x256 model and Adam state. Measure at
+   5k, 10k, 25k and 50k updates. The old checkpoint did not save its sampling
+   RNG, so its first continuation uses a documented new stream. All new
+   checkpoints preserve that stream and the optimizer for exact continuation.
+2. **Capacity and efficiency:** fresh 2x256 and 3x2048 models, initialization
+   seeds 0, 1 and 2, with 120- and 300-second fit checkpoints. Alternate run
+   order across seeds and run sequentially on the same device. The larger
+   architecture matches the paper's dynamics-network widths; the experiment
+   retains our controlled offline objective and is not a SuperMimic reproduction.
+3. **Validation:** fixed 1/8/32-step prediction windows, plus fixed phase-balanced
+   belly/flip/spooling/low-altitude probes at two perturbation sizes. Cache
+   simulator derivatives once and reuse them for every checkpoint and seed.
+   Evaluation has its own RNG, never changing the fitting sample stream.
+   Missing phases and nonfinite rollouts/derivatives are reported explicitly.
+4. **Final test:** after scheduled fits, generate new trajectories from the same
+   collection policy with simulator seed 717 and noise seed 717. Score only
+   each case's scheduled endpoint on this independent cohort; do not select
+   checkpoints using its outcomes. This tests new trajectories of stage 4,
+   not transfer to wind or higher curriculum stages.
+
+Report fit time and total wall time separately, including evaluation/checkpoint
+overhead in the latter. Shared collection and reference-construction costs are
+recorded at study level. Historical training on another device is not added to
+the new device's fit-time budget. Equal-time capacity results measure learning
+efficiency, not convergence; a still-improving endpoint remains compute-limited.
+Report seed variation rather than treating thousands of correlated windows as
+independent trials. This is an offline dynamics comparison. A policy-versus-PPO
+comparison still requires reward/termination modeling and imagined updates.
