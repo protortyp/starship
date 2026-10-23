@@ -32,6 +32,7 @@ from starship.train.encoding import (
     make_obs_scales,
     observe_kernel,
 )
+from starship.train.model_state import STATE_DIM, pack_state
 from starship.train.reward import (
     REWARD_TERMS,
     RewardConfig,
@@ -83,8 +84,12 @@ def _step_kernel(
     attitude_before: wp.array(dtype=Attitude),
     final_obs: wp.array2d(dtype=float),
     final_mirrored: wp.array(dtype=int),
+    model_before: wp.array2d(dtype=float),
+    model_after: wp.array2d(dtype=float),
 ):
     i = wp.tid()
+    if model_before.shape[0] > 0:
+        pack_state(state, i, model_before)
     before[i] = potential(p, r, state.body[i], state.tanks[i])
     fuel_before[i] = wp.dot(state.tanks[i], wp.vec4(1.0))
     time_before[i] = state.time[i]
@@ -94,6 +99,8 @@ def _step_kernel(
         final_obs[i, j] = 0.0
     final_mirrored[i] = mirrored[i]
     advance(p, state, commands, i)
+    if model_after.shape[0] > 0:
+        pack_state(state, i, model_after)
     if state.status[i] != FLYING:
         terminal.done[i] = 1
         terminal.status[i] = state.status[i]
@@ -174,6 +181,7 @@ class RocketEnv:
         reward_config: RewardConfig | None = None,
         device: str | None = None,
         seed: int = 0,
+        record_model_state: bool = False,
     ):
         if num_envs < 1:
             raise ValueError("num_envs must be positive")
@@ -185,6 +193,9 @@ class RocketEnv:
         self.reward_params = make_reward_params(self.reward_config)
         self.sim = Simulator(num_envs, self.config, device, seed, auto_reset=True)
         self.device = self.sim.device
+        shape = (num_envs if record_model_state else 0, STATE_DIM)
+        self.model_before = wp.zeros(shape, dtype=float, device=self.device)
+        self.model_after = wp.zeros(shape, dtype=float, device=self.device)
 
         def zeros(dtype=float, width=None):
             shape = num_envs if width is None else (num_envs, width)
@@ -323,6 +334,8 @@ class RocketEnv:
                 self._attitude_before,
                 self.final_obs,
                 self.final_mirrored,
+                self.model_before,
+                self.model_after,
             ],
         )
         self._launch(
