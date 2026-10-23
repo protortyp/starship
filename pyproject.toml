@@ -19,6 +19,8 @@ starship-rerun = "starship.render.rerun_viewer:main"
 starship-train = "starship.train.train:main"
 starship-bench = "starship.train.bench:main"
 starship-diagnose = "starship.train.diagnose:main"
+starship-world-model = "starship.train.model_experiment:main"
+starship-world-model-compare = "starship.train.model_comparison:main"
 
 [dependency-groups]
 dev = [

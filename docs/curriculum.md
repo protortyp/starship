@@ -36,6 +36,14 @@
 
 ## Findings
 
+- The first learned-world-model feasibility runs (stage 4, seed 0) improved
+  held-out 0.8 s endpoint error to 1.08 m / 0.52 m/s / 2.06 degrees with
+  524,288 transitions, but the forward-starboard flap's rotation sensitivity
+  still points the wrong way (cosine -0.63). Simulator replay and two
+  perturbation sizes confirm the discrepancy. Keep PPO unchanged; validate
+  counterfactual action coverage before using model gradients. Protocol and
+  results: [world-model.md](world-model.md).
+
 - The first telemetry calibration (IFT-5, 2026-10-17) fits speed to 4.16 m/s RMSE but does not complete IFT-6’s held-descent window. Mass, drag and flap effectiveness remain coupled; keep the training defaults neutral. Details and cross-flight errors: [calibration.md](calibration.md).
 
 - Crash penalties must stay bounded but keep ranking crashes (log of the weighted limit excess); linear ones swamped the value targets (−1,300), hard caps made every bad crash equal.
