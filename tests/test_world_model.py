@@ -9,7 +9,7 @@ from starship.sim import SimConfig, Simulator
 from starship.train.actions import ACTION_DIM
 from starship.train.encoding import ObsConfig
 from starship.train.env import RocketEnv
-from starship.train.model_experiment import simulator_rollout
+from starship.train.model_experiment import sensitivity_metrics, simulator_rollout
 from starship.train.model_state import PHYSICAL_DIM, STATE_DIM, capture_state, restore_state
 from starship.train.world_model import Replay, WorldModel, fit_step
 
@@ -97,3 +97,15 @@ def test_multistep_fit_learns_action_effect_and_gradient():
     torch.testing.assert_close(gradient, torch.full_like(gradient, 0.2), atol=0.04, rtol=0)
     predicted = model.rollout(state, actions)
     torch.testing.assert_close(predicted[..., 6:10].norm(dim=-1), torch.ones(horizon, count))
+
+
+def test_actuator_alignment_cannot_hide_wrong_vehicle_gradients():
+    actual = torch.ones(4, PHYSICAL_DIM)
+    predicted = actual.clone()
+    predicted[:, :13] *= -1
+    metrics = sensitivity_metrics(actual, predicted, torch.tensor([True, True, False, False]))
+    assert metrics["actuators"]["cosine_mean"] == pytest.approx(1)
+    for group in ("translation", "rotation"):
+        assert metrics[group]["samples"] == 2
+        assert metrics[group]["cosine_mean"] == pytest.approx(-1)
+        assert metrics[group]["relative_l2"] == pytest.approx(2)

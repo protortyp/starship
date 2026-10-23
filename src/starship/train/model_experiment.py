@@ -6,6 +6,7 @@ No policy weights are changed. Each invocation owns its output directory.
 
 import argparse
 import dataclasses
+import hashlib
 import json
 import time
 from pathlib import Path
@@ -17,7 +18,13 @@ from omegaconf import OmegaConf
 
 import starship.train.conf  # noqa: F401
 from starship.sim import Simulator
-from starship.train.actions import ACTION_DIM, ENGINE_HEADS, make_action_ranges, map_actions_kernel
+from starship.train.actions import (
+    ACTION_DIM,
+    ENGINE_HEADS,
+    HEAD_NAMES,
+    make_action_ranges,
+    map_actions_kernel,
+)
 from starship.train.checkpoint import load_policy
 from starship.train.curriculum import Curriculum
 from starship.train.env import RocketEnv
@@ -88,16 +95,40 @@ def simulator_rollout(
     return result[:, :PHYSICAL_DIM], alive
 
 
-def gradient_report(model, replay, config, count: int, horizon: int, eps: float) -> dict:
+def sensitivity_metrics(actual, predicted, alive) -> dict:
+    """Keep flight dynamics separate from the easier actuator response."""
+    result = {}
+    for name, channels in (
+        ("translation", slice(0, 6)),
+        ("rotation", slice(6, 13)),
+        ("actuators", slice(13, 39)),
+        ("tanks", slice(39, 43)),
+    ):
+        a, p = actual[:, channels], predicted[:, channels]
+        keep = alive & (a.norm(dim=-1) > 1e-7)
+        if keep.any():
+            a, p = a[keep], p[keep]
+            cosine = torch.nn.functional.cosine_similarity(a, p, dim=-1)
+            result[name] = {
+                "samples": int(keep.sum()),
+                "cosine_mean": cosine.mean().item(),
+                "positive_alignment_fraction": (cosine > 0).float().mean().item(),
+                "relative_l2": ((p - a).norm() / a.norm().clamp_min(1e-8)).item(),
+            }
+        else:
+            result[name] = {"samples": 0, "status": "no nonterminal measurable sensitivity"}
+    return result
+
+
+def gradient_report(model, batch, config, eps: float) -> dict:
     """Compare analytic model JVPs with simulator central differences per control head.
 
     Perturb only the first action of a logged open-loop sequence. This measures
     dynamics sensitivities, not reward gradients or closed-loop policy gradients.
     """
-    indices = replay.windows(horizon, validation=True)
-    batch = replay.sample(indices, count, horizon)
     state = batch["state"][0].contiguous()
     actions = batch["action"].contiguous()
+    horizon, count = actions.shape[:2]
     sim = Simulator(count, config, device=str(state.device), seed=73, auto_reset=False)
     result = {}
     for head in range(ENGINE_HEADS, ACTION_DIM):
@@ -112,19 +143,17 @@ def gradient_report(model, replay, config, count: int, horizon: int, eps: float)
         minus, alive_minus = simulator_rollout(sim, state, actions - eps * direction)
         actual = (plus - minus) / (2 * eps) / model.scale
         predicted = derivative / model.scale
-        keep = alive_plus & alive_minus & (actual.norm(dim=-1) > 1e-7)
-        if keep.any():
-            a, p = actual[keep], predicted[keep]
-            cosine = torch.nn.functional.cosine_similarity(a, p, dim=-1)
-            result[str(head)] = {
-                "samples": int(keep.sum()),
-                "cosine_mean": cosine.mean().item(),
-                "positive_alignment_fraction": (cosine > 0).float().mean().item(),
-                "relative_l2": ((p - a).norm() / a.norm().clamp_min(1e-8)).item(),
-            }
-        else:
-            result[str(head)] = {"samples": 0, "status": "no nonterminal measurable sensitivity"}
-    return {"horizon": horizon, "epsilon": eps, "heads": result}
+        result[HEAD_NAMES[head]] = sensitivity_metrics(actual, predicted, alive_plus & alive_minus)
+    # Check that restored state and command mapping reproduce the recorded trajectory.
+    exact, alive = simulator_rollout(sim, state, actions)
+    target = batch["next_state"][-1, :, :PHYSICAL_DIM]
+    return {
+        "horizon": horizon,
+        "epsilon": eps,
+        "heads": result,
+        "exact_replay_alive": int(alive.sum()),
+        "exact_replay_errors": physical_errors(exact, target),
+    }
 
 
 def main() -> None:
@@ -183,6 +212,7 @@ def main() -> None:
             "data": {k: v.cpu() for k, v in data.items()},
             "sim": dataclasses.asdict(sim_cfg),
             "reward": dataclasses.asdict(reward_cfg),
+            "policy_sha256": hashlib.sha256(args.policy.read_bytes()).hexdigest(),
             "args": {k: str(v) if isinstance(v, Path) else v for k, v in vars(args).items()},
         },
         args.out / "replay.pt",
@@ -234,11 +264,12 @@ def main() -> None:
                 "identity": physical_errors(state, target),
             }
     report["held_out_errors"] = errors
-    report["gradient_probes"] = [
-        gradient_report(model, replay, sim_cfg, args.probe_samples, h, eps)
-        for h in (1, 8, 32)
-        for eps in (0.01, 0.003)
-    ]
+    report["gradient_probes"] = []
+    for horizon in (1, 8, 32):
+        batch = replay.sample(replay.windows(horizon, validation=True), args.probe_samples, horizon)
+        # Both perturbation sizes use the same states/actions, so their agreement is meaningful.
+        for eps in (0.01, 0.003):
+            report["gradient_probes"].append(gradient_report(model, batch, sim_cfg, eps))
     report["total_s"] = time.monotonic() - start
     (args.out / "report.json").write_text(json.dumps(report, indent=2) + "\n")
     print(json.dumps(report, indent=2), flush=True)
