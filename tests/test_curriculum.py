@@ -76,14 +76,14 @@ def test_loop_curriculum_tightens_recovery_limits():
     with initialize_config_module("starship.train.conf", version_base=None):
         cfg = compose("loop")
     curriculum = Curriculum(cfg, cfg.curriculum)
-    assert len(curriculum.stages) == 11
-    rates = [curriculum.configs(stage)[0].loop_max_rate for stage in range(11)]
-    tolerances = [curriculum.configs(stage)[0].loop_upright_tolerance for stage in range(11)]
+    assert len(curriculum.stages) == 14
+    rates = [curriculum.configs(stage)[0].loop_max_rate for stage in range(14)]
+    tolerances = [curriculum.configs(stage)[0].loop_upright_tolerance for stage in range(14)]
     assert rates == pytest.approx(
-        np.radians([120, 90, 82.5, 75, 67.5, 60, 52.5, 52.5, 45, 37.5, 30])
+        np.radians([120, 90, 82.5, 75, 67.5, 60, 52.5, 52.5, 48.75, 45, 41.25, 37.5, 33.75, 30])
     )
     assert tolerances == pytest.approx(
-        np.radians([30, 20, 20, 20, 20, 20, 20, 17.5, 17.5, 17.5, 17.5])
+        np.radians([30, 20, 20, 20, 20, 20, 20, 17.5, 17.5, 17.5, 17.5, 17.5, 17.5, 17.5])
     )
 
 

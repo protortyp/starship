@@ -30,12 +30,21 @@ stages:
   - name: 7 recover within 17.5 deg
     overrides:
       - sim.loop_upright_tolerance=0.30543261909900765
-  - name: 8 recover below 45 deg/s
+  - name: 8 recover below 48.75 deg/s
+    overrides:
+      - sim.loop_max_rate=0.8508480103472357
+  - name: 9 recover below 45 deg/s
     overrides:
       - sim.loop_max_rate=0.7853981633974483
-  - name: 9 recover below 37.5 deg/s
+  - name: 10 recover below 41.25 deg/s
+    overrides:
+      - sim.loop_max_rate=0.7199483164476609
+  - name: 11 recover below 37.5 deg/s
     overrides:
       - sim.loop_max_rate=0.6544984694978736
-  - name: 10 recover below 30 deg/s
+  - name: 12 recover below 33.75 deg/s
+    overrides:
+      - sim.loop_max_rate=0.5890486225480862
+  - name: 13 recover below 30 deg/s
     overrides:
       - sim.loop_max_rate=0.5235987755982988
