@@ -26,6 +26,7 @@ REWARD_TERMS = (
     "reflip_cost",
     "loop_progress",
     "loop_overshoot_cost",
+    "loop_rate_cost",
 )
 
 
@@ -73,6 +74,7 @@ class RewardConfig:
     loop_overshoot_cost: float = 0.0  # cost per rad beyond loop_target
     loop_bonus: float = 0.0  # timeout bonus, scaled by how upright the completed loop finishes
     loop_finish_rate_cost: float = 0.0  # timeout cost per rad/s after completing the loop
+    loop_rate_cost: float = 0.0  # progress-weighted squared end-over-end rate cost per second
 
 
 @wp.struct
@@ -110,6 +112,7 @@ class RewardParams:
     loop_overshoot_cost: float
     loop_bonus: float
     loop_finish_rate_cost: float
+    loop_rate_cost: float
 
 
 def make_reward_params(config: RewardConfig) -> RewardParams:
@@ -264,6 +267,11 @@ def reward_kernel(
     overshoot_before = wp.max(prev.horizontal_travel - r.loop_target, 0.0)
     overshoot_after = wp.max(a.horizontal_travel - r.loop_target, 0.0)
     terms[i, 13] = -r.loop_overshoot_cost * (overshoot_after - overshoot_before)
+    loop_fraction = 0.0
+    if r.loop_target > 0.0:
+        loop_fraction = wp.min(a.horizontal_travel / r.loop_target, 1.0)
+    transverse_rate_sq = b.omega[1] * b.omega[1] + b.omega[2] * b.omega[2]
+    terms[i, 14] = -r.loop_rate_cost * loop_fraction * transverse_rate_sq * dt
     total = 0.0
     for j in range(wp.static(len(REWARD_TERMS))):
         total += terms[i, j]

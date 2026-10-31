@@ -306,6 +306,7 @@ def test_loop_progress_and_overshoot_are_incremental(device):
         loop_target=1.0,
         loop_progress_weight=10,
         loop_overshoot_cost=5,
+        loop_rate_cost=2,
         timeout_penalty=0,
     )
     env = RocketEnv(1, cfg, reward_config=reward, device=device)
@@ -316,6 +317,7 @@ def test_loop_progress_and_overshoot_are_incremental(device):
     terms = result.reward_terms.numpy()[0]
     assert terms[REWARD_TERMS.index("loop_progress")] == pytest.approx(1.998, rel=0.02)
     assert terms[REWARD_TERMS.index("loop_overshoot_cost")] == pytest.approx(0, abs=1e-6)
+    assert terms[REWARD_TERMS.index("loop_rate_cost")] < 0
 
     attitude = env.sim.state.attitude.numpy()
     attitude["horizontal_travel"][0] = 0.99
