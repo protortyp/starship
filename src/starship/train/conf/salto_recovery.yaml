@@ -5,8 +5,8 @@ defaults:
 
 experiment: salto_recovery
 device: cuda:0
-iterations: 500
-eval_interval: 10
+iterations: 2500
+eval_interval: 25
 record_every: 2
 
 # The state envelope handed off by the salto policy: near 2 km, almost upright, with meaningful
