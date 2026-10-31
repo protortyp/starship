@@ -11,8 +11,8 @@ record_every: 4
 rollback_drop: 0.5
 rollback_patience: 2
 
-# One end-over-end somersault followed by an upright, low-rate finish. Landing is deliberately not
-# part of this first stunt: every surviving flight ends at the 20 s deadline.
+# One end-over-end somersault followed by an upright, low-rate finish. Successful stunts terminate
+# immediately; failures end at the 20 s deadline.
 sim:
   spawn:
     altitude: 2000
@@ -61,3 +61,8 @@ reward:
 
 obs:
   loop_target: 6.283185307179586
+
+runner:
+  algorithm:
+    # Stage-1 recovery is sensitive: 3e-5 repeatedly destroyed a 99.6% policy within 30 updates.
+    learning_rate: 1.0e-5
