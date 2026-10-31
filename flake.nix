@@ -49,8 +49,16 @@
 
             shellHook =
               pkgs.lib.optionalString pkgs.stdenv.hostPlatform.isLinux ''
-                # /run/opengl-driver/lib provides libcuda.so on NixOS; other distros find it already.
-                export LD_LIBRARY_PATH="${pkgs.lib.makeLibraryPath linuxRuntimeLibs}:/run/opengl-driver/lib''${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+                # /run/opengl-driver/lib provides libcuda on NixOS. On Ubuntu, expose only the
+                # driver libraries: adding its whole system lib directory would mix glibc builds.
+                cuda_driver_path=/run/opengl-driver/lib
+                if [ ! -e "$cuda_driver_path/libcuda.so.1" ] && [ -e /usr/lib/x86_64-linux-gnu/libcuda.so.1 ]; then
+                  cuda_driver_path="$PWD/.direnv/cuda-driver"
+                  mkdir -p "$cuda_driver_path"
+                  ln -sfn /usr/lib/x86_64-linux-gnu/libcuda.so.1 "$cuda_driver_path/libcuda.so.1"
+                  ln -sfn /usr/lib/x86_64-linux-gnu/libcuda.so "$cuda_driver_path/libcuda.so"
+                fi
+                export LD_LIBRARY_PATH="${pkgs.lib.makeLibraryPath linuxRuntimeLibs}:$cuda_driver_path''${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
               ''
               + ''
                 uv sync --quiet
