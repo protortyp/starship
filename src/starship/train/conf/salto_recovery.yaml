@@ -33,14 +33,6 @@ sim:
   max_rate: 10
   max_roll_rate: 10
 
-reward:
-  speed_weight: 5
-  tilt_weight: 20
-  tilt_height: 3000
-  angular_rate_cost: 0.1
-  landed_bonus: 200
-
 runner:
   algorithm:
     learning_rate: 3.0e-5
-    entropy_coef: 0.0002
