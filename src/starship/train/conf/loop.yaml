@@ -1,6 +1,6 @@
 defaults:
   - train
-  - override curriculum: none
+  - override curriculum: loop
   - _self_
 
 experiment: loop

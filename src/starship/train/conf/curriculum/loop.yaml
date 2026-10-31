@@ -1,0 +1,21 @@
+# @package curriculum
+# Learn the somersault first, then progressively demand a cleaner upright recovery.
+enabled: true
+promote_landed: 0.8
+promote_evals: 2
+stages:
+  - name: 0 loop, upright within 30 deg and 120 deg/s
+    overrides:
+      - sim.loop_upright_tolerance=0.5235987755982988
+      - sim.loop_max_rate=2.0943951023931953
+  - name: 1 recover below 90 deg/s
+    overrides:
+      - sim.loop_upright_tolerance=0.3490658503988659
+      - sim.loop_max_rate=1.5707963267948966
+  - name: 2 recover below 60 deg/s
+    overrides:
+      - sim.loop_max_rate=1.0471975511965976
+  - name: 3 recover within 15 deg and below 30 deg/s
+    overrides:
+      - sim.loop_upright_tolerance=0.2617993877991494
+      - sim.loop_max_rate=0.5235987755982988

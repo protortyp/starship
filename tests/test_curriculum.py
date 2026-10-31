@@ -3,6 +3,7 @@ import json
 import numpy as np
 import pytest
 import torch
+from hydra import compose, initialize_config_module
 from omegaconf import OmegaConf
 
 from starship.sim import SimConfig
@@ -69,6 +70,17 @@ def test_attitude_stages_preserve_spawns_and_resume_indices():
     curriculum.load_state_dict({"stage": 4, "passes": 0})
     assert curriculum.stage == 4
     assert not curriculum.is_final
+
+
+def test_loop_curriculum_tightens_recovery_limits():
+    with initialize_config_module("starship.train.conf", version_base=None):
+        cfg = compose("loop")
+    curriculum = Curriculum(cfg, cfg.curriculum)
+    assert len(curriculum.stages) == 4
+    rates = [curriculum.configs(stage)[0].loop_max_rate for stage in range(4)]
+    tolerances = [curriculum.configs(stage)[0].loop_upright_tolerance for stage in range(4)]
+    assert rates == pytest.approx(np.radians([120, 90, 60, 30]))
+    assert tolerances == pytest.approx(np.radians([30, 20, 20, 15]))
 
 
 def test_overrides_outside_sim_and_reward_are_rejected():
