@@ -252,3 +252,5 @@ class SimConfig:
     loop_target: float = 0.0
     loop_upright_tolerance: float = math.radians(15.0)
     loop_max_rate: float = math.radians(30.0)
+    loop_finish_terminates: bool = True
+    require_loop_before_landing: bool = False

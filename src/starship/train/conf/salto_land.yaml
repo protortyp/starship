@@ -1,0 +1,68 @@
+defaults:
+  - train
+  - override curriculum: salto_land
+  - _self_
+
+experiment: salto_land
+device: cuda:0
+iterations: 1000
+eval_interval: 10
+record_every: 2
+rollback_drop: 0.5
+rollback_patience: 3
+
+# Start upright and hovering high enough to perform one powered end-over-end salto, recover, then
+# descend to the pad. Touchdown only counts after the full rotation has been completed.
+sim:
+  spawn:
+    altitude: 2000
+    altitude_noise: 250
+    offset: 0
+    offset_noise: 50
+    vertical_speed: 0
+    vertical_speed_noise: 5
+    horizontal_speed: 0
+    horizontal_speed_noise: 2
+    pitch: 0
+    pitch_noise: 0.05
+    angular_rate_noise: 0.01
+    flap_angle: 0.7853981633974483
+    lit_throttle: 0.4
+  max_time: 20
+  max_altitude: 5000
+  max_offset: 3000
+  max_pitch: 3.141592653589793
+  max_rate: 10
+  max_roll_rate: 10
+  loop_target: 6.283185307179586
+  loop_upright_tolerance: 0.30543261909900765
+  loop_max_rate: 0.9162978572970231
+
+reward:
+  distance_weight: 0
+  speed_weight: 0
+  horizontal_speed_weight: 0.02
+  tilt_weight: 0
+  angular_rate_cost: 0.002
+  jerk_cost: 0.02
+  fuel_cost: 0.0001
+  time_cost: 0
+  landed_bonus: 200
+  fuel_bonus: 0
+  crash_penalty: 50
+  tumble_penalty: 0
+  out_of_bounds_penalty: 50
+  timeout_penalty: 50
+  loop_target: 6.283185307179586
+  loop_progress_weight: 10
+  loop_overshoot_cost: 5
+  loop_bonus: 0
+  loop_finish_rate_cost: 0
+  loop_rate_cost: 1
+
+obs:
+  loop_target: 6.283185307179586
+
+runner:
+  algorithm:
+    learning_rate: 1.0e-5

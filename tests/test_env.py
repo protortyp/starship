@@ -299,6 +299,31 @@ def test_completed_loop_ends_as_success(device):
     assert result.terminal_reward.numpy()[0] == 200
 
 
+def test_completed_loop_can_continue_to_touchdown(device):
+    cfg = config(altitude=1000, vertical_speed=0, pitch=0)
+    cfg.loop_target = 2 * math.pi
+    cfg.loop_finish_terminates = False
+    cfg.require_loop_before_landing = True
+    env = RocketEnv(1, cfg, device=device)
+    attitude = env.sim.state.attitude.numpy()
+    attitude["horizontal_travel"][0] = 2 * math.pi
+    env.sim.state.attitude.assign(attitude)
+    result = env.step(actions(1))
+    assert not result.terminated.numpy()[0]
+    assert not result.truncated.numpy()[0]
+
+
+def test_safe_touchdown_before_required_loop_is_a_crash(device):
+    cfg = config(altitude=0.1, vertical_speed=-0.2, pitch=0)
+    cfg.loop_target = 2 * math.pi
+    cfg.loop_finish_terminates = False
+    cfg.require_loop_before_landing = True
+    env = RocketEnv(1, cfg, device=device)
+    result = env.step(actions(1))
+    assert result.terminated.numpy()[0]
+    assert env.final_status.numpy()[0] == CRASHED
+
+
 def test_loop_progress_and_overshoot_are_incremental(device):
     cfg = config(altitude=1000, vertical_speed=0, pitch=0)
     cfg.max_rate = 10

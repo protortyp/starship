@@ -152,6 +152,8 @@ class Params:
     loop_target: float
     loop_upright_tolerance: float
     loop_max_rate: float
+    loop_finish_terminates: int
+    require_loop_before_landing: int
     length: float
     radius: float
     nose_length: float
@@ -411,6 +413,12 @@ def advance(p: Params, s: State, c: Commands, tid: int):
         t += p.dt
         if lowest_point(p, b, mp.com) <= 0.0:
             status = touchdown_status(p, b, mp.com)
+            if (
+                status == LANDED
+                and p.require_loop_before_landing != 0
+                and a.horizontal_travel < p.loop_target
+            ):
+                status = CRASHED
             break
         horizontal = wp.sqrt(b.pos[0] * b.pos[0] + b.pos[1] * b.pos[1])
         if b.pos[2] > p.max_altitude or horizontal > p.max_offset:
@@ -427,6 +435,7 @@ def advance(p: Params, s: State, c: Commands, tid: int):
             break
         if (
             p.loop_target > 0.0
+            and p.loop_finish_terminates != 0
             and a.horizontal_travel >= p.loop_target
             and axis_z >= wp.cos(p.loop_upright_tolerance)
             and transverse <= p.loop_max_rate

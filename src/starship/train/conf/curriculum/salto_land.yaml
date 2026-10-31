@@ -1,0 +1,75 @@
+# @package curriculum
+# Preserve the learned loop stages so a loop checkpoint can resume, then make the policy remain
+# alive and progressively tighten a real pad touchdown.
+enabled: true
+promote_landed: 0.5
+promote_evals: 1
+stages:
+  - name: 0 loop, upright within 30 deg and 120 deg/s
+    overrides:
+      - sim.loop_upright_tolerance=0.5235987755982988
+      - sim.loop_max_rate=2.0943951023931953
+  - name: 1 recover below 90 deg/s
+    overrides:
+      - sim.loop_upright_tolerance=0.3490658503988659
+      - sim.loop_max_rate=1.5707963267948966
+  - name: 2 recover below 82.5 deg/s
+    overrides:
+      - sim.loop_max_rate=1.4398966328953218
+  - name: 3 recover below 75 deg/s
+    overrides:
+      - sim.loop_max_rate=1.3089969389957472
+  - name: 4 recover below 67.5 deg/s
+    overrides:
+      - sim.loop_max_rate=1.1780972450961724
+  - name: 5 recover below 60 deg/s
+    overrides:
+      - sim.loop_max_rate=1.0471975511965976
+  - name: 6 recover below 52.5 deg/s
+    overrides:
+      - sim.loop_max_rate=0.9162978572970231
+  - name: 7 recover within 17.5 deg
+    overrides:
+      - sim.loop_upright_tolerance=0.30543261909900765
+  - name: 8 salto then loose touchdown
+    overrides:
+      - sim.loop_finish_terminates=false
+      - sim.require_loop_before_landing=true
+      - sim.max_time=90
+      - sim.landing.pad_radius=300
+      - sim.landing.max_vertical_speed=12
+      - sim.landing.max_horizontal_speed=8
+      - sim.landing.max_tilt=0.5235987755982988
+      - sim.landing.max_angular_rate=0.7853981633974483
+      - reward.distance_weight=0.02
+      - reward.speed_weight=0.5
+      - reward.horizontal_speed_weight=0.25
+      - reward.tilt_weight=5
+      - reward.tilt_height=500
+      - reward.angular_rate_cost=0.02
+      - reward.time_cost=0.005
+      - reward.crash_penalty=20
+      - reward.tumble_penalty=200
+      - reward.out_of_bounds_penalty=150
+      - reward.timeout_penalty=150
+  - name: 9 touchdown within 100 m and 8 m/s
+    overrides:
+      - sim.landing.pad_radius=100
+      - sim.landing.max_vertical_speed=8
+      - sim.landing.max_horizontal_speed=5
+      - sim.landing.max_tilt=0.3490658503988659
+      - sim.landing.max_angular_rate=0.5235987755982988
+  - name: 10 touchdown within 40 m and 5 m/s
+    overrides:
+      - sim.landing.pad_radius=40
+      - sim.landing.max_vertical_speed=5
+      - sim.landing.max_horizontal_speed=3
+      - sim.landing.max_tilt=0.2617993877991494
+      - sim.landing.max_angular_rate=0.3490658503988659
+  - name: 11 safe pad landing
+    overrides:
+      - sim.landing.pad_radius=15
+      - sim.landing.max_vertical_speed=2
+      - sim.landing.max_horizontal_speed=1
+      - sim.landing.max_tilt=0.08726646259971647
+      - sim.landing.max_angular_rate=0.08726646259971647
