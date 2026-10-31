@@ -31,16 +31,16 @@ stages:
   - name: 7 recover within 17.5 deg
     overrides:
       - sim.loop_upright_tolerance=0.30543261909900765
-  - name: 8 salto then loose touchdown
+  - name: 8 salto then reach the ground
     overrides:
       - sim.loop_finish_terminates=false
       - sim.require_loop_before_landing=true
       - sim.max_time=90
-      - sim.landing.pad_radius=300
-      - sim.landing.max_vertical_speed=12
-      - sim.landing.max_horizontal_speed=8
-      - sim.landing.max_tilt=0.5235987755982988
-      - sim.landing.max_angular_rate=0.7853981633974483
+      - sim.landing.pad_radius=3000
+      - sim.landing.max_vertical_speed=150
+      - sim.landing.max_horizontal_speed=100
+      - sim.landing.max_tilt=3.141592653589793
+      - sim.landing.max_angular_rate=10
       - reward.distance_weight=0.02
       - reward.speed_weight=0.5
       - reward.horizontal_speed_weight=0.25
@@ -52,21 +52,47 @@ stages:
       - reward.tumble_penalty=200
       - reward.out_of_bounds_penalty=150
       - reward.timeout_penalty=150
-  - name: 9 touchdown within 100 m and 8 m/s
+  - name: 9 brake below 80 m/s within 1 km
+    overrides:
+      - sim.landing.pad_radius=1000
+      - sim.landing.max_vertical_speed=80
+      - sim.landing.max_horizontal_speed=50
+  - name: 10 brake below 40 m/s within 500 m
+    overrides:
+      - sim.landing.pad_radius=500
+      - sim.landing.max_vertical_speed=40
+      - sim.landing.max_horizontal_speed=25
+      - sim.landing.max_tilt=1.5707963267948966
+      - sim.landing.max_angular_rate=3.141592653589793
+  - name: 11 brake below 20 m/s within 300 m
+    overrides:
+      - sim.landing.pad_radius=300
+      - sim.landing.max_vertical_speed=20
+      - sim.landing.max_horizontal_speed=12
+      - sim.landing.max_tilt=1.0471975511965976
+      - sim.landing.max_angular_rate=1.5707963267948966
+  - name: 12 controlled touchdown below 12 m/s
+    overrides:
+      - sim.landing.pad_radius=200
+      - sim.landing.max_vertical_speed=12
+      - sim.landing.max_horizontal_speed=8
+      - sim.landing.max_tilt=0.5235987755982988
+      - sim.landing.max_angular_rate=0.7853981633974483
+  - name: 13 touchdown below 8 m/s within 100 m
     overrides:
       - sim.landing.pad_radius=100
       - sim.landing.max_vertical_speed=8
       - sim.landing.max_horizontal_speed=5
       - sim.landing.max_tilt=0.3490658503988659
       - sim.landing.max_angular_rate=0.5235987755982988
-  - name: 10 touchdown within 40 m and 5 m/s
+  - name: 14 touchdown below 5 m/s within 40 m
     overrides:
       - sim.landing.pad_radius=40
       - sim.landing.max_vertical_speed=5
       - sim.landing.max_horizontal_speed=3
       - sim.landing.max_tilt=0.2617993877991494
       - sim.landing.max_angular_rate=0.3490658503988659
-  - name: 11 safe pad landing
+  - name: 15 safe pad landing
     overrides:
       - sim.landing.pad_radius=15
       - sim.landing.max_vertical_speed=2
