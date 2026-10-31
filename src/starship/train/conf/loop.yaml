@@ -8,7 +8,8 @@ device: cuda:0
 iterations: 500
 eval_interval: 25
 record_every: 4
-rollback_drop: 0
+rollback_drop: 0.5
+rollback_patience: 2
 
 # One end-over-end somersault followed by an upright, low-rate finish. Landing is deliberately not
 # part of this first stunt: every surviving flight ends at the 20 s deadline.
