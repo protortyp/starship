@@ -284,6 +284,21 @@ def test_loop_reward_caps_progress_and_pays_for_upright_finish(device):
     assert terms[REWARD_TERMS.index("loop_progress")] == pytest.approx(-20 * math.pi)
 
 
+def test_completed_loop_ends_as_success(device):
+    cfg = config(altitude=1000, vertical_speed=0, pitch=0)
+    cfg.loop_target = 2 * math.pi
+    cfg.loop_max_rate = 0.5
+    reward = RewardConfig(landed_bonus=200, fuel_bonus=0, loop_target=2 * math.pi)
+    env = RocketEnv(1, cfg, reward_config=reward, device=device)
+    attitude = env.sim.state.attitude.numpy()
+    attitude["horizontal_travel"][0] = 2 * math.pi
+    env.sim.state.attitude.assign(attitude)
+    result = env.step(actions(1))
+    assert result.terminated.numpy()[0]
+    assert env.final_status.numpy()[0] == LANDED
+    assert result.terminal_reward.numpy()[0] == 200
+
+
 def test_loop_progress_and_overshoot_are_incremental(device):
     cfg = config(altitude=1000, vertical_speed=0, pitch=0)
     cfg.max_rate = 10

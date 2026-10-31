@@ -33,6 +33,9 @@ sim:
   max_pitch: 3.141592653589793
   max_rate: 10
   max_roll_rate: 10
+  loop_target: 6.283185307179586
+  loop_upright_tolerance: 0.2617993877991494
+  loop_max_rate: 0.5235987755982988
 
 reward:
   distance_weight: 0
@@ -43,17 +46,17 @@ reward:
   jerk_cost: 0.02
   fuel_cost: 0.0001
   time_cost: 0
-  landed_bonus: 0
+  landed_bonus: 200
   fuel_bonus: 0
   crash_penalty: 50
   tumble_penalty: 0
   out_of_bounds_penalty: 50
-  timeout_penalty: 0
+  timeout_penalty: 50
   loop_target: 6.283185307179586
   loop_progress_weight: 10
   loop_overshoot_cost: 5
-  loop_bonus: 200
-  loop_finish_rate_cost: 20
+  loop_bonus: 0
+  loop_finish_rate_cost: 0
 
 obs:
   loop_target: 6.283185307179586

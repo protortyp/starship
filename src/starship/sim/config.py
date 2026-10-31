@@ -247,3 +247,8 @@ class SimConfig:
     max_pitch: float = math.radians(115.0)
     max_rate: float = math.radians(40.0)
     max_roll_rate: float = math.radians(90.0)
+    # Optional stunt completion: after this much world-horizontal rotation, returning upright
+    # below the rate limit ends the episode successfully. Zero disables the objective.
+    loop_target: float = 0.0
+    loop_upright_tolerance: float = math.radians(15.0)
+    loop_max_rate: float = math.radians(30.0)
