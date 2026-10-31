@@ -2,7 +2,7 @@
 # Learn the somersault first, then progressively demand a cleaner upright recovery.
 enabled: true
 promote_landed: 0.5
-promote_evals: 2
+promote_evals: 1
 stages:
   - name: 0 loop, upright within 30 deg and 120 deg/s
     overrides:
