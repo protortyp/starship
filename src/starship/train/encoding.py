@@ -6,7 +6,7 @@ from dataclasses import dataclass
 import warp as wp
 
 from starship.sim.atmosphere import atmosphere
-from starship.sim.physics import State
+from starship.sim.physics import Attitude, State
 from starship.sim.propulsion import EngineState, FlapState
 from starship.sim.rigid import Body
 
@@ -28,6 +28,8 @@ class ObsConfig:
     log_distance: float = 1000.0
     log_scale: float = 3.0
     dynamic_pressure: float = 5000.0
+    # When positive, channel 27 carries capped stunt progress instead of horizontal pad miss.
+    loop_target: float = 0.0
     mirror: bool = True
 
 
@@ -45,6 +47,7 @@ class ObsScales:
     log_distance: float
     log_scale: float
     dynamic_pressure: float
+    loop_target: float
 
 
 def make_obs_scales(config: ObsConfig | None = None) -> ObsScales:
@@ -52,9 +55,13 @@ def make_obs_scales(config: ObsConfig | None = None) -> ObsScales:
     scales = ObsScales()
     for name in ObsScales.vars:
         value = getattr(config, name)
-        if not math.isfinite(value) or value <= 0:
+        if not math.isfinite(value) or value < 0 or (name != "loop_target" and value == 0):
             raise ValueError(f"observation scale {name} must be finite and positive")
-        setattr(scales, name, value if name.endswith("_clip") else 1.0 / value)
+        if name == "loop_target":
+            value = 1.0 / value if value > 0 else 0.0
+        elif not name.endswith("_clip"):
+            value = 1.0 / value
+        setattr(scales, name, value)
     return scales
 
 
@@ -67,6 +74,7 @@ def fuel_fraction(tanks: wp.vec4, landing_load: float) -> float:
 @wp.func
 def encode(
     b: Body,
+    a: Attitude,
     e: EngineState,
     f: FlapState,
     tanks: wp.vec4,
@@ -116,6 +124,8 @@ def encode(
     obs[i, 26] = 0.5 * air.density * speed * speed * scales.dynamic_pressure
     miss = wp.length(wp.vec2(b.pos[0], b.pos[1]))
     obs[i, 27] = wp.log(1.0 + miss * scales.log_distance) * scales.log_scale
+    if scales.loop_target > 0.0:
+        obs[i, 27] = wp.min(a.horizontal_travel * scales.loop_target, 1.0)
 
 
 @wp.kernel
@@ -129,6 +139,7 @@ def observe_kernel(
     i = wp.tid()
     encode(
         state.body[i],
+        state.attitude[i],
         state.engine[i],
         state.flaps[i],
         state.tanks[i],

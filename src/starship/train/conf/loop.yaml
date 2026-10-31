@@ -54,3 +54,6 @@ reward:
   loop_overshoot_cost: 5
   loop_bonus: 100
   loop_finish_rate_cost: 10
+
+obs:
+  loop_target: 6.283185307179586

@@ -111,6 +111,8 @@ def model_diagnostics(model: nn.Module, obs, hidden_state=None) -> dict[str, flo
     lstm_input: list[torch.Tensor] = []
     rnn = getattr(probe, "rnn", None)
     if rnn is not None:
+        # deepcopy invalidates cuDNN's packed weight buffer and otherwise warns on every probe.
+        rnn.rnn.flatten_parameters()
         hooks.append(
             probe.obs_normalizer.register_forward_hook(lambda _m, _i, out: lstm_input.append(out))
         )

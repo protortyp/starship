@@ -72,6 +72,23 @@ def test_observation_layout_and_scale(device):
         np.testing.assert_allclose(result.reward.numpy(), result.reward_terms.numpy().sum(1))
 
 
+def test_loop_progress_replaces_miss_observation_when_enabled(device):
+    env = RocketEnv(
+        1,
+        config(offset=30),
+        device=device,
+        obs_config=ObsConfig(mirror=False, loop_target=2 * math.pi),
+    )
+    assert env.obs.numpy()[0, 27] == 0
+    attitude = env.sim.state.attitude.numpy()
+    attitude["horizontal_travel"][0] = math.pi
+    env.sim.state.attitude.assign(attitude)
+    assert env.observe().numpy()[0, 27] == pytest.approx(0.5)
+    attitude["horizontal_travel"][0] = 3 * math.pi
+    env.sim.state.attitude.assign(attitude)
+    assert env.observe().numpy()[0, 27] == 1
+
+
 def test_heading_invariance(device):
     env = RocketEnv(
         2, config(offset=30, horizontal_speed=8), device=device, obs_config=ObsConfig(mirror=False)

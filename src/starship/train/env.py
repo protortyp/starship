@@ -106,6 +106,7 @@ def _step_kernel(
         # The simulator's terminal struct has no actuators, so encode before spawn discards them.
         encode(
             state.body[i],
+            state.attitude[i],
             state.engine[i],
             state.flaps[i],
             state.tanks[i],
