@@ -1,0 +1,48 @@
+# @package curriculum
+enabled: true
+promote_landed: 0.5
+promote_evals: 1
+stages:
+  - name: 0 upright landing burn from 300 m
+    overrides:
+      - sim.spawn.altitude=300
+      - sim.spawn.altitude_noise=50
+      - sim.spawn.offset_noise=30
+      - sim.spawn.vertical_speed=-40
+      - sim.spawn.vertical_speed_noise=5
+      - sim.spawn.horizontal_speed_noise=2
+      - sim.spawn.pitch_noise=0.05
+      - sim.spawn.angular_rate_noise=0.02
+      - sim.spawn.lit_throttle=0.7
+      - sim.max_time=60
+  - name: 1 recover from 800 m
+    overrides:
+      - sim.spawn.altitude=800
+      - sim.spawn.altitude_noise=100
+      - sim.spawn.offset_noise=50
+      - sim.spawn.vertical_speed=-30
+      - sim.spawn.vertical_speed_noise=8
+      - sim.spawn.horizontal_speed_noise=4
+      - sim.spawn.pitch_noise=0.1
+      - sim.spawn.angular_rate_noise=0.1
+      - sim.spawn.lit_throttle=0.4
+      - sim.max_time=75
+  - name: 2 recover from 1.4 km
+    overrides:
+      - sim.spawn.altitude=1400
+      - sim.spawn.altitude_noise=150
+      - sim.spawn.offset_noise=75
+      - sim.spawn.vertical_speed=-15
+      - sim.spawn.horizontal_speed_noise=6
+      - sim.spawn.pitch_noise=0.2
+      - sim.spawn.angular_rate_noise=0.4
+      - sim.max_time=90
+  - name: 3 post-salto recovery from 2 km
+    overrides:
+      - sim.spawn.altitude=2000
+      - sim.spawn.altitude_noise=250
+      - sim.spawn.offset_noise=100
+      - sim.spawn.vertical_speed=0
+      - sim.spawn.horizontal_speed_noise=8
+      - sim.spawn.pitch_noise=0.35
+      - sim.spawn.angular_rate_noise=0.9

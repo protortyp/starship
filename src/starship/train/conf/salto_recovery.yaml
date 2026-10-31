@@ -1,5 +1,6 @@
 defaults:
   - train
+  - override curriculum: salto_recovery
   - _self_
 
 experiment: salto_recovery
@@ -10,9 +11,6 @@ record_every: 2
 
 # The state envelope handed off by the salto policy: near 2 km, almost upright, with meaningful
 # residual pitch/yaw rate. This isolates recovery and pad landing from learning the rotation.
-curriculum:
-  enabled: false
-
 sim:
   spawn:
     altitude: 2000
