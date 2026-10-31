@@ -42,7 +42,7 @@ stages:
       - sim.landing.max_tilt=3.141592653589793
       - sim.landing.max_angular_rate=10
       - reward.distance_weight=0.02
-      - reward.speed_weight=0.5
+      - reward.speed_weight=5
       - reward.horizontal_speed_weight=0.25
       - reward.tilt_weight=5
       - reward.tilt_height=500
