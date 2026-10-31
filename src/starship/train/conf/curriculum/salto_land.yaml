@@ -2,7 +2,7 @@
 # Preserve the learned loop stages so a loop checkpoint can resume, then make the policy remain
 # alive and progressively tighten a real pad touchdown.
 enabled: true
-promote_landed: 0.05
+promote_landed: 0.01
 promote_evals: 1
 stages:
   - name: 0 loop, upright within 30 deg and 120 deg/s
@@ -97,16 +97,61 @@ stages:
       - sim.landing.pad_radius=950
       - sim.landing.max_vertical_speed=95
       - sim.landing.max_horizontal_speed=48
+  - name: 18 brake below 93.75 m/s
+    overrides:
+      - sim.landing.pad_radius=937.5
+      - sim.landing.max_vertical_speed=93.75
+      - sim.landing.max_horizontal_speed=47.5
+  - name: 19 brake below 92.5 m/s
+    overrides:
+      - sim.landing.pad_radius=925
+      - sim.landing.max_vertical_speed=92.5
+      - sim.landing.max_horizontal_speed=47
+  - name: 20 brake below 91.25 m/s
+    overrides:
+      - sim.landing.pad_radius=912.5
+      - sim.landing.max_vertical_speed=91.25
+      - sim.landing.max_horizontal_speed=46
   - name: 18 brake below 90 m/s
     overrides:
       - sim.landing.pad_radius=900
       - sim.landing.max_vertical_speed=90
       - sim.landing.max_horizontal_speed=45
+  - name: 22 brake below 88.75 m/s
+    overrides:
+      - sim.landing.pad_radius=881.25
+      - sim.landing.max_vertical_speed=88.75
+      - sim.landing.max_horizontal_speed=44.5
+  - name: 23 brake below 87.5 m/s
+    overrides:
+      - sim.landing.pad_radius=862.5
+      - sim.landing.max_vertical_speed=87.5
+      - sim.landing.max_horizontal_speed=44
+  - name: 24 brake below 86.25 m/s
+    overrides:
+      - sim.landing.pad_radius=843.75
+      - sim.landing.max_vertical_speed=86.25
+      - sim.landing.max_horizontal_speed=43
   - name: 19 brake below 85 m/s
     overrides:
       - sim.landing.pad_radius=825
       - sim.landing.max_vertical_speed=85
       - sim.landing.max_horizontal_speed=42
+  - name: 26 brake below 83.75 m/s
+    overrides:
+      - sim.landing.pad_radius=806.25
+      - sim.landing.max_vertical_speed=83.75
+      - sim.landing.max_horizontal_speed=41.5
+  - name: 27 brake below 82.5 m/s
+    overrides:
+      - sim.landing.pad_radius=787.5
+      - sim.landing.max_vertical_speed=82.5
+      - sim.landing.max_horizontal_speed=41
+  - name: 28 brake below 81.25 m/s
+    overrides:
+      - sim.landing.pad_radius=768.75
+      - sim.landing.max_vertical_speed=81.25
+      - sim.landing.max_horizontal_speed=40.5
   - name: 20 brake below 80 m/s
     overrides:
       - sim.landing.pad_radius=750
