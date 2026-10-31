@@ -66,3 +66,6 @@ obs:
 runner:
   algorithm:
     learning_rate: 1.0e-5
+    # Once the loop exists, concentrate the action distribution so the deterministic mean policy
+    # inherits the braking behaviour seen in stochastic rollouts.
+    entropy_coef: 0.0002
