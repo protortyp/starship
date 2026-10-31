@@ -15,6 +15,9 @@ stages:
       - sim.spawn.angular_rate_noise=0.02
       - sim.spawn.lit_throttle=0.7
       - sim.max_time=60
+      - sim.max_pitch=2.007128639793479
+      - sim.max_rate=0.6981317007977318
+      - sim.max_roll_rate=1.5707963267948966
   - name: 1 recover from 800 m
     overrides:
       - sim.spawn.altitude=800
@@ -27,6 +30,9 @@ stages:
       - sim.spawn.angular_rate_noise=0.1
       - sim.spawn.lit_throttle=0.4
       - sim.max_time=75
+      - sim.max_pitch=2.5
+      - sim.max_rate=1.5
+      - sim.max_roll_rate=2
   - name: 2 recover from 1.4 km
     overrides:
       - sim.spawn.altitude=1400
@@ -37,6 +43,9 @@ stages:
       - sim.spawn.pitch_noise=0.2
       - sim.spawn.angular_rate_noise=0.4
       - sim.max_time=90
+      - sim.max_pitch=3.141592653589793
+      - sim.max_rate=3
+      - sim.max_roll_rate=3
   - name: 3 post-salto recovery from 2 km
     overrides:
       - sim.spawn.altitude=2000
@@ -46,3 +55,5 @@ stages:
       - sim.spawn.horizontal_speed_noise=8
       - sim.spawn.pitch_noise=0.35
       - sim.spawn.angular_rate_noise=0.9
+      - sim.max_rate=10
+      - sim.max_roll_rate=10
