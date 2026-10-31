@@ -1,7 +1,7 @@
 # @package curriculum
 # Learn the somersault first, then progressively demand a cleaner upright recovery.
 enabled: true
-promote_landed: 0.8
+promote_landed: 0.5
 promote_evals: 2
 stages:
   - name: 0 loop, upright within 30 deg and 120 deg/s
