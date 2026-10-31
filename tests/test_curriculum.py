@@ -76,11 +76,15 @@ def test_loop_curriculum_tightens_recovery_limits():
     with initialize_config_module("starship.train.conf", version_base=None):
         cfg = compose("loop")
     curriculum = Curriculum(cfg, cfg.curriculum)
-    assert len(curriculum.stages) == 10
-    rates = [curriculum.configs(stage)[0].loop_max_rate for stage in range(10)]
-    tolerances = [curriculum.configs(stage)[0].loop_upright_tolerance for stage in range(10)]
-    assert rates == pytest.approx(np.radians([120, 90, 82.5, 75, 67.5, 60, 52.5, 45, 37.5, 30]))
-    assert tolerances == pytest.approx(np.radians([30, 20, 20, 20, 20, 20, 20, 15, 15, 15]))
+    assert len(curriculum.stages) == 12
+    rates = [curriculum.configs(stage)[0].loop_max_rate for stage in range(12)]
+    tolerances = [curriculum.configs(stage)[0].loop_upright_tolerance for stage in range(12)]
+    assert rates == pytest.approx(
+        np.radians([120, 90, 82.5, 75, 67.5, 60, 52.5, 52.5, 52.5, 45, 37.5, 30])
+    )
+    assert tolerances == pytest.approx(
+        np.radians([30, 20, 20, 20, 20, 20, 20, 17.5, 15, 15, 15, 15])
+    )
 
 
 def test_overrides_outside_sim_and_reward_are_rejected():
