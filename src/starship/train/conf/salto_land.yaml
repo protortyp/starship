@@ -6,7 +6,7 @@ defaults:
 experiment: salto_land
 device: cuda:0
 iterations: 1000
-eval_interval: 10
+eval_interval: 1
 record_every: 2
 rollback_drop: 0.5
 rollback_patience: 3
