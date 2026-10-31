@@ -245,6 +245,57 @@ def test_terminal_rewards_and_final_observations(device, status):
     )
 
 
+def test_loop_reward_caps_progress_and_pays_for_upright_finish(device):
+    cfg = config(altitude=1000, vertical_speed=0, pitch=0)
+    cfg.max_time = cfg.dt
+    reward = RewardConfig(
+        loop_target=2 * math.pi,
+        loop_progress_weight=10,
+        loop_overshoot_cost=5,
+        loop_bonus=100,
+        loop_finish_rate_cost=10,
+        timeout_penalty=0,
+    )
+    env = RocketEnv(1, cfg, reward_config=reward, device=device)
+    attitude = env.sim.state.attitude.numpy()
+    attitude["horizontal_travel"] = 2 * math.pi
+    env.sim.state.attitude.assign(attitude)
+    result = env.step(actions(1))
+    assert result.truncated.numpy()[0]
+    assert result.terminal_reward.numpy()[0] == pytest.approx(100, abs=1e-4)
+    terms = result.reward_terms.numpy()[0]
+    assert terms[REWARD_TERMS.index("loop_progress")] == pytest.approx(0)
+
+
+def test_loop_progress_and_overshoot_are_incremental(device):
+    cfg = config(altitude=1000, vertical_speed=0, pitch=0)
+    reward = RewardConfig(
+        loop_target=1.0,
+        loop_progress_weight=10,
+        loop_overshoot_cost=5,
+        timeout_penalty=0,
+    )
+    env = RocketEnv(1, cfg, reward_config=reward, device=device)
+    body = env.sim.state.body.numpy()
+    body["omega"][0] = (0, 2, 0)
+    env.sim.state.body.assign(body)
+    result = env.step(actions(1))
+    terms = result.reward_terms.numpy()[0]
+    assert terms[REWARD_TERMS.index("loop_progress")] == pytest.approx(0.2, rel=0.02)
+    assert terms[REWARD_TERMS.index("loop_overshoot_cost")] == pytest.approx(0, abs=1e-6)
+
+    attitude = env.sim.state.attitude.numpy()
+    attitude["horizontal_travel"][0] = 0.99
+    env.sim.state.attitude.assign(attitude)
+    body = env.sim.state.body.numpy()
+    body["omega"][0] = (0, 2, 0)
+    env.sim.state.body.assign(body)
+    result = env.step(actions(1))
+    terms = result.reward_terms.numpy()[0]
+    assert terms[REWARD_TERMS.index("loop_progress")] == pytest.approx(0.1, rel=0.05)
+    assert terms[REWARD_TERMS.index("loop_overshoot_cost")] == pytest.approx(-0.05, rel=0.05)
+
+
 @pytest.mark.parametrize(
     ("component", "weight"),
     [

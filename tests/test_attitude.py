@@ -177,7 +177,7 @@ def test_costs_telescope_to_episode_totals_across_reset(device):
         total = np.zeros((2, 4))
         for _ in range(3):
             env.step(actions(2))
-            total += env.reward_terms.numpy()[:, 8:]
+            total += env.reward_terms.numpy()[:, 8:12]
         assert env.sim.terminal.done.numpy().all()
         a = env.sim.terminal.attitude.numpy()
         expected = np.stack(

@@ -24,6 +24,8 @@ REWARD_TERMS = (
     "horizontal_rotation_cost",
     "sideslip_cost",
     "reflip_cost",
+    "loop_progress",
+    "loop_overshoot_cost",
 )
 
 
@@ -64,6 +66,13 @@ class RewardConfig:
     horizontal_rotation_cost: float = 0.0  # per rad about world-horizontal axes
     sideslip_cost: float = 0.0  # per squared air-relative sideslip fraction s above 20 m/s
     reflip_cost: float = 0.0  # per return above 60 degrees after reaching below 30 degrees
+    # Optional stunt objective. Horizontal travel integrates rotation about either world-horizontal
+    # axis, excluding cheap spins about the ship's own longitudinal axis. A zero target disables it.
+    loop_target: float = 0.0  # rad of end-over-end rotation, normally 2*pi
+    loop_progress_weight: float = 0.0  # reward per rad, capped at loop_target
+    loop_overshoot_cost: float = 0.0  # cost per rad beyond loop_target
+    loop_bonus: float = 0.0  # timeout bonus, scaled by how upright the completed loop finishes
+    loop_finish_rate_cost: float = 0.0  # timeout cost per rad/s after completing the loop
 
 
 @wp.struct
@@ -96,6 +105,11 @@ class RewardParams:
     horizontal_rotation_cost: float
     sideslip_cost: float
     reflip_cost: float
+    loop_target: float
+    loop_progress_weight: float
+    loop_overshoot_cost: float
+    loop_bonus: float
+    loop_finish_rate_cost: float
 
 
 def make_reward_params(config: RewardConfig) -> RewardParams:
@@ -158,6 +172,16 @@ def terminal_value(p: Params, r: RewardParams, t: Terminal, i: int, load: float)
     if status == OUT_OF_BOUNDS:
         return -r.out_of_bounds_penalty
     if status == TIMEOUT:
+        if r.loop_target > 0.0:
+            a = t.attitude[i]
+            if a.horizontal_travel >= r.loop_target:
+                axis_z = wp.quat_rotate(t.body[i].rot, wp.vec3(1.0, 0.0, 0.0))[2]
+                # No bonus while sideways or inverted; full bonus when upright.
+                upright = wp.clamp(axis_z, 0.0, 1.0)
+                return r.loop_bonus * upright - r.loop_finish_rate_cost * wp.length(
+                    wp.vec2(t.body[i].omega[1], t.body[i].omega[2])
+                )
+            return 0.0
         return -r.timeout_penalty
     return 0.0
 
@@ -230,6 +254,12 @@ def reward_kernel(
     terms[i, 9] = -r.horizontal_rotation_cost * (a.horizontal_travel - prev.horizontal_travel)
     terms[i, 10] = -r.sideslip_cost * (a.sideslip - prev.sideslip)
     terms[i, 11] = -r.reflip_cost * float(a.reflips - prev.reflips)
+    loop_before = wp.min(prev.horizontal_travel, r.loop_target)
+    loop_after = wp.min(a.horizontal_travel, r.loop_target)
+    terms[i, 12] = r.loop_progress_weight * (loop_after - loop_before)
+    overshoot_before = wp.max(prev.horizontal_travel - r.loop_target, 0.0)
+    overshoot_after = wp.max(a.horizontal_travel - r.loop_target, 0.0)
+    terms[i, 13] = -r.loop_overshoot_cost * (overshoot_after - overshoot_before)
     total = 0.0
     for j in range(wp.static(len(REWARD_TERMS))):
         total += terms[i, j]
