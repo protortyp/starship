@@ -44,9 +44,9 @@ stages:
       - reward.distance_weight=0.02
       - reward.speed_weight=5
       - reward.horizontal_speed_weight=0.25
-      - reward.tilt_weight=5
-      - reward.tilt_height=500
-      - reward.angular_rate_cost=0.02
+      - reward.tilt_weight=20
+      - reward.tilt_height=3000
+      - reward.angular_rate_cost=0.1
       - reward.time_cost=0.005
       - reward.crash_penalty=20
       - reward.tumble_penalty=200
