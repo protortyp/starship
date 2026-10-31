@@ -56,6 +56,10 @@ def main(cfg: DictConfig) -> None:
         if runner.eval_env is not None:
             metrics = runner.evaluate()
             runner._keep_best(runner.current_learning_iteration, metrics)
+            if runner.curriculum is not None and runner.curriculum.observe_eval(
+                metrics.get("eval/env/rate/landed", 0.0)
+            ):
+                runner._promote(runner.current_learning_iteration)
             for key, value in metrics.items():
                 runner.writer.add_scalar(key, value, runner.total_env_steps)
         print(f"continuing from {cfg.checkpoint}")
