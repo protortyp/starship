@@ -256,7 +256,11 @@ def reward_kernel(
     terms[i, 11] = -r.reflip_cost * float(a.reflips - prev.reflips)
     loop_before = wp.min(prev.horizontal_travel, r.loop_target)
     loop_after = wp.min(a.horizontal_travel, r.loop_target)
-    terms[i, 12] = r.loop_progress_weight * (loop_after - loop_before)
+    if done:
+        loop_after = 0.0
+    # Potential shaping: progress is useful as a dense learning signal but cannot be exploited by
+    # earning it early and paying overshoot costs later under discounting.
+    terms[i, 12] = r.loop_progress_weight * (r.gamma * loop_after - loop_before)
     overshoot_before = wp.max(prev.horizontal_travel - r.loop_target, 0.0)
     overshoot_after = wp.max(a.horizontal_travel - r.loop_target, 0.0)
     terms[i, 13] = -r.loop_overshoot_cost * (overshoot_after - overshoot_before)

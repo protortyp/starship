@@ -281,11 +281,12 @@ def test_loop_reward_caps_progress_and_pays_for_upright_finish(device):
     assert result.truncated.numpy()[0]
     assert result.terminal_reward.numpy()[0] == pytest.approx(100, abs=1e-4)
     terms = result.reward_terms.numpy()[0]
-    assert terms[REWARD_TERMS.index("loop_progress")] == pytest.approx(0)
+    assert terms[REWARD_TERMS.index("loop_progress")] == pytest.approx(-20 * math.pi)
 
 
 def test_loop_progress_and_overshoot_are_incremental(device):
     cfg = config(altitude=1000, vertical_speed=0, pitch=0)
+    cfg.max_rate = 10
     reward = RewardConfig(
         loop_target=1.0,
         loop_progress_weight=10,
@@ -298,7 +299,7 @@ def test_loop_progress_and_overshoot_are_incremental(device):
     env.sim.state.body.assign(body)
     result = env.step(actions(1))
     terms = result.reward_terms.numpy()[0]
-    assert terms[REWARD_TERMS.index("loop_progress")] == pytest.approx(0.2, rel=0.02)
+    assert terms[REWARD_TERMS.index("loop_progress")] == pytest.approx(1.998, rel=0.02)
     assert terms[REWARD_TERMS.index("loop_overshoot_cost")] == pytest.approx(0, abs=1e-6)
 
     attitude = env.sim.state.attitude.numpy()
@@ -309,8 +310,8 @@ def test_loop_progress_and_overshoot_are_incremental(device):
     env.sim.state.body.assign(body)
     result = env.step(actions(1))
     terms = result.reward_terms.numpy()[0]
-    assert terms[REWARD_TERMS.index("loop_progress")] == pytest.approx(0.1, rel=0.05)
-    assert terms[REWARD_TERMS.index("loop_overshoot_cost")] == pytest.approx(-0.05, rel=0.05)
+    assert terms[REWARD_TERMS.index("loop_progress")] == pytest.approx(0.09, rel=0.06)
+    assert terms[REWARD_TERMS.index("loop_overshoot_cost")] == pytest.approx(-0.95, rel=0.05)
 
 
 @pytest.mark.parametrize(
