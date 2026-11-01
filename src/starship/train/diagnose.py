@@ -86,7 +86,10 @@ def run_summary(run: Path, s: dict, report: dict) -> list[str]:
     target = [v for _, v in s.get("eval/target/rate/landed", [])]
     if target:
         lines.append(f"- target eval landed: last {target[-1]:.2f}, best {max(target):.2f}")
-    updates = [v for _, v in s.get("optim/updates", [])][-200:]
+    warmup_steps = {step for step, value in s.get("optim/critic_warmup", []) if value >= 0.5}
+    updates = [value for step, value in s.get("optim/updates", []) if step not in warmup_steps][
+        -200:
+    ]
     if updates:
         starved = float(np.mean([u <= STARVED_UPDATES for u in updates]))
         line = f"policy updates per iteration (last {len(updates)}): mean {np.mean(updates):.1f}"

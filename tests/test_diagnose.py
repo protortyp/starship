@@ -52,5 +52,15 @@ def test_run_summary_warns_when_kl_stop_starves_updates():
     assert "- policy updates per iteration (last 100): mean 20.0" in lines
 
 
+def test_run_summary_excludes_deliberate_critic_warmup_from_policy_updates():
+    s = {
+        "optim/updates": [(i, 0.0 if i < 50 else 20.0) for i in range(60)],
+        "optim/critic_warmup": [(i, float(i < 50)) for i in range(60)],
+    }
+    lines = run_summary(Path("run"), s, {})
+    assert "- policy updates per iteration (last 10): mean 20.0" in lines
+    assert not any("WARN policy updates" in line for line in lines)
+
+
 def test_promotion_lines_without_promotions():
     assert promotion_lines(scalars([0.9] * 20, [40.0] * 20), []) == []
