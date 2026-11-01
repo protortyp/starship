@@ -30,6 +30,8 @@ def reference(dist, out):
 def test_rejects_other_action_dims():
     with pytest.raises(ValueError, match="output_dim"):
         HybridDistribution(ACTION_DIM + 1)
+    with pytest.raises(ValueError, match="deterministic_engine_selection"):
+        HybridDistribution(ACTION_DIM, deterministic_engine_selection="random")
 
 
 @pytest.mark.parametrize("batch", [(5,), (3, 4)])
@@ -131,6 +133,21 @@ def test_deterministic_output_and_export_module():
     torch.save(module, buffer)
     buffer.seek(0)
     assert torch.equal(torch.load(buffer, weights_only=False)(out), expected)
+
+
+def test_deterministic_floor_expected_engine_selection_and_export():
+    dist = HybridDistribution(ACTION_DIM, deterministic_engine_selection="floor_expected")
+    # Probabilities sum to 1.51: select exactly the highest-confidence engine. Thresholding would
+    # select two, and rounding the expected count would also select two.
+    logits = torch.tensor([[2.0, 0.04, -2.0]])
+    out = torch.cat([logits, torch.zeros(1, CONTINUOUS_HEADS)], -1)
+    expected = torch.tensor([[1.0, 0.0, 0.0]])
+    assert torch.equal(dist.deterministic_output(out)[:, :ENGINE_HEADS], expected)
+    module = dist.as_deterministic_output_module()
+    assert torch.equal(module(out)[:, :ENGINE_HEADS], expected)
+    assert torch.equal(
+        torch.export.export(module, (out,)).module()(out)[:, :ENGINE_HEADS], expected
+    )
 
 
 def test_ppo_smoke_update_on_random_data():

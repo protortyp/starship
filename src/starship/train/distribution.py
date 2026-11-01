@@ -28,10 +28,16 @@ class HybridDistribution(Distribution):
         output_dim: int = ACTION_DIM,
         init_std: float = 0.5,
         std_range: tuple[float, float] = (0.05, 2.0),
+        deterministic_engine_selection: str = "threshold",
     ) -> None:
         if output_dim != ACTION_DIM:
             raise ValueError(f"HybridDistribution needs output_dim={ACTION_DIM}, got {output_dim}")
+        if deterministic_engine_selection not in ("threshold", "floor_expected"):
+            raise ValueError(
+                "deterministic_engine_selection must be 'threshold' or 'floor_expected'"
+            )
         super().__init__(output_dim)
+        self.deterministic_engine_selection = deterministic_engine_selection
         # Pre-tanh units: std 0.5 explores the middle of each actuator range without piling
         # samples onto the tanh limits; the clamp keeps the policy from freezing (std -> 0) or
         # from saturating every actuator (std >> 1), where log_prob gradients become useless.
@@ -58,10 +64,13 @@ class HybridDistribution(Distribution):
 
     def deterministic_output(self, mlp_output: torch.Tensor) -> torch.Tensor:
         logits, mean = self._split(mlp_output)
-        return torch.cat([(logits > 0.0).to(mean.dtype), mean], dim=-1)
+        selection = getattr(self, "deterministic_engine_selection", "threshold")
+        on = _select_engines(logits, selection).to(mean.dtype)
+        return torch.cat([on, mean], dim=-1)
 
     def as_deterministic_output_module(self) -> nn.Module:
-        return _DeterministicOutput(ENGINE_HEADS)
+        selection = getattr(self, "deterministic_engine_selection", "threshold")
+        return _DeterministicOutput(ENGINE_HEADS, selection)
 
     @property
     def input_dim(self) -> int:
@@ -121,11 +130,23 @@ class HybridDistribution(Distribution):
 class _DeterministicOutput(nn.Module):
     """Exportable module: engine flags from the logits' sign, continuous means passed through."""
 
-    def __init__(self, engine_heads: int) -> None:
+    def __init__(self, engine_heads: int, engine_selection: str = "threshold") -> None:
         super().__init__()
         self.engine_heads = engine_heads
+        self.engine_selection = engine_selection
 
     def forward(self, mlp_output: torch.Tensor) -> torch.Tensor:
         logits = mlp_output[..., : self.engine_heads]
         mean = mlp_output[..., self.engine_heads :]
-        return torch.cat([(logits > 0.0).to(mean.dtype), mean], dim=-1)
+        return torch.cat([_select_engines(logits, self.engine_selection).to(mean.dtype), mean], -1)
+
+
+def _select_engines(logits: torch.Tensor, selection: str) -> torch.Tensor:
+    if selection == "threshold":
+        return logits > 0.0
+    # Independent Bernoulli heads can hover either side of 0.5 and make threshold decoding switch
+    # discontinuously between engine subsets. Preserve their expected count conservatively, while
+    # choosing the heads in which the policy has the most confidence.
+    count = torch.sigmoid(logits).sum(dim=-1).floor().to(torch.long)
+    rank = logits.argsort(dim=-1, descending=True).argsort(dim=-1)
+    return rank < count.unsqueeze(-1)
