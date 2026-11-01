@@ -85,7 +85,11 @@ stage in another 63, then reached a 48.8% best on the formerly blocked coupled b
 updates at that rate degraded the recent window to 29--40%, so training resumed from the preserved
 stage-58 best with a refreshed critic and a 2e-6 adapter rate. That checkpoint passed stages 58 and
 59. The following 73.125 m/s stage reached a 49.2% best but failed to make that behavior reliable
-before two protected rollbacks, so a 73.28125 m/s coupled midpoint now precedes it.
+before two protected rollbacks, so a 73.28125 m/s coupled midpoint now precedes it. Its best policy
+landed 40.9% over 1,024 episodes and reduced horizontal-limit failures from about 71% to 61%, but
+42% of crashes still missed the pad and another 289 actor updates stayed flat. Stage 60 therefore
+raises distance shaping from 0.02 to the general landing curriculum's 0.05 while preserving that
+actor and refreshing its critic.
 
 ## Findings
 
