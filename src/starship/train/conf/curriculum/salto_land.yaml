@@ -523,12 +523,33 @@ stages:
       - sim.landing.max_horizontal_speed=1
       - sim.landing.max_tilt=0.08726646259971647
       - sim.landing.max_angular_rate=0.08726646259971647
-  # Cumulative absolute rotation can be gamed by wobbling and repeated flips. The final stage is
-  # deliberately last so it cannot auto-promote before the dense cleanup costs have taken effect;
-  # touchdown itself only counts after exactly one inverted-to-upright recovery with no re-flip.
-  - name: 83 clean single salto then safe pad landing
+  # Cumulative absolute rotation can be gamed by wobbling and repeated flips. Introduce the dense
+  # cleanup costs gradually after the safe landing is learned; jumping directly from no axial-roll
+  # or re-flip cost to the exact sparse invariant left the inherited controller near 1,000 degrees
+  # of roll travel and 1.2 re-flips per episode.
+  - name: 83 reduce axial roll after the salto
+    overrides:
+      - reward.roll_travel_cost=0.1
+  - name: 84 further reduce axial roll
+    overrides:
+      - reward.roll_travel_cost=0.25
+  - name: 85 strongly discourage axial roll
+    overrides:
+      - reward.roll_travel_cost=0.5
+  - name: 86 minimize axial roll
+    overrides:
+      - reward.roll_travel_cost=1
+  - name: 87 discourage rotation overshoot and re-flips
+    overrides:
+      - reward.loop_overshoot_cost=6.25
+      - reward.reflip_cost=2.5
+  - name: 88 strongly discourage rotation overshoot and re-flips
+    overrides:
+      - reward.loop_overshoot_cost=7.5
+      - reward.reflip_cost=5
+  # Touchdown finally counts only after exactly one inverted-to-upright recovery with no re-flip.
+  - name: 89 clean single salto then safe pad landing
     overrides:
       - sim.require_single_loop_before_landing=true
       - reward.loop_overshoot_cost=10
-      - reward.roll_travel_cost=1
       - reward.reflip_cost=10
