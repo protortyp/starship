@@ -5,7 +5,9 @@ defaults:
 
 experiment: salto_land
 device: cuda:0
-iterations: 1000
+# Fine braking and cleanup stages often consolidate over hundreds of updates; budget a genuinely
+# long run by default instead of judging a healthy policy from a short window.
+iterations: 2000
 eval_interval: 1
 record_every: 2
 rollback_drop: 0.5

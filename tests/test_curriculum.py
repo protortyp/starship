@@ -90,6 +90,7 @@ def test_loop_curriculum_tightens_recovery_limits():
 def test_salto_landing_curriculum_finishes_with_a_strict_single_loop():
     with initialize_config_module("starship.train.conf", version_base=None):
         cfg = compose("salto_land")
+    assert cfg.iterations == 2000
     curriculum = Curriculum(cfg, cfg.curriculum)
     assert len(curriculum.stages) == 48
     sim, reward = curriculum.target_configs()
