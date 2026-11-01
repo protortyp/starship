@@ -38,17 +38,19 @@
 
 The `salto_land` curriculum first learns one powered end-over-end rotation and recovery, then keeps
 the same recurrent policy alive while tightening touchdown speed, pad radius, attitude and angular
-rate. It uses 68 stages and a 2,000-update default budget; promotion requires at least 45% of 256
+rate. It uses 69 stages and a 2,000-update default budget; promotion requires at least 45% of 256
 deterministic evaluation episodes twice in succession. The final stage additionally requires exactly
 one inverted-to-upright recovery with no re-flip and penalizes axial roll and rotation beyond 360°.
 
-Current run: `salto_braking_fine_ladder_v1`. The 0.625 m/s braking ladder reached and solved the
+Current run: `salto_stage38_midpoint_v1`. The 0.625 m/s braking ladder reached and solved the
 80 m/s boundary (stage 34) after about 1,000 stage updates. Tightening all five landing constraints
 directly from 80 to 70 m/s then dropped deterministic landings to zero. Interpolating that transition
 over 16 stages restored a learnable boundary: the first 79.375 m/s stage passed in about 90 updates,
 78.75 m/s passed after about 270 updates, and 78.125 m/s passed after a critic refresh restored its
-collapsed feature rank from 31/128 to 76/128. Training is continuing at 77.5 m/s. This is not yet a
-safe-pad result.
+collapsed feature rank from 31/128 to 76/128. The next 77.5 m/s stage then stalled at a 44.1% best
+through 271 updates; increasing rollback patience produced longer trajectories but no better policy.
+A measured 77.8125 m/s midpoint reached 46.1%, passed in about 140 updates, and transferred into the
+original 77.5 m/s stage at 53%. Training is continuing there. This is not yet a safe-pad result.
 
 ## Findings
 
@@ -85,6 +87,11 @@ safe-pad result.
   from the best actor with only the critic and its optimizer moments reinitialized restored critic rank
   to 76/128, improved the deterministic best from 40.2% to 49.6%, and passed the stage. Preserve the
   actor when value-network collapse, rather than policy plasticity, is the measured bottleneck.
+- At the next 77.5 m/s boundary, 271 updates with short rollback patience and another 100 with long
+  patience both stayed below promotion despite healthy ranks. Inserting one evidence-driven half-step
+  at 77.8125 m/s produced repeatable gate-level evaluations, passed in about 140 updates, and entered
+  77.5 m/s at 53%. Use local midpoint stages when optimizer changes do not move a healthy near-gate
+  policy; do not weaken the promotion threshold.
 - Cumulative absolute horizontal rotation was not enough to define a single salto. A deterministic
   probe of an otherwise promising stage-18 controller averaged about 930° of horizontal travel and
   repeated re-flips. Final touchdown now checks exactly one inverted-to-upright recovery and zero
