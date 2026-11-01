@@ -203,6 +203,34 @@ def test_shaping_telescopes(device, gamma, saturation):
     np.testing.assert_allclose(total, -initial, atol=2e-5)
 
 
+def test_horizontal_distance_shaping_centers_near_ground_and_fades_at_altitude(device):
+    reward = RewardConfig(
+        distance_weight=0,
+        horizontal_distance_weight=0.05,
+        horizontal_distance_height=500,
+        speed_weight=0,
+        horizontal_speed_weight=0,
+        tilt_weight=0,
+    )
+
+    def initial_distance_potential(altitude, offset):
+        env = RocketEnv(
+            1,
+            config(altitude=altitude, offset=offset, vertical_speed=0),
+            reward_config=reward,
+            device=device,
+        )
+        env.step(actions(1))
+        return env._potential_before.numpy()[0, 0]
+
+    near = initial_distance_potential(100, 100)
+    high = initial_distance_potential(1000, 100)
+    centered = initial_distance_potential(100, 0)
+    assert near < high < 0
+    assert abs(near) > 4 * abs(high)
+    assert centered == pytest.approx(0, abs=1e-6)
+
+
 @pytest.mark.parametrize("status", [LANDED, CRASHED, TUMBLED, OUT_OF_BOUNDS, TIMEOUT])
 def test_terminal_rewards_and_final_observations(device, status):
     cfg = config()
