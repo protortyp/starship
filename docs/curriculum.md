@@ -52,7 +52,9 @@ through 271 updates; increasing rollback patience produced longer trajectories b
 A measured 77.8125 m/s midpoint reached 46.1%, passed in about 140 updates, and transferred into the
 original 77.5 m/s stage, which passed after about 174 updates. The next 0.625 m/s transition again
 collapsed to 21-32%, so the complete 77.5 to 70 m/s segment now uses 0.3125 m/s interpolation across
-all five constraints. Training is continuing at 77.1875 m/s. This is not yet a safe-pad result.
+all five constraints. The first 77.1875 m/s attempt plateaued at 44.1% for 273 updates and 13
+protected retries, so a 77.34375 m/s bridge was inserted. Training is continuing there. This is not
+yet a safe-pad result.
 
 ## Findings
 
