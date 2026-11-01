@@ -102,7 +102,9 @@ actor adapter remained plastic, but critic feature rank collapsed from 22/128 to
 run therefore started from the protected actor with a fresh critic and optimizer. The dedicated
 lateral term passed stage 60 after about 715 actor updates on consecutive 47% and 46% evaluations;
 retain horizontal-speed shaping at 0.5 because the measured intervention solved the boundary without
-the queued increase to 1.0.
+the queued increase to 1.0. Stage 61 passed after another 292 updates. The following 0.3125 m/s step
+then stayed at a 36.4% recent-300 mean through 505 updates, so a 72.96875 m/s midpoint now precedes
+the original 72.8125 m/s boundary.
 
 ## Findings
 
