@@ -37,9 +37,10 @@ blender -b -P tools/render/starship_scene.py -- --track out/landing.json \
     --out out/render/clip
 ```
 
-Options: `--camera ground|pad|aerial|wide`, `--camera-azimuth auto|deg` (`auto` places the
-camera `--camera-offset` degrees from the belly direction so the tiled and steel halves both
-show), `--sun-offset`, `--hdri <polyhaven id>`, `--engines sim|all` (`all` lights all three
+Options: `--camera ground|pad|aerial|wide|chase` (`chase` follows the vehicle and keeps a full
+flight or stunt legible), `--camera-azimuth auto|deg` (`auto` places the camera `--camera-offset`
+degrees from the belly direction so the tiled and steel halves both show), `--sun-offset`,
+`--hdri <polyhaven id>`, `--engines sim|all` (`all` lights all three
 Raptors at the commanded throttle; the policy lands on two), `--device OPTIX|CUDA|METAL|CPU`,
 `--preview` (coarse volumes, no depth of field), `--exposure`, `--haze`, `--max-tiles`,
 `--save-blend file.blend`, `--mode blend` (build and save only). Poly Haven assets download on

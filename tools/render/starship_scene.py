@@ -67,7 +67,9 @@ def parse_args():
     )
     p.add_argument("--resolution", default="3840x2160")
     p.add_argument("--samples", type=int, default=512)
-    p.add_argument("--camera", choices=["ground", "pad", "aerial", "wide"], default="ground")
+    p.add_argument(
+        "--camera", choices=["ground", "pad", "aerial", "wide", "chase"], default="ground"
+    )
     p.add_argument(
         "--camera-azimuth",
         default="auto",
@@ -1405,6 +1407,7 @@ def build_camera(args, aim, azimuth_deg):
         "pad": (85.0, 1.7, 24.0, 5.6, 14.0),
         "aerial": (260.0, 120.0, 60.0, 5.6, 22.0),
         "wide": (520.0, 1.8, 40.0, 8.0, 18.0),
+        "chase": (220.0, 20.0, 60.0, 5.6, 18.0),
     }
     dist, height, focal, fstop, aim_h = presets[args.camera]
     cam.location = (dist * math.cos(az), dist * math.sin(az), height)
@@ -1435,7 +1438,20 @@ def dust_front(age):
     return 18.0 * (1 - math.exp(-age / 2.2)) + 5.0 * age
 
 
-def animate(track, args, ship, flaps, engines, splash, dust, splash_light, aim, aim_h, frames):
+def action_fcurves(action):
+    """Iterate curves from legacy and Blender 4.4+ layered actions."""
+    if hasattr(action, "fcurves"):
+        yield from action.fcurves
+        return
+    for layer in action.layers:
+        for strip in layer.strips:
+            for channelbag in getattr(strip, "channelbags", ()):
+                yield from channelbag.fcurves
+
+
+def animate(
+    track, args, ship, flaps, engines, splash, dust, splash_light, camera, aim, aim_h, frames
+):
     fr = track["frames"]
     fps = track["meta"]["fps"]
     pos = np.array(fr["position"])
@@ -1450,6 +1466,7 @@ def animate(track, args, ship, flaps, engines, splash, dust, splash_light, aim, 
     lit = thrust.max(axis=1) > 0.2
     below = lit & (alt < DUST_START_ALTITUDE)
     first = int(np.argmax(below)) if below.any() else len(alt)
+    camera_offset = camera.location.copy()
     for i in frames:
         i = min(max(i, 0), len(alt) - 1)
         t = i / fps
@@ -1492,10 +1509,25 @@ def animate(track, args, ship, flaps, engines, splash, dust, splash_light, aim, 
             dust.keyframe_insert(f'["{key}"]', frame=i)
         aim.location = (pos[i, 0], pos[i, 1], pos[i, 2] + aim_h)
         aim.keyframe_insert("location", frame=i)
+        if args.camera == "chase":
+            camera.location = (
+                pos[i, 0] + camera_offset.x,
+                pos[i, 1] + camera_offset.y,
+                pos[i, 2] + camera_offset.z,
+            )
+            camera.keyframe_insert("location", frame=i)
     # Linear interpolation between the dense keys avoids overshoot in the motion blur.
-    for ob in [ship, aim, splash, dust, *[f for f, _ in flaps], *[e for e, *_ in engines]]:
+    for ob in [
+        ship,
+        camera,
+        aim,
+        splash,
+        dust,
+        *[f for f, _ in flaps],
+        *[e for e, *_ in engines],
+    ]:
         if ob.animation_data and ob.animation_data.action:
-            for fc in ob.animation_data.action.fcurves:
+            for fc in action_fcurves(ob.animation_data.action):
                 for kp in fc.keyframe_points:
                     kp.interpolation = "LINEAR"
 
@@ -1578,12 +1610,19 @@ def configure_render(scene, args, fps):
 
 
 def setup_compositor(scene, haze=0.45):
-    scene.use_nodes = True
-    tree = scene.node_tree
-    tree.nodes.clear()
+    layered = not hasattr(scene, "node_tree")
+    if layered:
+        tree = bpy.data.node_groups.new("Starship Compositor", "CompositorNodeTree")
+        scene.compositing_node_group = tree
+        tree.interface.new_socket(name="Image", in_out="OUTPUT", socket_type="NodeSocketColor")
+    else:
+        scene.use_nodes = True
+        tree = scene.node_tree
+        tree.nodes.clear()
     rl = tree.nodes.new("CompositorNodeRLayers")
     glare = tree.nodes.new("CompositorNodeGlare")
-    glare.glare_type = "FOG_GLOW"
+    with contextlib.suppress(AttributeError):
+        glare.glare_type = "FOG_GLOW"
     for name, val in (("quality", "HIGH"), ("size", 8), ("mix", -0.3), ("threshold", 2.0)):
         with contextlib.suppress(AttributeError, TypeError):
             setattr(glare, name, val)
@@ -1591,19 +1630,34 @@ def setup_compositor(scene, haze=0.45):
         sock = glare.inputs.get(name)
         if sock is not None and sock.type == "VALUE" and not sock.is_linked:
             sock.default_value = val
+    for name, val in (("Type", "Fog Glow"), ("Quality", "High")):
+        sock = glare.inputs.get(name)
+        if sock is not None and sock.type == "MENU":
+            sock.default_value = val
     tree.links.new(rl.outputs["Image"], glare.inputs["Image"])
     # Atmospheric haze: lift distant pixels towards the sky colour by the mist pass.
-    scale = tree.nodes.new("CompositorNodeMath")
+    scale = tree.nodes.new("ShaderNodeMath" if layered else "CompositorNodeMath")
     scale.operation = "MULTIPLY"
     scale.inputs[1].default_value = haze
     tree.links.new(rl.outputs["Mist"], scale.inputs[0])
-    mix = tree.nodes.new("CompositorNodeMixRGB")
-    mix.blend_type = "MIX"
-    mix.inputs[2].default_value = (0.66, 0.6, 0.58, 1.0)
-    tree.links.new(scale.outputs[0], mix.inputs[0])
-    tree.links.new(glare.outputs["Image"], mix.inputs[1])
-    comp = tree.nodes.new("CompositorNodeComposite")
-    tree.links.new(mix.outputs[0], comp.inputs["Image"])
+    if layered:
+        mix = tree.nodes.new("ShaderNodeMix")
+        mix.data_type = "RGBA"
+        sockets = {socket.identifier: socket for socket in mix.inputs}
+        outputs = {socket.identifier: socket for socket in mix.outputs}
+        sockets["B_Color"].default_value = (0.66, 0.6, 0.58, 1.0)
+        tree.links.new(scale.outputs[0], sockets["Factor_Float"])
+        tree.links.new(glare.outputs["Image"], sockets["A_Color"])
+        comp = tree.nodes.new("NodeGroupOutput")
+        tree.links.new(outputs["Result_Color"], comp.inputs["Image"])
+    else:
+        mix = tree.nodes.new("CompositorNodeMixRGB")
+        mix.blend_type = "MIX"
+        mix.inputs[2].default_value = (0.66, 0.6, 0.58, 1.0)
+        tree.links.new(scale.outputs[0], mix.inputs[0])
+        tree.links.new(glare.outputs["Image"], mix.inputs[1])
+        comp = tree.nodes.new("CompositorNodeComposite")
+        tree.links.new(mix.outputs[0], comp.inputs["Image"])
 
 
 # ----------------------------------------------------------------------------------------------
@@ -1645,7 +1699,7 @@ def main():
     build_terrain(mats, args.seed)
     splash, dust, splash_light = build_ground_volumes(mats)
     aim = make_empty("CameraAim")
-    _cam, aim_h = build_camera(args, aim, cam_az)
+    camera, aim_h = build_camera(args, aim, cam_az)
     log(f"camera azimuth {cam_az:.0f} deg ({args.camera})")
     log(f"scene built in {time.time() - t0:.1f} s")
 
@@ -1668,6 +1722,7 @@ def main():
         splash,
         dust,
         splash_light,
+        camera,
         aim,
         aim_h,
         range(start - 2, end + 3),
