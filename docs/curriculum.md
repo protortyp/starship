@@ -38,14 +38,16 @@
 
 The `salto_land` curriculum first learns one powered end-over-end rotation and recovery, then keeps
 the same recurrent policy alive while tightening touchdown speed, pad radius, attitude and angular
-rate. It uses 48 stages and a 2,000-update default budget; promotion requires at least 45% of 256
+rate. It uses 53 stages and a 2,000-update default budget; promotion requires at least 45% of 256
 deterministic evaluation episodes twice in succession. The final stage additionally requires exactly
 one inverted-to-upright recovery with no re-flip and penalizes axial roll and rotation beyond 360°.
 
-Current run: `salto_braking_polish_v2`. It resumed the learned loop-and-ground controller at stage 16
-and passed stages 16–23 without a rollback by iteration 357 (187.7M total environment steps), reaching
-the 86.25 m/s touchdown stage. Training continues through the full long-run budget; this is not yet a
-safe-pad result.
+Current run: `salto_braking_polish_v2`. It resumed the learned loop-and-ground controller at stage 16,
+passed stages 16–24, and reached a 41.4% best at the original 85 m/s stage after 2,000 continuation
+updates (1.136B environment steps). A fixed-seed 1,024-episode probe remained flat at 35.4% from the
+35.6% measured at update 1,500; failed contacts averaged 86.1 m/s and 79% broke the vertical-speed
+limit. The next continuation therefore uses 0.625 m/s braking steps from 86.25 to 80 m/s. This is not
+yet a safe-pad result.
 
 ## Findings
 
