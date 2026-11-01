@@ -394,6 +394,10 @@ stages:
       # dedicated near-ground lateral potential; total 3D distance is dominated by altitude.
       - reward.distance_weight=0.05
       - reward.horizontal_distance_weight=0.05
+      # A long control probe attributed 61% of crashes to horizontal speed, still the dominant
+      # limit after the nonlinear adapter reduced it from 71%. Preserve pad centering and give
+      # lateral braking the next measured shaping increment.
+      - reward.horizontal_speed_weight=1.0
   - name: 61 brake below 73.125 m/s
     overrides:
       - sim.landing.pad_radius=715.625
