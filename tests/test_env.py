@@ -181,7 +181,11 @@ def test_shaping_telescopes(device, gamma, saturation):
     env = RocketEnv(
         1,
         cfg,
-        reward_config=RewardConfig(gamma=gamma, distance_saturation=saturation),
+        reward_config=RewardConfig(
+            gamma=gamma,
+            distance_saturation=saturation,
+            horizontal_distance_weight=0.05,
+        ),
         device=device,
     )
     total = np.zeros(3)

@@ -35,6 +35,11 @@ class RewardConfig:
     gamma: float = 0.999  # Must equal PPO's discount.
     distance_weight: float = 0.05  # per m
     distance_saturation: float = 0.0  # m; zero retains legacy linear shaping
+    # Dedicated pad-centering potential. Total 3D distance is dominated by altitude during the
+    # descent, so it gives little gradient for correcting a lateral miss. Fade this term in near
+    # the ground, where horizontal position determines whether contact is on the pad.
+    horizontal_distance_weight: float = 0.0  # per horizontal m
+    horizontal_distance_height: float = 500.0  # m
     speed_weight: float = 1.0  # per m/s above the safe profile
     # Horizontal speed is nearly free under the descent profile alone; without this term policies
     # tip over and fly away sideways (2D needed the same lateral shaping, docs/curriculum.md).
@@ -82,6 +87,8 @@ class RewardParams:
     gamma: float
     distance_weight: float
     distance_saturation: float
+    horizontal_distance_weight: float
+    horizontal_distance_height: float
     speed_weight: float
     horizontal_speed_weight: float
     tilt_weight: float
@@ -122,8 +129,8 @@ def make_reward_params(config: RewardConfig) -> RewardParams:
         value = getattr(config, field.name)
         if not math.isfinite(value) or value < 0:
             raise ValueError(f"reward {field.name} must be finite and nonnegative")
-    if config.gamma > 1 or config.tilt_height <= 0:
-        raise ValueError("gamma must be <= 1 and tilt_height must be positive")
+    if config.gamma > 1 or config.tilt_height <= 0 or config.horizontal_distance_height <= 0:
+        raise ValueError("gamma must be <= 1 and shaping fade heights must be positive")
     params = RewardParams()
     for field in fields(config):
         setattr(params, field.name, float(getattr(config, field.name)))
@@ -142,8 +149,11 @@ def potential(p: Params, r: RewardParams, b: Body, tanks: wp.vec4) -> wp.vec3:
     distance = wp.length(b.pos)
     if r.distance_saturation > 0.0:
         distance = distance / (1.0 + distance / r.distance_saturation)
+    horizontal_distance = wp.length(wp.vec2(b.pos[0], b.pos[1]))
+    horizontal_distance_fade = wp.exp(-height / r.horizontal_distance_height)
     return wp.vec3(
-        -r.distance_weight * distance,
+        -r.distance_weight * distance
+        - r.horizontal_distance_weight * horizontal_distance * horizontal_distance_fade,
         -r.speed_weight * excess_speed
         - r.horizontal_speed_weight * wp.length(wp.vec2(b.vel[0], b.vel[1])),
         -r.tilt_weight * tilt * fade,

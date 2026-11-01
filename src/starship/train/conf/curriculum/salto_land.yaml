@@ -390,8 +390,10 @@ stages:
       - sim.landing.max_angular_rate=3.42325756413064
       # The adapter reduced horizontal failures, but a 1,024-episode probe still found pad
       # misses on 42% of crashes and 289 actor updates stayed flat. Match the distance shaping
-      # strength that succeeded in the general landing curriculum.
+      # strength that succeeded in the general landing curriculum. Its decisive term was a
+      # dedicated near-ground lateral potential; total 3D distance is dominated by altitude.
       - reward.distance_weight=0.05
+      - reward.horizontal_distance_weight=0.05
   - name: 61 brake below 73.125 m/s
     overrides:
       - sim.landing.pad_radius=715.625

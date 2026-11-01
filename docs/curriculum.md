@@ -89,7 +89,12 @@ before two protected rollbacks, so a 73.28125 m/s coupled midpoint now precedes 
 landed 40.9% over 1,024 episodes and reduced horizontal-limit failures from about 71% to 61%, but
 42% of crashes still missed the pad and another 289 actor updates stayed flat. Stage 60 therefore
 raises distance shaping from 0.02 to the general landing curriculum's 0.05 while preserving that
-actor and refreshing its critic.
+actor and refreshing its critic. The historical landing ablation actually attributed its 46% to
+81% improvement to a separate near-ground lateral-position potential, not to total 3D distance.
+Total distance is dominated by altitude during the salto descent, so stage 60 now also applies the
+same 0.05-per-metre horizontal potential with a 500 m exponential fade. This remains
+policy-invariant shaping and directly distinguishes pad-centred approaches from the measured miss
+mode without changing the touchdown gate.
 
 ## Findings
 
