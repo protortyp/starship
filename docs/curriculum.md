@@ -80,6 +80,11 @@ failure statistics. The final linear continuous output rows therefore lacked use
 this correction. `ContinuousAdapterRNNModel` adds a zero-initialized nonlinear residual fed by the
 frozen recurrent latent. Existing checkpoints load with bit-identical initial actions, and the
 adapter has no computation path to engine logits.
+The 64-unit adapter at 1e-5 passed the horizontal-only stage in 28 actor updates and the pad-only
+stage in another 63, then reached a 48.8% best on the formerly blocked coupled boundary. Continued
+updates at that rate degraded the recent window to 29--40%, so training resumed from the preserved
+stage-58 best with a refreshed critic and a 2e-6 adapter rate. That checkpoint passed stages 58 and
+59 and transferred into stage 60 without a rollback.
 
 ## Findings
 
