@@ -412,6 +412,10 @@ stages:
       - sim.landing.max_horizontal_speed=36.5234375
       - sim.landing.max_tilt=1.701569320974575
       - sim.landing.max_angular_rate=3.40313864194915
+      # Two successively easier boundaries remained near 37% for 500 updates apiece. The last
+      # large probe attributed most crashes to horizontal speed, so make the next intervention
+      # target that measured failure rather than subdividing the limits again.
+      - reward.horizontal_speed_weight=1.0
   - name: 63 brake below 72.96875 m/s
     overrides:
       - sim.landing.pad_radius=714.84375

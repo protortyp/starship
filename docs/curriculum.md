@@ -108,7 +108,11 @@ the original 72.8125 m/s boundary. That midpoint also stayed flat: its recent-50
 36.8%, with only seven noisy gate-level evaluations and no consecutive passes after 501 actor updates.
 The adapter was still updating; critic feature rank declined from about 60/128 to 39/128 but did not
 repeat the prior collapse to 4/128. A 73.046875 m/s bridge now halves the transition from the solved
-stage-61 policy, with another fresh critic, before retrying both stricter boundaries.
+stage-61 policy, with another fresh critic, before retrying both stricter boundaries. The easier
+bridge nevertheless stayed at a 37.2% recent-500 mean with nine isolated gate-level evaluations and
+no promotion. Further subdivision would only train against the same marginal stage-61 behavior, so
+stage 62 now raises horizontal-speed shaping from 0.5 to 1.0, directly targeting the dominant 61%
+horizontal-limit crash mode measured by the last 1,024-episode probe.
 
 ## Findings
 

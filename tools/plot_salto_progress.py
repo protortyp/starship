@@ -26,6 +26,7 @@ TRACES = (
     Trace("3D distance only", ROOT / "out/salto-stage60-pad-shaping-v1.log", 60, "#9ca3af"),
     Trace("lateral pad shaping", ROOT / "out/salto-stage60-lateral-pad-v1.log", 60, "#10b981"),
     Trace("first stage-62 midpoint", ROOT / "out/salto-stage62-midpoint-v1.log", 62, "#f59e0b"),
+    Trace("refined stage-62 bridge", ROOT / "out/salto-stage62-refined-v1.log", 62, "#2563eb"),
 )
 
 

@@ -107,8 +107,9 @@ def test_salto_landing_curriculum_finishes_with_a_strict_single_loop():
     assert stage60_reward.distance_weight == pytest.approx(0.05)
     assert stage60_reward.horizontal_distance_weight == pytest.approx(0.05)
     assert stage60_reward.horizontal_speed_weight == pytest.approx(0.5)
-    stage62, _ = curriculum.configs(62)
+    stage62, stage62_reward = curriculum.configs(62)
     assert stage62.landing.max_vertical_speed == pytest.approx(73.046875)
+    assert stage62_reward.horizontal_speed_weight == pytest.approx(1.0)
     stage63, _ = curriculum.configs(63)
     assert stage63.landing.max_vertical_speed == pytest.approx(72.96875)
     cleanup = [curriculum.configs(stage)[1] for stage in range(89, 97)]
