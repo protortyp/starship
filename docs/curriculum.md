@@ -38,7 +38,7 @@
 
 The `salto_land` curriculum first learns one powered end-over-end rotation and recovery, then keeps
 the same recurrent policy alive while tightening touchdown speed, pad radius, attitude and angular
-rate. It uses 69 stages and a 2,000-update default budget; promotion requires at least 45% of 256
+rate. It uses 81 stages and a 2,000-update default budget; promotion requires at least 45% of 256
 deterministic evaluation episodes twice in succession. The final stage additionally requires exactly
 one inverted-to-upright recovery with no re-flip and penalizes axial roll and rotation beyond 360°.
 
@@ -50,7 +50,9 @@ over 16 stages restored a learnable boundary: the first 79.375 m/s stage passed 
 collapsed feature rank from 31/128 to 76/128. The next 77.5 m/s stage then stalled at a 44.1% best
 through 271 updates; increasing rollback patience produced longer trajectories but no better policy.
 A measured 77.8125 m/s midpoint reached 46.1%, passed in about 140 updates, and transferred into the
-original 77.5 m/s stage at 53%. Training is continuing there. This is not yet a safe-pad result.
+original 77.5 m/s stage, which passed after about 174 updates. The next 0.625 m/s transition again
+collapsed to 21-32%, so the complete 77.5 to 70 m/s segment now uses 0.3125 m/s interpolation across
+all five constraints. Training is continuing at 77.1875 m/s. This is not yet a safe-pad result.
 
 ## Findings
 
@@ -90,8 +92,10 @@ original 77.5 m/s stage at 53%. Training is continuing there. This is not yet a 
 - At the next 77.5 m/s boundary, 271 updates with short rollback patience and another 100 with long
   patience both stayed below promotion despite healthy ranks. Inserting one evidence-driven half-step
   at 77.8125 m/s produced repeatable gate-level evaluations, passed in about 140 updates, and entered
-  77.5 m/s at 53%. Use local midpoint stages when optimizer changes do not move a healthy near-gate
-  policy; do not weaken the promotion threshold.
+  77.5 m/s near the gate; that original boundary passed after about 174 updates. The following 0.625
+  m/s step again collapsed to 21-32%, so the remaining ladder through 70 m/s was densified to 0.3125
+  m/s rather than rediscovering the same cliff at every stage. Use local midpoint stages when
+  optimizer changes do not move a healthy near-gate policy; do not weaken the promotion threshold.
 - Cumulative absolute horizontal rotation was not enough to define a single salto. A deterministic
   probe of an otherwise promising stage-18 controller averaged about 930° of horizontal travel and
   repeated re-flips. Final touchdown now checks exactly one inverted-to-upright recovery and zero
