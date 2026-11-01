@@ -1,0 +1,198 @@
+#!/usr/bin/env python3
+"""Generate the progress figure embedded in the single-salto training PR."""
+
+from __future__ import annotations
+
+import re
+from dataclasses import dataclass
+from pathlib import Path
+
+from tensorboard.backend.event_processing.event_accumulator import EventAccumulator
+
+ROOT = Path(__file__).resolve().parents[1]
+OUTPUT = ROOT / "docs" / "assets" / "salto-training-progress.svg"
+LINE = re.compile(r"eval landed\s+(?P<landed>\d+\.\d+).*stage\s+(?P<stage>\d+)")
+
+
+@dataclass(frozen=True)
+class Trace:
+    label: str
+    path: Path
+    stage: int
+    color: str
+
+
+TRACES = (
+    Trace("3D distance only", ROOT / "out/salto-stage60-pad-shaping-v1.log", 60, "#9ca3af"),
+    Trace("lateral pad shaping", ROOT / "out/salto-stage60-lateral-pad-v1.log", 60, "#10b981"),
+    Trace("first stage-62 midpoint", ROOT / "out/salto-stage62-midpoint-v1.log", 62, "#f59e0b"),
+)
+
+
+def rolling(values: list[float], window: int = 25) -> list[float]:
+    result: list[float] = []
+    total = 0.0
+    for index, value in enumerate(values):
+        total += value
+        if index >= window:
+            total -= values[index - window]
+        result.append(total / min(index + 1, window))
+    return result
+
+
+def read_landing(trace: Trace) -> list[float]:
+    values: list[float] = []
+    for line in trace.path.read_text().splitlines():
+        match = LINE.search(line)
+        if match and int(match["stage"]) == trace.stage:
+            values.append(float(match["landed"]))
+    return values
+
+
+def polyline(
+    values: list[float],
+    *,
+    left: float,
+    top: float,
+    width: float,
+    height: float,
+    x_max: float,
+    y_min: float,
+    y_max: float,
+    color: str,
+) -> str:
+    if len(values) < 2:
+        return ""
+    points = []
+    for index, value in enumerate(values):
+        x = left + index / x_max * width
+        y = top + (y_max - value) / (y_max - y_min) * height
+        points.append(f"{x:.1f},{y:.1f}")
+    return (
+        f'<polyline points="{" ".join(points)}" fill="none" stroke="{color}" '
+        'stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/>'
+    )
+
+
+def text(x: float, y: float, value: str, *, size: int = 13, anchor: str = "start") -> str:
+    return (
+        f'<text x="{x}" y="{y}" font-size="{size}" text-anchor="{anchor}" '
+        f'fill="#374151">{value}</text>'
+    )
+
+
+def landing_panel() -> list[str]:
+    left, top, width, height = 72, 92, 742, 270
+    y_min, y_max, x_max = 0.25, 0.55, 1600
+    lines = [text(left, 55, "Landing success at the hard braking boundary", size=20)]
+    for tick in (0.3, 0.4, 0.45, 0.5):
+        y = top + (y_max - tick) / (y_max - y_min) * height
+        dash = ' stroke-dasharray="5 5"' if tick == 0.45 else ""
+        color = "#dc2626" if tick == 0.45 else "#e5e7eb"
+        lines.append(
+            f'<line x1="{left}" y1="{y:.1f}" x2="{left + width}" y2="{y:.1f}" '
+            f'stroke="{color}"{dash}/>'
+        )
+        lines.append(text(left - 10, y + 4, f"{tick:.0%}", anchor="end"))
+    for tick in (0, 500, 1000, 1500):
+        x = left + tick / x_max * width
+        lines.append(
+            f'<line x1="{x:.1f}" y1="{top}" x2="{x:.1f}" y2="{top + height}" stroke="#f3f4f6"/>'
+        )
+        lines.append(text(x, top + height + 23, str(tick), anchor="middle"))
+    lines.append(text(left + width / 2, top + height + 48, "evaluation iteration", anchor="middle"))
+    lines.append(text(left + width - 5, top + 23, "promotion gate", size=12, anchor="end"))
+    for trace in TRACES:
+        values = rolling(read_landing(trace))
+        lines.append(
+            polyline(
+                values,
+                left=left,
+                top=top,
+                width=width,
+                height=height,
+                x_max=x_max,
+                y_min=y_min,
+                y_max=y_max,
+                color=trace.color,
+            )
+        )
+    legend_x = 545
+    for index, trace in enumerate(TRACES):
+        y = 51 + 20 * index
+        lines.append(
+            f'<line x1="{legend_x}" y1="{y}" x2="{legend_x + 22}" y2="{y}" '
+            f'stroke="{trace.color}" stroke-width="3"/>'
+        )
+        lines.append(text(legend_x + 29, y + 4, trace.label, size=12))
+    return lines
+
+
+def latest_event_file() -> Path:
+    candidates = list((ROOT / "logs/salto_stage62_midpoint_v1").glob("*/*tfevents*"))
+    return max(candidates, key=lambda path: path.stat().st_mtime)
+
+
+def rank_panel() -> list[str]:
+    left, top, width, height = 72, 465, 742, 225
+    accumulator = EventAccumulator(str(latest_event_file())).Reload()
+    tags = (
+        ("plasticity/actor/features/effective_rank", "actor rank", "#2563eb"),
+        ("plasticity/critic/features/effective_rank", "critic rank", "#7c3aed"),
+    )
+    series = [
+        (label, color, [event.value for event in accumulator.Scalars(tag)])
+        for tag, label, color in tags
+    ]
+    x_max = max(len(values) for _, _, values in series) - 1
+    lines = [text(left, 430, "Policy plasticity during the 501-update midpoint trial", size=20)]
+    for tick in (0, 32, 64, 96, 128):
+        y = top + (128 - tick) / 128 * height
+        lines.append(
+            f'<line x1="{left}" y1="{y:.1f}" x2="{left + width}" y2="{y:.1f}" stroke="#e5e7eb"/>'
+        )
+        lines.append(text(left - 10, y + 4, str(tick), anchor="end"))
+    for tick in (0, 100, 300, 500):
+        x = left + tick / max(x_max, 1) * width
+        lines.append(text(x, top + height + 23, str(tick), anchor="middle"))
+    lines.append(text(left + width / 2, top + height + 48, "training update", anchor="middle"))
+    for index, (label, color, values) in enumerate(series):
+        lines.append(
+            polyline(
+                values,
+                left=left,
+                top=top,
+                width=width,
+                height=height,
+                x_max=max(x_max, 1),
+                y_min=0,
+                y_max=128,
+                color=color,
+            )
+        )
+        legend_x = 650
+        legend_y = 430 + index * 20
+        lines.append(
+            f'<line x1="{legend_x}" y1="{legend_y}" x2="{legend_x + 22}" '
+            f'y2="{legend_y}" stroke="{color}" stroke-width="3"/>'
+        )
+        lines.append(text(legend_x + 29, legend_y + 4, label, size=12))
+    return lines
+
+
+def main() -> None:
+    OUTPUT.parent.mkdir(parents=True, exist_ok=True)
+    elements = [
+        '<svg xmlns="http://www.w3.org/2000/svg" width="880" height="760" viewBox="0 0 880 760">',
+        '<rect width="880" height="760" fill="white"/>',
+        '<g font-family="ui-sans-serif, system-ui, sans-serif">',
+        *landing_panel(),
+        *rank_panel(),
+        "</g>",
+        "</svg>",
+    ]
+    OUTPUT.write_text("\n".join(elements) + "\n")
+
+
+if __name__ == "__main__":
+    main()
