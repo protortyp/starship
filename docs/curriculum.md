@@ -38,16 +38,15 @@
 
 The `salto_land` curriculum first learns one powered end-over-end rotation and recovery, then keeps
 the same recurrent policy alive while tightening touchdown speed, pad radius, attitude and angular
-rate. It uses 53 stages and a 2,000-update default budget; promotion requires at least 45% of 256
+rate. It uses 68 stages and a 2,000-update default budget; promotion requires at least 45% of 256
 deterministic evaluation episodes twice in succession. The final stage additionally requires exactly
 one inverted-to-upright recovery with no re-flip and penalizes axial roll and rotation beyond 360°.
 
-Current run: `salto_braking_polish_v2`. It resumed the learned loop-and-ground controller at stage 16,
-passed stages 16–24, and reached a 41.4% best at the original 85 m/s stage after 2,000 continuation
-updates (1.136B environment steps). A fixed-seed 1,024-episode probe remained flat at 35.4% from the
-35.6% measured at update 1,500; failed contacts averaged 86.1 m/s and 79% broke the vertical-speed
-limit. The next continuation therefore uses 0.625 m/s braking steps from 86.25 to 80 m/s. This is not
-yet a safe-pad result.
+Current run: `salto_braking_fine_ladder_v1`. The 0.625 m/s braking ladder reached and solved the
+80 m/s boundary (stage 34) after about 1,000 stage updates. Tightening all five landing constraints
+directly from 80 to 70 m/s then dropped deterministic landings to zero. Interpolating that transition
+over 16 stages restored a learnable boundary: the first 79.375 m/s stage passed in about 90 updates,
+and training is continuing at 78.75 m/s. This is not yet a safe-pad result.
 
 ## Findings
 
@@ -76,6 +75,10 @@ yet a safe-pad result.
   Requiring 45% landed in two consecutive 256-episode evaluations retained capability across the
   braking transitions. Fine 1.25 m/s stages then progressed only after the run was allowed to train
   for hundreds of updates rather than being restarted on short-window variance.
+- Tightening vertical speed, horizontal speed, pad radius, tilt and angular rate together from the
+  80 m/s boundary to 70 m/s was another curriculum cliff: the inherited policy went from a solved
+  stage to 0% landings. Sixteen interpolated steps across all five constraints made the first boundary
+  learnable immediately and preserved the same strict promotion gate.
 - Cumulative absolute horizontal rotation was not enough to define a single salto. A deterministic
   probe of an otherwise promising stage-18 controller averaged about 930° of horizontal travel and
   repeated re-flips. Final touchdown now checks exactly one inverted-to-upright recovery and zero
