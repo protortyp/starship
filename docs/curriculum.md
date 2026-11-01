@@ -38,7 +38,7 @@
 
 The `salto_land` curriculum first learns one powered end-over-end rotation and recovery, then keeps
 the same recurrent policy alive while tightening touchdown speed, pad radius, attitude and angular
-rate. It uses 90 stages and a 2,000-update default budget; promotion requires at least 45% of 256
+rate. It uses 91 stages and a 2,000-update default budget; promotion requires at least 45% of 256
 deterministic evaluation episodes twice in succession. The final stage additionally requires exactly
 one inverted-to-upright recovery with no re-flip and penalizes axial roll and rotation beyond 360°.
 
@@ -59,9 +59,11 @@ reached 43-44% and crossed the gate in isolation, but matched short- and long-pa
 failed the consecutive gate. A final 77.4609375 m/s half-step was inserted. Aligning stochastic
 engine exploration with the deterministic expected-count decoder and updating only the continuous
 action rows then broke through that boundary without disturbing the learned engine sequence. The run
-passed stages 40 through 50 with no rollback; the 75 m/s stage needed 112 updates despite several
-earlier isolated gate crossings. It is now training stage 51 (74.6875 m/s). This is not yet a
-safe-pad result.
+passed stages 40 through 52 with no rollback; the 75 m/s and 74.6875 m/s stages needed 112 and 132
+updates despite several earlier isolated gate crossings. Stage 53 then plateaued at a 41.0% best over
+153 updates; a probe showed horizontal-speed and pad misses dominated while mean crash vertical speed
+was already below its limit. A coupled 74.21875 m/s midpoint was inserted before retrying the original
+74.0625 m/s boundary. This is not yet a safe-pad result.
 
 ## Findings
 
