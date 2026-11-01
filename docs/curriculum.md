@@ -54,8 +54,10 @@ original 77.5 m/s stage, which passed after about 174 updates. The next 0.625 m/
 collapsed to 21-32%, so the complete 77.5 to 70 m/s segment now uses 0.3125 m/s interpolation across
 all five constraints. The first 77.1875 m/s attempt plateaued at 44.1% for 273 updates and 13
 protected retries. A 77.34375 m/s bridge crossed the gate once but did not produce consecutive
-passes in 140 short-patience plus 140 long-patience updates, so it was bisected again at 77.421875
-m/s. Training is continuing there. This is not yet a safe-pad result.
+passes in 140 short-patience plus 140 long-patience updates. Its 77.421875 m/s bisection repeatedly
+reached 43-44% and crossed the gate in isolation, but matched short- and long-patience runs again
+failed the consecutive gate. A final 77.4609375 m/s half-step was inserted. Training is continuing
+there. This is not yet a safe-pad result.
 
 ## Findings
 
