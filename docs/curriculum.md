@@ -38,11 +38,11 @@
 
 The `salto_land` curriculum first learns one powered end-over-end rotation and recovery, then keeps
 the same recurrent policy alive while tightening touchdown speed, pad radius, attitude and angular
-rate. It uses 81 stages and a 2,000-update default budget; promotion requires at least 45% of 256
+rate. It uses 90 stages and a 2,000-update default budget; promotion requires at least 45% of 256
 deterministic evaluation episodes twice in succession. The final stage additionally requires exactly
 one inverted-to-upright recovery with no re-flip and penalizes axial roll and rotation beyond 360°.
 
-Current run: `salto_stage38_midpoint_v1`. The 0.625 m/s braking ladder reached and solved the
+Current run: `salto_stage40_continuous_head_v1`. The 0.625 m/s braking ladder reached and solved the
 80 m/s boundary (stage 34) after about 1,000 stage updates. Tightening all five landing constraints
 directly from 80 to 70 m/s then dropped deterministic landings to zero. Interpolating that transition
 over 16 stages restored a learnable boundary: the first 79.375 m/s stage passed in about 90 updates,
@@ -56,8 +56,12 @@ all five constraints. The first 77.1875 m/s attempt plateaued at 44.1% for 273 u
 protected retries. A 77.34375 m/s bridge crossed the gate once but did not produce consecutive
 passes in 140 short-patience plus 140 long-patience updates. Its 77.421875 m/s bisection repeatedly
 reached 43-44% and crossed the gate in isolation, but matched short- and long-patience runs again
-failed the consecutive gate. A final 77.4609375 m/s half-step was inserted. Training is continuing
-there. This is not yet a safe-pad result.
+failed the consecutive gate. A final 77.4609375 m/s half-step was inserted. Aligning stochastic
+engine exploration with the deterministic expected-count decoder and updating only the continuous
+action rows then broke through that boundary without disturbing the learned engine sequence. The run
+passed stages 40 through 50 with no rollback; the 75 m/s stage needed 112 updates despite several
+earlier isolated gate crossings. It is now training stage 51 (74.6875 m/s). This is not yet a
+safe-pad result.
 
 ## Findings
 
@@ -103,8 +107,17 @@ there. This is not yet a safe-pad result.
   optimizer changes do not move a healthy near-gate policy; do not weaken the promotion threshold.
 - Cumulative absolute horizontal rotation was not enough to define a single salto. A deterministic
   probe of an otherwise promising stage-18 controller averaged about 930° of horizontal travel and
-  repeated re-flips. Final touchdown now checks exactly one inverted-to-upright recovery and zero
-  re-flips, with dense overshoot, roll-travel and re-flip costs to make that sparse invariant learnable.
+  repeated re-flips. A later stage-50 probe still averaged 1.22 re-flips and roughly 1,000° of axial
+  roll travel. Final touchdown checks exactly one inverted-to-upright recovery and zero re-flips;
+  six preceding cleanup stages now ramp axial-roll, overshoot and re-flip costs before enforcing that
+  sparse invariant instead of introducing every constraint at once.
+- Independent Bernoulli exploration gave the continuous controller no useful training landings even
+  though the expected-count deployment decoder landed about 40%. A categorical engine-count sampler
+  over the decoder's nested top-k schedules restored 25-40% stochastic landings. Full-policy PPO still
+  destroyed the discrete schedule with actor changes near 1e-5 relative scale, so the successful run
+  freezes the recurrent backbone and engine-logit rows and fine-tunes only continuous action rows at
+  1e-6 after a 50-update critic warmup. It passed eleven consecutive braking stages through 75 m/s
+  with no rollback; preserve this separation while the discrete engine schedule remains discontinuous.
 
 ## Carried over from 2D
 
