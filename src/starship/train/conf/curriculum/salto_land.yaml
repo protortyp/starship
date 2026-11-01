@@ -359,6 +359,10 @@ stages:
       - sim.landing.max_horizontal_speed=36.796875
       - sim.landing.max_tilt=1.72504139685298
       - sim.landing.max_angular_rate=3.45008279370596
+      # A 512-episode probe at this boundary found horizontal-speed failures on 70% of
+      # crashes while mean vertical impact speed was already inside its limit. Restore the
+      # horizontal shaping strength that unlocked the general landing curriculum.
+      - reward.horizontal_speed_weight=0.5
   - name: 57 brake below 73.4375 m/s
     overrides:
       - sim.landing.pad_radius=717.1875

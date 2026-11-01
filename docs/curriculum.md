@@ -66,6 +66,12 @@ was already below its limit. A coupled 74.21875 m/s midpoint was inserted before
 74.0625 m/s boundary, which then passed in 46 updates. The next 73.4375 m/s stage plateaued at a
 39.5% 512-episode probe over 155 updates with the same horizontal-speed and pad-miss pattern, so a
 73.59375 m/s midpoint was inserted. This is not yet a safe-pad result.
+The midpoint then remained at 39--41% for 155 updates at 1e-6. Doubling the post-warmup actor rate
+did not improve it over 100 updates and caused 39% of recent updates to hit the KL limit within two
+optimizer steps. Because the same probe attributed 70% of crashes to horizontal speed while vertical
+impact speed was already inside the limit, stage 56 now raises horizontal-speed shaping from 0.25 to
+0.5, matching the strength that unlocked the general landing curriculum, while retaining the strict
+45% promotion gate.
 
 ## Findings
 
