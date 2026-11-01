@@ -38,7 +38,7 @@
 
 The `salto_land` curriculum first learns one powered end-over-end rotation and recovery, then keeps
 the same recurrent policy alive while tightening touchdown speed, pad radius, attitude and angular
-rate. It uses 94 stages and a 2,000-update default budget; promotion requires at least 45% of 256
+rate. It uses 95 stages and a 2,000-update default budget; promotion requires at least 45% of 256
 deterministic evaluation episodes twice in succession. The final stage additionally requires exactly
 one inverted-to-upright recovery with no re-flip and penalizes axial roll and rotation beyond 360°.
 
@@ -84,7 +84,8 @@ The 64-unit adapter at 1e-5 passed the horizontal-only stage in 28 actor updates
 stage in another 63, then reached a 48.8% best on the formerly blocked coupled boundary. Continued
 updates at that rate degraded the recent window to 29--40%, so training resumed from the preserved
 stage-58 best with a refreshed critic and a 2e-6 adapter rate. That checkpoint passed stages 58 and
-59 and transferred into stage 60 without a rollback.
+59. The following 73.125 m/s stage reached a 49.2% best but failed to make that behavior reliable
+before two protected rollbacks, so a 73.28125 m/s coupled midpoint now precedes it.
 
 ## Findings
 
