@@ -46,7 +46,9 @@ Current run: `salto_braking_fine_ladder_v1`. The 0.625 m/s braking ladder reache
 80 m/s boundary (stage 34) after about 1,000 stage updates. Tightening all five landing constraints
 directly from 80 to 70 m/s then dropped deterministic landings to zero. Interpolating that transition
 over 16 stages restored a learnable boundary: the first 79.375 m/s stage passed in about 90 updates,
-and training is continuing at 78.75 m/s. This is not yet a safe-pad result.
+78.75 m/s passed after about 270 updates, and 78.125 m/s passed after a critic refresh restored its
+collapsed feature rank from 31/128 to 76/128. Training is continuing at 77.5 m/s. This is not yet a
+safe-pad result.
 
 ## Findings
 
@@ -79,6 +81,10 @@ and training is continuing at 78.75 m/s. This is not yet a safe-pad result.
   80 m/s boundary to 70 m/s was another curriculum cliff: the inherited policy went from a solved
   stage to 0% landings. Sixteen interpolated steps across all five constraints made the first boundary
   learnable immediately and preserved the same strict promotion gate.
+- At 78.125 m/s the actor remained healthy while the critic feature rank fell to 31/128. Continuing
+  from the best actor with only the critic and its optimizer moments reinitialized restored critic rank
+  to 76/128, improved the deterministic best from 40.2% to 49.6%, and passed the stage. Preserve the
+  actor when value-network collapse, rather than policy plasticity, is the measured bottleneck.
 - Cumulative absolute horizontal rotation was not enough to define a single salto. A deterministic
   probe of an otherwise promising stage-18 controller averaged about 930° of horizontal travel and
   repeated re-flips. Final touchdown now checks exactly one inverted-to-upright recovery and zero
