@@ -271,13 +271,24 @@ def probe_section(run: Path, report: dict, episodes: int, device: str | None) ->
             if step % 10 == 0 and policy.rnn.hidden_state is not None:
                 h = tuple(x.clone() for x in policy.rnn.hidden_state)
                 samples.append((obs["policy"].clone(), h))
-            # One forward pass updates the distribution; the deterministic action is engines on
-            # where p > 0.5 and the Gaussian means for the continuous heads.
+            # Populate the distribution to report marginal engine confidence, then rewind the
+            # recurrent state and use the policy's configured deterministic decoder. Some policies
+            # deliberately use expected-count top-k selection instead of independent p > 0.5
+            # thresholds; reconstructing actions from the marginals would probe different behavior
+            # than evaluation and deployment.
+            hidden = policy.get_hidden_state()
+            if hidden is not None:
+                hidden = (
+                    tuple(x.clone() for x in hidden)
+                    if isinstance(hidden, tuple)
+                    else hidden.clone()
+                )
             policy(obs, stochastic_output=True)
             mean = policy.distribution.mean
             engine_p = mean[:, :ENGINE_HEADS]
             undecided.append(((engine_p > 0.1) & (engine_p < 0.9))[pending].float().mean().item())
-            actions = torch.cat([(engine_p > 0.5).float(), mean[:, ENGINE_HEADS:]], dim=-1)
+            policy.reset(hidden_state=hidden)
+            actions = policy(obs, stochastic_output=False)
             obs, _, dones, _ = env.step(actions)
             tracker.step(dones, record=pending)
             policy.reset(dones)
