@@ -104,6 +104,7 @@ def make_params(config: SimConfig, device) -> Params:
     p.loop_max_rate = config.loop_max_rate
     p.loop_finish_terminates = int(config.loop_finish_terminates)
     p.require_loop_before_landing = int(config.require_loop_before_landing)
+    p.require_single_loop_before_landing = int(config.require_single_loop_before_landing)
     p.length = v.hull.length
     p.radius = v.hull.diameter / 2
     p.nose_length = v.hull.nose_length

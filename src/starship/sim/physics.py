@@ -154,6 +154,7 @@ class Params:
     loop_max_rate: float
     loop_finish_terminates: int
     require_loop_before_landing: int
+    require_single_loop_before_landing: int
     length: float
     radius: float
     nose_length: float
@@ -417,6 +418,12 @@ def advance(p: Params, s: State, c: Commands, tid: int):
                 status == LANDED
                 and p.require_loop_before_landing != 0
                 and a.horizontal_travel < p.loop_target
+            ):
+                status = CRASHED
+            if (
+                status == LANDED
+                and p.require_single_loop_before_landing != 0
+                and (a.flips != 1 or a.reflips != 0)
             ):
                 status = CRASHED
             break

@@ -254,3 +254,6 @@ class SimConfig:
     loop_max_rate: float = math.radians(30.0)
     loop_finish_terminates: bool = True
     require_loop_before_landing: bool = False
+    # A cumulative rotation target alone can be satisfied by repeated partial flips. When enabled,
+    # touchdown additionally requires exactly one inverted-to-upright recovery and no re-flip.
+    require_single_loop_before_landing: bool = False

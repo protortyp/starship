@@ -324,6 +324,24 @@ def test_safe_touchdown_before_required_loop_is_a_crash(device):
     assert env.final_status.numpy()[0] == CRASHED
 
 
+@pytest.mark.parametrize(
+    ("flips", "reflips", "expected"), [(1, 0, LANDED), (0, 0, CRASHED), (2, 1, CRASHED)]
+)
+def test_single_loop_touchdown_requires_one_recovery_without_reflip(
+    device, flips, reflips, expected
+):
+    cfg = config(altitude=0.1, vertical_speed=-0.2, pitch=0)
+    cfg.require_single_loop_before_landing = True
+    env = RocketEnv(1, cfg, device=device)
+    attitude = env.sim.state.attitude.numpy()
+    attitude["flips"][0] = flips
+    attitude["reflips"][0] = reflips
+    env.sim.state.attitude.assign(attitude)
+    result = env.step(actions(1))
+    assert result.terminated.numpy()[0]
+    assert env.final_status.numpy()[0] == expected
+
+
 def test_loop_progress_and_overshoot_are_incremental(device):
     cfg = config(altitude=1000, vertical_speed=0, pitch=0)
     cfg.max_rate = 10
