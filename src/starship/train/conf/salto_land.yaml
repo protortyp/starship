@@ -65,12 +65,12 @@ obs:
 
 runner:
   algorithm:
-    learning_rate: 1.0e-5
-    # The broad landing distribution reached 62% stochastic success while its deterministic mean
-    # stayed at 27-30%. Once the loop exists, stop paying for entropy and keep continuous rollout
-    # noise close enough to the mean policy that braking improvements transfer to export.
+    learning_rate: 5.0e-6
+    # 0.2 std stopped discovering earlier burns; 0.5 made PPO updates damage the deterministic
+    # controller. The middle range keeps braking exploration while the top-k engine decoder makes
+    # evaluation stable.
     entropy_coef: 0
   actor:
     distribution_cfg:
-      std_range: [0.05, 0.2]
+      std_range: [0.05, 0.35]
       deterministic_engine_selection: floor_expected

@@ -95,6 +95,7 @@ stages:
       - sim.landing.pad_radius=962.5
       - sim.landing.max_vertical_speed=96.25
       - sim.landing.max_horizontal_speed=48.5
+      - reward.speed_weight=10
   - name: 17 brake below 95 m/s
     overrides:
       - sim.landing.pad_radius=950
