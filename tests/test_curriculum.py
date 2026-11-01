@@ -92,13 +92,22 @@ def test_salto_landing_curriculum_finishes_with_a_strict_single_loop():
         cfg = compose("salto_land")
     assert cfg.iterations == 2000
     curriculum = Curriculum(cfg, cfg.curriculum)
-    assert len(curriculum.stages) == 92
-    cleanup = [curriculum.configs(stage)[1] for stage in range(84, 92)]
+    assert len(curriculum.stages) == 94
+    horizontal, horizontal_reward = curriculum.configs(56)
+    assert horizontal.landing.pad_radius == pytest.approx(718.75)
+    assert horizontal.landing.max_vertical_speed == pytest.approx(73.75)
+    assert horizontal.landing.max_horizontal_speed == pytest.approx(36.8359375)
+    assert horizontal_reward.horizontal_speed_weight == pytest.approx(0.5)
+    pad, _ = curriculum.configs(57)
+    assert pad.landing.pad_radius == pytest.approx(718.359375)
+    assert pad.landing.max_vertical_speed == pytest.approx(73.75)
+    assert pad.landing.max_horizontal_speed == pytest.approx(36.8359375)
+    cleanup = [curriculum.configs(stage)[1] for stage in range(86, 94)]
     assert [reward.roll_travel_cost for reward in cleanup] == [0, 0.1, 0.25, 0.5, 1, 1, 1, 1]
     assert [reward.reflip_cost for reward in cleanup] == [0, 0, 0, 0, 0, 2.5, 5, 10]
     assert [reward.loop_overshoot_cost for reward in cleanup] == [5, 5, 5, 5, 5, 6.25, 7.5, 10]
     assert [
-        curriculum.configs(stage)[0].require_single_loop_before_landing for stage in range(84, 92)
+        curriculum.configs(stage)[0].require_single_loop_before_landing for stage in range(86, 94)
     ] == [
         False,
         False,

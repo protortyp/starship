@@ -38,7 +38,7 @@
 
 The `salto_land` curriculum first learns one powered end-over-end rotation and recovery, then keeps
 the same recurrent policy alive while tightening touchdown speed, pad radius, attitude and angular
-rate. It uses 92 stages and a 2,000-update default budget; promotion requires at least 45% of 256
+rate. It uses 94 stages and a 2,000-update default budget; promotion requires at least 45% of 256
 deterministic evaluation episodes twice in succession. The final stage additionally requires exactly
 one inverted-to-upright recovery with no re-flip and penalizes axial roll and rotation beyond 360°.
 
@@ -71,7 +71,10 @@ did not improve it over 100 updates and caused 39% of recent updates to hit the 
 optimizer steps. Because the same probe attributed 70% of crashes to horizontal speed while vertical
 impact speed was already inside the limit, stage 56 now raises horizontal-speed shaping from 0.25 to
 0.5, matching the strength that unlocked the general landing curriculum, while retaining the strict
-45% promotion gate.
+45% promotion gate. After more than 300 continuous-head updates, however, the recent-100 mean was
+still 38.8%. The boundary is therefore split into a horizontal-only half-step and then a pad-radius
+half-step before the coupled 73.59375 m/s limits; vertical speed, attitude, and angular rate remain
+at their solved stage-55 values during both bridges.
 
 ## Findings
 
