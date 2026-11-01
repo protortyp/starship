@@ -3,6 +3,7 @@
     uv run starship-diagnose scratch_v8              # latest run of an experiment under logs/
     uv run starship-diagnose logs/scratch_v8/<time>  # a specific run directory
     uv run starship-diagnose scratch_v8 --probe      # also run the best policy on the current stage
+    uv run starship-diagnose scratch_v8 --probe --stage 56  # override the probe stage
     uv run starship-diagnose scratch_v8 --json       # machine-readable
 
 Reads the run's TensorBoard events, curriculum.json and Hydra config. Every finding that needs
@@ -227,7 +228,13 @@ def failure_lines(stats: dict[str, float]) -> list[str]:
     return lines
 
 
-def probe_section(run: Path, report: dict, episodes: int, device: str | None) -> list[str]:
+def probe_section(
+    run: Path,
+    report: dict,
+    episodes: int,
+    device: str | None,
+    stage: int | None = None,
+) -> list[str]:
     """Run the best policy deterministically on the run's current curriculum stage."""
     import torch
     from omegaconf import OmegaConf
@@ -247,10 +254,16 @@ def probe_section(run: Path, report: dict, episodes: int, device: str | None) ->
     if cfg.curriculum.enabled:
         curriculum = Curriculum(cfg, cfg.curriculum)
         events = run / "curriculum.json"
-        if events.exists():
+        if stage is not None:
+            curriculum.stage = stage
+        elif events.exists():
             history = json.loads(events.read_text())
             if history:
                 curriculum.stage = history[-1]["stage"]
+        else:
+            # A resumed run may not have a curriculum event until its first promotion. The
+            # stage scalar is still written every iteration and is authoritative in that case.
+            curriculum.stage = int(report.get("summary", {}).get("stage", 0))
         sim, reward = curriculum.configs()
         stage_name = f"stage {curriculum.stage} ({curriculum.name})"
     policy_path = run / "policy_best.pt"
@@ -347,6 +360,7 @@ def main() -> None:
     )
     parser.add_argument("--episodes", type=int, default=512)
     parser.add_argument("--device", default=None)
+    parser.add_argument("--stage", type=int, default=None, help="curriculum stage for --probe")
     parser.add_argument("--json", action="store_true", help="print the report as JSON")
     args = parser.parse_args()
 
@@ -356,7 +370,7 @@ def main() -> None:
     lines = run_summary(run, scalars, report)
     lines += plasticity_section(scalars, report)
     if args.probe:
-        lines += probe_section(run, report, args.episodes, args.device)
+        lines += probe_section(run, report, args.episodes, args.device, args.stage)
     report["warnings"] = [re.sub(r"^- ", "", line) for line in lines if line.startswith("- WARN")]
     if args.json:
         print(json.dumps(report, indent=2, default=float))
