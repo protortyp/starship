@@ -7,15 +7,17 @@ from typing import NamedTuple
 import torch
 from rsl_rl.modules.distribution import Distribution
 from torch import nn
-from torch.distributions import Bernoulli, Normal
+from torch.distributions import Bernoulli, Categorical, Normal
 from torch.nn import functional as F
 
 from starship.train.actions import ACTION_DIM, CONTINUOUS_HEADS, ENGINE_HEADS
 
 
 class _Heads(NamedTuple):
-    engine: Bernoulli
+    engine: Bernoulli | Categorical
     continuous: Normal
+    engine_logits: torch.Tensor
+    engine_rank: torch.Tensor | None
 
 
 class HybridDistribution(Distribution):
@@ -29,6 +31,8 @@ class HybridDistribution(Distribution):
         init_std: float = 0.5,
         std_range: tuple[float, float] = (0.05, 2.0),
         deterministic_engine_selection: str = "threshold",
+        stochastic_engine_selection: str = "independent",
+        ranked_count_temperature: float = 0.75,
     ) -> None:
         if output_dim != ACTION_DIM:
             raise ValueError(f"HybridDistribution needs output_dim={ACTION_DIM}, got {output_dim}")
@@ -36,8 +40,14 @@ class HybridDistribution(Distribution):
             raise ValueError(
                 "deterministic_engine_selection must be 'threshold' or 'floor_expected'"
             )
+        if stochastic_engine_selection not in ("independent", "ranked_count"):
+            raise ValueError("stochastic_engine_selection must be 'independent' or 'ranked_count'")
+        if ranked_count_temperature <= 0:
+            raise ValueError("ranked_count_temperature must be positive")
         super().__init__(output_dim)
         self.deterministic_engine_selection = deterministic_engine_selection
+        self.stochastic_engine_selection = stochastic_engine_selection
+        self.ranked_count_temperature = ranked_count_temperature
         # Pre-tanh units: std 0.5 explores the middle of each actuator range without piling
         # samples onto the tanh limits; the clamp keeps the policy from freezing (std -> 0) or
         # from saturating every actuator (std >> 1), where log_prob gradients become useless.
@@ -56,11 +66,29 @@ class HybridDistribution(Distribution):
     def update(self, mlp_output: torch.Tensor) -> None:
         logits, mean = self._split(mlp_output)
         std = torch.exp(self.log_std.clamp(*self.log_std_range)).expand_as(mean)
-        self._distribution = _Heads(Bernoulli(logits=logits), Normal(mean, std))
+        rank = None
+        engine_logits = logits
+        if self.stochastic_engine_selection == "ranked_count":
+            expected = torch.sigmoid(logits).sum(dim=-1, keepdim=True)
+            counts = torch.arange(ENGINE_HEADS + 1, device=logits.device, dtype=logits.dtype)
+            # Shift the nearest-integer boundaries onto 1, 2, ... so the categorical mode is
+            # floor(expected), exactly matching deployment's conservative engine-count decoder.
+            center = (expected - 0.5).clamp_min(0.0)
+            engine_logits = -((counts - center) / self.ranked_count_temperature).square()
+            engine = Categorical(logits=engine_logits)
+            rank = logits.argsort(dim=-1, descending=True).argsort(dim=-1)
+        else:
+            engine = Bernoulli(logits=logits)
+        self._distribution = _Heads(engine, Normal(mean, std), engine_logits, rank)
 
     def sample(self) -> torch.Tensor:
-        engine, continuous = self._distribution
-        return torch.cat([engine.sample(), continuous.sample()], dim=-1)
+        heads = self._distribution
+        if heads.engine_rank is None:
+            on = heads.engine.sample()
+        else:
+            count = heads.engine.sample()
+            on = (heads.engine_rank < count.unsqueeze(-1)).to(heads.continuous.mean.dtype)
+        return torch.cat([on, heads.continuous.sample()], dim=-1)
 
     def deterministic_output(self, mlp_output: torch.Tensor) -> torch.Tensor:
         logits, mean = self._split(mlp_output)
@@ -79,14 +107,19 @@ class HybridDistribution(Distribution):
     @property
     def mean(self) -> torch.Tensor:
         """Engine on-probabilities followed by the Gaussian means, shape (..., ACTION_DIM)."""
-        engine, continuous = self._distribution
-        return torch.cat([engine.probs, continuous.mean], dim=-1)
+        heads = self._distribution
+        if heads.engine_rank is None:
+            on = heads.engine.probs
+        else:
+            counts = torch.arange(ENGINE_HEADS + 1, device=heads.engine.probs.device)
+            tail = (counts > heads.engine_rank.unsqueeze(-1)).to(heads.engine.probs.dtype)
+            on = (tail * heads.engine.probs.unsqueeze(-2)).sum(dim=-1)
+        return torch.cat([on, heads.continuous.mean], dim=-1)
 
     @property
     def std(self) -> torch.Tensor:
-        engine, continuous = self._distribution
-        p = engine.probs
-        return torch.cat([torch.sqrt(p * (1.0 - p)), continuous.stddev], dim=-1)
+        p = self.mean[..., :ENGINE_HEADS]
+        return torch.cat([torch.sqrt(p * (1.0 - p)), self._distribution.continuous.stddev], dim=-1)
 
     @property
     def entropy(self) -> torch.Tensor:
@@ -95,18 +128,25 @@ class HybridDistribution(Distribution):
     @property
     def entropy_per_head(self) -> torch.Tensor:
         """Entropy of each head's decision, shape (..., ACTION_DIM)."""
-        engine, continuous = self._distribution
-        return torch.cat([engine.entropy(), continuous.entropy()], dim=-1)
+        heads = self._distribution
+        engine = heads.engine.entropy()
+        if heads.engine_rank is not None:
+            engine = engine.unsqueeze(-1).expand(*engine.shape, ENGINE_HEADS) / ENGINE_HEADS
+        return torch.cat([engine, heads.continuous.entropy()], dim=-1)
 
     @property
     def params(self) -> tuple[torch.Tensor, ...]:
-        engine, continuous = self._distribution
-        return (engine.logits, continuous.mean, continuous.stddev)
+        heads = self._distribution
+        return (heads.engine_logits, heads.continuous.mean, heads.continuous.stddev)
 
     def log_prob(self, outputs: torch.Tensor) -> torch.Tensor:
-        engine, continuous = self._distribution
+        heads = self._distribution
         on, cont = self._split(outputs)
-        return engine.log_prob(on).sum(dim=-1) + continuous.log_prob(cont).sum(dim=-1)
+        if heads.engine_rank is None:
+            engine_log_prob = heads.engine.log_prob(on).sum(dim=-1)
+        else:
+            engine_log_prob = heads.engine.log_prob(on.sum(dim=-1).to(torch.long))
+        return engine_log_prob + heads.continuous.log_prob(cont).sum(dim=-1)
 
     def kl_divergence(
         self, old_params: tuple[torch.Tensor, ...], new_params: tuple[torch.Tensor, ...]
@@ -115,16 +155,22 @@ class HybridDistribution(Distribution):
         new_logits, new_mean, new_std = new_params
         # Bernoulli KL from logits: torch's version goes through probabilities and returns inf
         # once a probability saturates to exactly 0 or 1 in float32.
-        p = torch.sigmoid(old_logits)
-        kl_engine = p * (F.logsigmoid(old_logits) - F.logsigmoid(new_logits)) + (1.0 - p) * (
-            F.logsigmoid(-old_logits) - F.logsigmoid(-new_logits)
-        )
+        if self.stochastic_engine_selection == "ranked_count":
+            old_log_p, new_log_p = old_logits.log_softmax(-1), new_logits.log_softmax(-1)
+            kl_engine = (old_log_p.exp() * (old_log_p - new_log_p)).sum(-1)
+        else:
+            p = torch.sigmoid(old_logits)
+            kl_engine = p * (F.logsigmoid(old_logits) - F.logsigmoid(new_logits)) + (1.0 - p) * (
+                F.logsigmoid(-old_logits) - F.logsigmoid(-new_logits)
+            )
         kl_gauss = (
             torch.log(new_std / old_std)
             + (old_std.square() + (old_mean - new_mean).square()) / (2.0 * new_std.square())
             - 0.5
         )
-        return kl_engine.sum(dim=-1) + kl_gauss.sum(dim=-1)
+        if self.stochastic_engine_selection != "ranked_count":
+            kl_engine = kl_engine.sum(dim=-1)
+        return kl_engine + kl_gauss.sum(dim=-1)
 
 
 class _DeterministicOutput(nn.Module):

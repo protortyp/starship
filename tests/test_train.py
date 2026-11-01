@@ -205,6 +205,32 @@ def test_reset_critic_preserves_actor_and_its_optimizer_state(tmp_path):
             assert torch.equal(actual, value) if torch.is_tensor(value) else actual == value
 
 
+def test_reset_actor_optimizer_preserves_weights_and_critic_state(tmp_path):
+    cfg = compose_cfg(*SHORT_EPISODES)
+    runner = make_runner(cfg, tmp_path)
+    runner.learn(2)
+    actor_before = [p.detach().clone() for p in runner.alg.actor.parameters()]
+    critic_state = {
+        p: {
+            key: value.detach().clone() if torch.is_tensor(value) else value
+            for key, value in state.items()
+        }
+        for p, state in runner.alg.optimizer.state.items()
+        if p in set(runner.alg.critic.parameters())
+    }
+
+    runner.reset_actor_optimizer()
+
+    assert all(
+        torch.equal(a, p) for a, p in zip(actor_before, runner.alg.actor.parameters(), strict=True)
+    )
+    assert not set(runner.alg.actor.parameters()) & set(runner.alg.optimizer.state)
+    for parameter, state in critic_state.items():
+        for key, value in state.items():
+            actual = runner.alg.optimizer.state[parameter][key]
+            assert torch.equal(actual, value) if torch.is_tensor(value) else actual == value
+
+
 class CoastingPolicy(torch.nn.Module):
     def reset(self, dones=None):
         pass
@@ -288,6 +314,65 @@ def test_kl_stop_freezes_policy_but_keeps_training_critic(
     assert actor_moved == (expected_updates > 0)
     assert critic_moved
     assert alg.storage.step == 0
+
+
+def test_critic_warmup_freezes_actor_and_trains_critic(tmp_path):
+    cfg = compose_cfg(
+        "num_envs=8",
+        "runner.algorithm.num_learning_epochs=2",
+        "runner.algorithm.num_mini_batches=2",
+        "+runner.algorithm.critic_warmup_updates=1",
+        "+runner.algorithm.post_warmup_learning_rate=1e-7",
+    )
+    runner = make_runner(cfg, tmp_path)
+    alg = runner.alg
+    collect(runner)
+    actor_before = [p.detach().clone() for p in alg.actor.parameters()]
+    critic_before = [p.detach().clone() for p in alg.critic.parameters()]
+
+    metrics = alg.update()
+
+    assert metrics["optim/critic_warmup"] == 1
+    assert metrics["optim/updates"] == 0
+    assert metrics["optim/critic_only_updates"] == 4
+    assert all(torch.equal(a, p) for a, p in zip(actor_before, alg.actor.parameters(), strict=True))
+    assert any(
+        not torch.equal(a, p) for a, p in zip(critic_before, alg.critic.parameters(), strict=True)
+    )
+    collect(runner)
+    metrics = alg.update()
+    assert metrics["optim/critic_warmup"] == 0
+    assert metrics["optim/lr/group_0"] == pytest.approx(1e-7)
+
+
+def test_continuous_head_scope_preserves_engine_schedule_and_backbone(tmp_path):
+    cfg = compose_cfg(
+        "num_envs=8",
+        "runner.algorithm.num_learning_epochs=2",
+        "runner.algorithm.num_mini_batches=2",
+        "+runner.algorithm.actor_update_scope=continuous_head",
+    )
+    runner = make_runner(cfg, tmp_path)
+    alg = runner.alg
+    before = {name: p.detach().clone() for name, p in alg.actor.named_parameters()}
+    normalizer = {
+        name: value.clone() for name, value in alg.actor.obs_normalizer.state_dict().items()
+    }
+
+    collect(runner)
+    alg.update()
+
+    after = dict(alg.actor.named_parameters())
+    for name, value in before.items():
+        if name in ("mlp.4.weight", "mlp.4.bias"):
+            assert torch.equal(value[:3], after[name][:3])
+            assert not torch.equal(value[3:], after[name][3:])
+        elif name == "distribution.log_std":
+            assert not torch.equal(value, after[name])
+        else:
+            assert torch.equal(value, after[name]), name
+    for name, value in normalizer.items():
+        assert torch.equal(value, alg.actor.obs_normalizer.state_dict()[name])
 
 
 def test_resume_evaluates_before_learning(tmp_path, monkeypatch):

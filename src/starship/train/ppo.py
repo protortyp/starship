@@ -52,12 +52,26 @@ class InstrumentedPPO(PPO):
         value_normalization: bool = False,
         diagnostics_interval: int = 0,
         max_kl: float | None = None,
+        critic_warmup_updates: int = 0,
+        post_warmup_learning_rate: float | None = None,
+        actor_update_scope: str = "all",
         **kwargs,
     ):
         if max_kl is not None and max_kl <= 0:
             raise ValueError("max_kl must be positive or None")
+        if critic_warmup_updates < 0:
+            raise ValueError("critic_warmup_updates must be nonnegative")
+        if post_warmup_learning_rate is not None and post_warmup_learning_rate <= 0:
+            raise ValueError("post_warmup_learning_rate must be positive or None")
+        if actor_update_scope not in ("all", "continuous_head"):
+            raise ValueError("actor_update_scope must be 'all' or 'continuous_head'")
         super().__init__(*args, **kwargs)
         self.max_kl = max_kl
+        self.critic_warmup_updates = critic_warmup_updates
+        self.post_warmup_learning_rate = post_warmup_learning_rate
+        self.actor_update_scope = actor_update_scope
+        if actor_update_scope == "continuous_head":
+            self._freeze_actor_backbone_and_engine_head()
         # Every `diagnostics_interval` updates, log network health under plasticity/* (0 = off).
         self.diagnostics_interval = diagnostics_interval
         self._updates_done = 0
@@ -68,6 +82,26 @@ class InstrumentedPPO(PPO):
         if value_normalization:
             self.critic.value_norm = ValueNormalizer().to(self.device)
             self.value_norm = self.critic.value_norm
+
+    def _freeze_actor_backbone_and_engine_head(self) -> None:
+        """Keep the deployed engine schedule fixed while tuning continuous actuator outputs."""
+        output = next(
+            module
+            for module in reversed(list(self.actor.mlp.modules()))
+            if isinstance(module, nn.Linear)
+        )
+        for parameter in self.actor.parameters():
+            parameter.requires_grad_(False)
+        output.weight.requires_grad_(True)
+        output.bias.requires_grad_(True)
+        self.actor.distribution.log_std.requires_grad_(True)
+
+        weight_mask = torch.ones_like(output.weight)
+        bias_mask = torch.ones_like(output.bias)
+        weight_mask[:ENGINE_HEADS] = 0
+        bias_mask[:ENGINE_HEADS] = 0
+        output.weight.register_hook(lambda grad: grad * weight_mask)
+        output.bias.register_hook(lambda grad: grad * bias_mask)
 
     def _activation_diagnostics(self, max_envs: int = 4096) -> dict[str, float]:
         """Unit, rank and gate diagnostics on a random rollout step and its stored hidden state."""
@@ -142,6 +176,14 @@ class InstrumentedPPO(PPO):
             self.diagnostics_interval > 0 and self._updates_done % self.diagnostics_interval == 0
         )
         self._updates_done += 1
+        critic_warmup = self._updates_done <= self.critic_warmup_updates
+        if (
+            self.post_warmup_learning_rate is not None
+            and self._updates_done == self.critic_warmup_updates + 1
+        ):
+            self.learning_rate = self.post_warmup_learning_rate
+            for group in self.optimizer.param_groups:
+                group["lr"] = self.learning_rate
         if diagnose:
             before = {"actor": diag.snapshot(self.actor), "critic": diag.snapshot(self.critic)}
             plasticity = self._activation_diagnostics()
@@ -226,7 +268,7 @@ class InstrumentedPPO(PPO):
                 )
 
             self.optimizer.zero_grad()
-            if early_stopped:
+            if critic_warmup or early_stopped:
                 # The KL stop freezes the policy, not the critic: a critic starved of updates
                 # lags behind the returns and its stale advantages then steer every later
                 # policy step. Actor parameters keep grad None, so Adam leaves them untouched.
@@ -294,6 +336,7 @@ class InstrumentedPPO(PPO):
             metrics["value/norm_std"] = self.value_norm.var.sqrt().item()
         metrics["optim/updates"] = float(num_updates)
         metrics["optim/kl_early_stop"] = float(early_stopped)
+        metrics["optim/critic_warmup"] = float(critic_warmup)
         metrics["optim/critic_only_updates"] = float(critic_only_updates)
         if critic_only_updates:
             metrics["loss/critic_after_kl_stop"] = critic_only_loss / critic_only_updates
@@ -313,7 +356,8 @@ class InstrumentedPPO(PPO):
             metrics["value/advantage_std"] = st.advantages.std().item()
 
         obs = st.observations.flatten(0, 1)
-        self.actor.update_normalization(obs)
+        if not critic_warmup and self.actor_update_scope == "all":
+            self.actor.update_normalization(obs)
         self.critic.update_normalization(obs)
         st.clear()
         return metrics

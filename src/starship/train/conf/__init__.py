@@ -34,6 +34,9 @@ class TrainConfig:
     # Preserve the learned actor but reinitialize a collapsed value network when resuming. Its
     # optimizer moments are discarded as well; actor weights and optimizer state stay untouched.
     reset_critic: bool = False
+    # Keep actor weights but discard Adam moments when changing the action distribution or other
+    # policy semantics; stale moments can move a good policy in the old objective's direction.
+    reset_actor_optimizer: bool = False
     sim: SimConfig = field(default_factory=SimConfig)
     obs: ObsConfig = field(default_factory=ObsConfig)
     reward: RewardConfig = field(default_factory=RewardConfig)

@@ -274,6 +274,11 @@ class StarshipRunner(OnPolicyRunner):
         self.alg.critic.reset()
         self.alg.storage.saved_hidden_state_c = None
 
+    def reset_actor_optimizer(self) -> None:
+        """Discard stale actor Adam moments without changing policy weights or recurrent state."""
+        for parameter in self.alg.actor.parameters():
+            self.alg.optimizer.state.pop(parameter, None)
+
     def save(self, path: str, infos: dict | None = None) -> None:
         infos = {**(infos or {}), "best_eval": self.best_eval}
         if self.curriculum is not None:

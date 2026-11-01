@@ -53,6 +53,8 @@ def main(cfg: DictConfig) -> None:
     )
     if cfg.checkpoint:
         runner.load(cfg.checkpoint)
+        if cfg.reset_actor_optimizer:
+            runner.reset_actor_optimizer()
         if cfg.reset_critic:
             runner.reset_critic()
         if runner.eval_env is not None:

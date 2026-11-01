@@ -6,7 +6,7 @@ import torch
 from rsl_rl.models import RNNModel
 from rsl_rl.storage import RolloutStorage
 from tensordict import TensorDict
-from torch.distributions import Bernoulli, Normal, kl_divergence
+from torch.distributions import Bernoulli, Categorical, Normal, kl_divergence
 
 from starship.train.actions import ACTION_DIM, CONTINUOUS_HEADS, ENGINE_HEADS, HEAD_NAMES
 from starship.train.distribution import HybridDistribution
@@ -32,6 +32,10 @@ def test_rejects_other_action_dims():
         HybridDistribution(ACTION_DIM + 1)
     with pytest.raises(ValueError, match="deterministic_engine_selection"):
         HybridDistribution(ACTION_DIM, deterministic_engine_selection="random")
+    with pytest.raises(ValueError, match="stochastic_engine_selection"):
+        HybridDistribution(ACTION_DIM, stochastic_engine_selection="random")
+    with pytest.raises(ValueError, match="ranked_count_temperature"):
+        HybridDistribution(ACTION_DIM, ranked_count_temperature=0)
 
 
 @pytest.mark.parametrize("batch", [(5,), (3, 4)])
@@ -148,6 +152,48 @@ def test_deterministic_floor_expected_engine_selection_and_export():
     assert torch.equal(
         torch.export.export(module, (out,)).module()(out)[:, :ENGINE_HEADS], expected
     )
+
+
+def test_ranked_count_sampling_matches_deployment_structure():
+    torch.manual_seed(2)
+    dist = HybridDistribution(
+        ACTION_DIM,
+        deterministic_engine_selection="floor_expected",
+        stochastic_engine_selection="ranked_count",
+    )
+    logits = torch.tensor([[2.0, 0.04, -2.0]]).expand(2000, -1)
+    out = torch.cat([logits, torch.zeros(2000, CONTINUOUS_HEADS)], -1)
+    dist.update(out)
+    actions = dist.sample()
+    # Ranked-count exploration only produces nested top-k subsets, never a lower-confidence
+    # engine without every more-confident one also being enabled.
+    on = actions[:, :ENGINE_HEADS].bool()
+    assert (on[:, 1] <= on[:, 0]).all()
+    assert (on[:, 2] <= on[:, 1]).all()
+    assert torch.isfinite(dist.log_prob(actions)).all()
+    assert dist.params[0].shape == (2000, ENGINE_HEADS + 1)
+    assert dist.params[0][0].argmax() == 1
+    assert actions[:, :ENGINE_HEADS].sum(-1).mode().values == 1
+    assert dist.mean.shape == dist.std.shape == dist.entropy_per_head.shape == (2000, ACTION_DIM)
+
+
+def test_ranked_count_log_prob_entropy_kl_and_gradients():
+    torch.manual_seed(3)
+    dist = HybridDistribution(ACTION_DIM, stochastic_engine_selection="ranked_count")
+    out = torch.randn(7, ACTION_DIM, requires_grad=True)
+    dist.update(out)
+    actions = dist.sample()
+    count = actions[:, :ENGINE_HEADS].sum(-1).long()
+    categorical = Categorical(logits=dist.params[0])
+    normal = Normal(dist.params[1], dist.params[2])
+    expected = categorical.log_prob(count) + normal.log_prob(actions[:, ENGINE_HEADS:]).sum(-1)
+    assert torch.allclose(dist.log_prob(actions), expected)
+    assert torch.allclose(dist.entropy, categorical.entropy() + normal.entropy().sum(-1))
+    same = dist.kl_divergence(dist.params, dist.params)
+    assert torch.allclose(same, torch.zeros_like(same), atol=1e-6)
+    dist.log_prob(actions).sum().backward()
+    assert out.grad is not None
+    assert torch.isfinite(out.grad).all()
 
 
 def test_ppo_smoke_update_on_random_data():
