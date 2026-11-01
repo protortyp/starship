@@ -402,172 +402,181 @@ stages:
       - sim.landing.max_tilt=1.70492247467149
       - sim.landing.max_angular_rate=3.40984494934298
   # The original 0.3125 m/s step stayed at a 36.4% recent-300 mean through 505 updates after
-  # stages 60 and 61 passed. Bisect it while preserving the successful lateral shaping.
-  - name: 62 brake below 72.96875 m/s
+  # stages 60 and 61 passed. Its first bisection likewise remained at a 36.8% recent-500 mean
+  # despite healthy actor and critic plasticity. Split the remaining transition once more while
+  # preserving the successful lateral shaping and protected stage-61 actor.
+  - name: 62 brake below 73.046875 m/s
+    overrides:
+      - sim.landing.pad_radius=715.234375
+      - sim.landing.max_vertical_speed=73.046875
+      - sim.landing.max_horizontal_speed=36.5234375
+      - sim.landing.max_tilt=1.701569320974575
+      - sim.landing.max_angular_rate=3.40313864194915
+  - name: 63 brake below 72.96875 m/s
     overrides:
       - sim.landing.pad_radius=714.84375
       - sim.landing.max_vertical_speed=72.96875
       - sim.landing.max_horizontal_speed=36.484375
       - sim.landing.max_tilt=1.69821616727766
       - sim.landing.max_angular_rate=3.39643233455532
-  - name: 63 brake below 72.8125 m/s
+  - name: 64 brake below 72.8125 m/s
     overrides:
       - sim.landing.pad_radius=714.0625
       - sim.landing.max_vertical_speed=72.8125
       - sim.landing.max_horizontal_speed=36.40625
       - sim.landing.max_tilt=1.69150985988383
       - sim.landing.max_angular_rate=3.38301971976766
-  - name: 64 brake below 72.5 m/s
+  - name: 65 brake below 72.5 m/s
     overrides:
       - sim.landing.pad_radius=712.5
       - sim.landing.max_vertical_speed=72.5
       - sim.landing.max_horizontal_speed=36.25
       - sim.landing.max_tilt=1.67809724509617
       - sim.landing.max_angular_rate=3.35619449019234
-  - name: 65 brake below 72.1875 m/s
+  - name: 66 brake below 72.1875 m/s
     overrides:
       - sim.landing.pad_radius=710.9375
       - sim.landing.max_vertical_speed=72.1875
       - sim.landing.max_horizontal_speed=36.09375
       - sim.landing.max_tilt=1.66468463030851
       - sim.landing.max_angular_rate=3.32936926061703
-  - name: 66 brake below 71.875 m/s
+  - name: 67 brake below 71.875 m/s
     overrides:
       - sim.landing.pad_radius=709.375
       - sim.landing.max_vertical_speed=71.875
       - sim.landing.max_horizontal_speed=35.9375
       - sim.landing.max_tilt=1.65127201552085
       - sim.landing.max_angular_rate=3.30254403104171
-  - name: 67 brake below 71.5625 m/s
+  - name: 68 brake below 71.5625 m/s
     overrides:
       - sim.landing.pad_radius=707.8125
       - sim.landing.max_vertical_speed=71.5625
       - sim.landing.max_horizontal_speed=35.78125
       - sim.landing.max_tilt=1.63785940073319
       - sim.landing.max_angular_rate=3.27571880146639
-  - name: 68 brake below 71.25 m/s
+  - name: 69 brake below 71.25 m/s
     overrides:
       - sim.landing.pad_radius=706.25
       - sim.landing.max_vertical_speed=71.25
       - sim.landing.max_horizontal_speed=35.625
       - sim.landing.max_tilt=1.62444678594553
       - sim.landing.max_angular_rate=3.24889357189107
-  - name: 69 brake below 70.9375 m/s
+  - name: 70 brake below 70.9375 m/s
     overrides:
       - sim.landing.pad_radius=704.6875
       - sim.landing.max_vertical_speed=70.9375
       - sim.landing.max_horizontal_speed=35.46875
       - sim.landing.max_tilt=1.61103417115787
       - sim.landing.max_angular_rate=3.22206834231575
-  - name: 70 brake below 70.625 m/s
+  - name: 71 brake below 70.625 m/s
     overrides:
       - sim.landing.pad_radius=703.125
       - sim.landing.max_vertical_speed=70.625
       - sim.landing.max_horizontal_speed=35.3125
       - sim.landing.max_tilt=1.59762155637022
       - sim.landing.max_angular_rate=3.19524311274043
-  - name: 71 brake below 70.3125 m/s
+  - name: 72 brake below 70.3125 m/s
     overrides:
       - sim.landing.pad_radius=701.5625
       - sim.landing.max_vertical_speed=70.3125
       - sim.landing.max_horizontal_speed=35.15625
       - sim.landing.max_tilt=1.58420894158256
       - sim.landing.max_angular_rate=3.16841788316511
-  - name: 72 brake below 70 m/s
+  - name: 73 brake below 70 m/s
     overrides:
       - sim.landing.pad_radius=700
       - sim.landing.max_vertical_speed=70
       - sim.landing.max_horizontal_speed=35
       - sim.landing.max_tilt=1.5707963267948966
       - sim.landing.max_angular_rate=3.141592653589793
-  - name: 73 brake below 60 m/s
+  - name: 74 brake below 60 m/s
     overrides:
       - sim.landing.pad_radius=650
       - sim.landing.max_vertical_speed=60
       - sim.landing.max_horizontal_speed=32
-  - name: 74 brake below 50 m/s
+  - name: 75 brake below 50 m/s
     overrides:
       - sim.landing.pad_radius=575
       - sim.landing.max_vertical_speed=50
       - sim.landing.max_horizontal_speed=28
-  - name: 75 brake below 40 m/s
+  - name: 76 brake below 40 m/s
     overrides:
       - sim.landing.pad_radius=500
       - sim.landing.max_vertical_speed=40
       - sim.landing.max_horizontal_speed=25
-  - name: 76 brake below 35 m/s
+  - name: 77 brake below 35 m/s
     overrides:
       - sim.landing.pad_radius=450
       - sim.landing.max_vertical_speed=35
       - sim.landing.max_horizontal_speed=22
-  - name: 77 brake below 30 m/s
+  - name: 78 brake below 30 m/s
     overrides:
       - sim.landing.pad_radius=400
       - sim.landing.max_vertical_speed=30
       - sim.landing.max_horizontal_speed=18
-  - name: 78 brake below 25 m/s
+  - name: 79 brake below 25 m/s
     overrides:
       - sim.landing.pad_radius=350
       - sim.landing.max_vertical_speed=25
       - sim.landing.max_horizontal_speed=15
-  - name: 79 brake below 20 m/s
+  - name: 80 brake below 20 m/s
     overrides:
       - sim.landing.pad_radius=300
       - sim.landing.max_vertical_speed=20
       - sim.landing.max_horizontal_speed=12
       - sim.landing.max_tilt=1.0471975511965976
       - sim.landing.max_angular_rate=1.5707963267948966
-  - name: 80 brake below 16 m/s
+  - name: 81 brake below 16 m/s
     overrides:
       - sim.landing.pad_radius=250
       - sim.landing.max_vertical_speed=16
       - sim.landing.max_horizontal_speed=10
       - sim.landing.max_tilt=0.7853981633974483
       - sim.landing.max_angular_rate=1.0471975511965976
-  - name: 81 controlled touchdown below 12 m/s
+  - name: 82 controlled touchdown below 12 m/s
     overrides:
       - sim.landing.pad_radius=200
       - sim.landing.max_vertical_speed=12
       - sim.landing.max_horizontal_speed=8
       - sim.landing.max_tilt=0.5235987755982988
       - sim.landing.max_angular_rate=0.7853981633974483
-  - name: 82 touchdown below 10 m/s
+  - name: 83 touchdown below 10 m/s
     overrides:
       - sim.landing.pad_radius=150
       - sim.landing.max_vertical_speed=10
       - sim.landing.max_horizontal_speed=6
-  - name: 83 touchdown below 8 m/s
+  - name: 84 touchdown below 8 m/s
     overrides:
       - sim.landing.pad_radius=100
       - sim.landing.max_vertical_speed=8
       - sim.landing.max_horizontal_speed=5
       - sim.landing.max_tilt=0.3490658503988659
       - sim.landing.max_angular_rate=0.5235987755982988
-  - name: 84 touchdown below 6 m/s
+  - name: 85 touchdown below 6 m/s
     overrides:
       - sim.landing.pad_radius=70
       - sim.landing.max_vertical_speed=6
       - sim.landing.max_horizontal_speed=4
-  - name: 85 touchdown below 5 m/s
+  - name: 86 touchdown below 5 m/s
     overrides:
       - sim.landing.pad_radius=40
       - sim.landing.max_vertical_speed=5
       - sim.landing.max_horizontal_speed=3
       - sim.landing.max_tilt=0.2617993877991494
       - sim.landing.max_angular_rate=0.3490658503988659
-  - name: 86 touchdown below 4 m/s
+  - name: 87 touchdown below 4 m/s
     overrides:
       - sim.landing.pad_radius=30
       - sim.landing.max_vertical_speed=4
       - sim.landing.max_horizontal_speed=2.5
-  - name: 87 touchdown below 3 m/s
+  - name: 88 touchdown below 3 m/s
     overrides:
       - sim.landing.pad_radius=20
       - sim.landing.max_vertical_speed=3
       - sim.landing.max_horizontal_speed=1.5
       - sim.landing.max_tilt=0.17453292519943295
       - sim.landing.max_angular_rate=0.17453292519943295
-  - name: 88 safe pad landing
+  - name: 89 safe pad landing
     overrides:
       - sim.landing.pad_radius=15
       - sim.landing.max_vertical_speed=2
@@ -578,28 +587,28 @@ stages:
   # cleanup costs gradually after the safe landing is learned; jumping directly from no axial-roll
   # or re-flip cost to the exact sparse invariant left the inherited controller near 1,000 degrees
   # of roll travel and 1.2 re-flips per episode.
-  - name: 89 reduce axial roll after the salto
+  - name: 90 reduce axial roll after the salto
     overrides:
       - reward.roll_travel_cost=0.1
-  - name: 90 further reduce axial roll
+  - name: 91 further reduce axial roll
     overrides:
       - reward.roll_travel_cost=0.25
-  - name: 91 strongly discourage axial roll
+  - name: 92 strongly discourage axial roll
     overrides:
       - reward.roll_travel_cost=0.5
-  - name: 92 minimize axial roll
+  - name: 93 minimize axial roll
     overrides:
       - reward.roll_travel_cost=1
-  - name: 93 discourage rotation overshoot and re-flips
+  - name: 94 discourage rotation overshoot and re-flips
     overrides:
       - reward.loop_overshoot_cost=6.25
       - reward.reflip_cost=2.5
-  - name: 94 strongly discourage rotation overshoot and re-flips
+  - name: 95 strongly discourage rotation overshoot and re-flips
     overrides:
       - reward.loop_overshoot_cost=7.5
       - reward.reflip_cost=5
   # Touchdown finally counts only after exactly one inverted-to-upright recovery with no re-flip.
-  - name: 95 clean single salto then safe pad landing
+  - name: 96 clean single salto then safe pad landing
     overrides:
       - sim.require_single_loop_before_landing=true
       - reward.loop_overshoot_cost=10

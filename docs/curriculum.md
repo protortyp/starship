@@ -104,7 +104,11 @@ lateral term passed stage 60 after about 715 actor updates on consecutive 47% an
 retain horizontal-speed shaping at 0.5 because the measured intervention solved the boundary without
 the queued increase to 1.0. Stage 61 passed after another 292 updates. The following 0.3125 m/s step
 then stayed at a 36.4% recent-300 mean through 505 updates, so a 72.96875 m/s midpoint now precedes
-the original 72.8125 m/s boundary.
+the original 72.8125 m/s boundary. That midpoint also stayed flat: its recent-500 landing mean was
+36.8%, with only seven noisy gate-level evaluations and no consecutive passes after 501 actor updates.
+The adapter was still updating; critic feature rank declined from about 60/128 to 39/128 but did not
+repeat the prior collapse to 4/128. A 73.046875 m/s bridge now halves the transition from the solved
+stage-61 policy, with another fresh critic, before retrying both stricter boundaries.
 
 ## Findings
 
