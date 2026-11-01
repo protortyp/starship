@@ -53,6 +53,8 @@ def main(cfg: DictConfig) -> None:
     )
     if cfg.checkpoint:
         runner.load(cfg.checkpoint)
+        if cfg.reset_critic:
+            runner.reset_critic()
         if runner.eval_env is not None:
             metrics = runner.evaluate()
             runner._keep_best(runner.current_learning_iteration, metrics)

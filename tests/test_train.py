@@ -172,6 +172,39 @@ def test_training_resumes_from_checkpoint(tmp_path):
     assert resumed.current_learning_iteration == 2
 
 
+def test_reset_critic_preserves_actor_and_its_optimizer_state(tmp_path):
+    cfg = compose_cfg(*SHORT_EPISODES)
+    first = make_runner(cfg, tmp_path / "a")
+    first.learn(2)
+    resumed = make_runner(cfg, tmp_path / "b")
+    resumed.load(str(tmp_path / "a" / "model_1.pt"))
+    actor_before = [p.detach().clone() for p in resumed.alg.actor.parameters()]
+    critic_before = [p.detach().clone() for p in resumed.alg.critic.parameters()]
+    actor_state = {
+        p: {
+            key: value.detach().clone() if torch.is_tensor(value) else value
+            for key, value in state.items()
+        }
+        for p, state in resumed.alg.optimizer.state.items()
+        if p in set(resumed.alg.actor.parameters())
+    }
+
+    resumed.reset_critic()
+
+    assert all(
+        torch.equal(a, p) for a, p in zip(actor_before, resumed.alg.actor.parameters(), strict=True)
+    )
+    assert any(
+        not torch.equal(a, p)
+        for a, p in zip(critic_before, resumed.alg.critic.parameters(), strict=True)
+    )
+    assert not set(resumed.alg.critic.parameters()) & set(resumed.alg.optimizer.state)
+    for parameter, state in actor_state.items():
+        for key, value in state.items():
+            actual = resumed.alg.optimizer.state[parameter][key]
+            assert torch.equal(actual, value) if torch.is_tensor(value) else actual == value
+
+
 class CoastingPolicy(torch.nn.Module):
     def reset(self, dones=None):
         pass

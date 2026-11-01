@@ -257,6 +257,23 @@ class StarshipRunner(OnPolicyRunner):
         )
         return infos
 
+    def reset_critic(self) -> None:
+        """Refresh only the value network after loading an actor worth preserving.
+
+        A badly conditioned critic can keep feeding poor advantages to an otherwise capable actor.
+        Reinitializing its trainable layers and optimizer moments lets value learning restart
+        without destroying the policy or its optimizer history.
+        """
+        critic_params = set(self.alg.critic.parameters())
+        for module in self.alg.critic.modules():
+            reset = getattr(module, "reset_parameters", None)
+            if reset is not None:
+                reset()
+        for parameter in critic_params:
+            self.alg.optimizer.state.pop(parameter, None)
+        self.alg.critic.reset()
+        self.alg.storage.saved_hidden_state_c = None
+
     def save(self, path: str, infos: dict | None = None) -> None:
         infos = {**(infos or {}), "best_eval": self.best_eval}
         if self.curriculum is not None:

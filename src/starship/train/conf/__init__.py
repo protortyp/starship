@@ -31,6 +31,9 @@ class TrainConfig:
     record_envs: int = 16
     # model_<it>.pt from an earlier run to continue from (weights, optimizer and normalizers).
     checkpoint: str | None = None
+    # Preserve the learned actor but reinitialize a collapsed value network when resuming. Its
+    # optimizer moments are discarded as well; actor weights and optimizer state stay untouched.
+    reset_critic: bool = False
     sim: SimConfig = field(default_factory=SimConfig)
     obs: ObsConfig = field(default_factory=ObsConfig)
     reward: RewardConfig = field(default_factory=RewardConfig)
