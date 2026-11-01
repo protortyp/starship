@@ -99,9 +99,10 @@ actor updates rather than being judged from a short window. It remained flat at 
 protected best still landed 40.9% over a final 1,024-episode probe: 61% of crashes broke the
 horizontal-speed limit, 42% missed the pad, and neither attitude nor angular rate was binding. The
 actor adapter remained plastic, but critic feature rank collapsed from 22/128 to 4/128. The lateral
-run therefore starts from the protected actor with a fresh critic and optimizer. If that isolated
-pad-centering term also remains flat for the full horizon, the following run retains it and raises
-horizontal-speed shaping from 0.5 to 1.0, directly targeting the probe's dominant 61% crash mode.
+run therefore started from the protected actor with a fresh critic and optimizer. The dedicated
+lateral term passed stage 60 after about 715 actor updates on consecutive 47% and 46% evaluations;
+retain horizontal-speed shaping at 0.5 because the measured intervention solved the boundary without
+the queued increase to 1.0.
 
 ## Findings
 
