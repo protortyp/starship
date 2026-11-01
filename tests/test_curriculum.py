@@ -92,7 +92,7 @@ def test_salto_landing_curriculum_finishes_with_a_strict_single_loop():
         cfg = compose("salto_land")
     assert cfg.iterations == 2000
     curriculum = Curriculum(cfg, cfg.curriculum)
-    assert len(curriculum.stages) == 82
+    assert len(curriculum.stages) == 83
     sim, reward = curriculum.target_configs()
     assert sim.require_loop_before_landing
     assert sim.require_single_loop_before_landing

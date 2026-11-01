@@ -53,8 +53,9 @@ A measured 77.8125 m/s midpoint reached 46.1%, passed in about 140 updates, and 
 original 77.5 m/s stage, which passed after about 174 updates. The next 0.625 m/s transition again
 collapsed to 21-32%, so the complete 77.5 to 70 m/s segment now uses 0.3125 m/s interpolation across
 all five constraints. The first 77.1875 m/s attempt plateaued at 44.1% for 273 updates and 13
-protected retries, so a 77.34375 m/s bridge was inserted. Training is continuing there. This is not
-yet a safe-pad result.
+protected retries. A 77.34375 m/s bridge crossed the gate once but did not produce consecutive
+passes in 140 short-patience plus 140 long-patience updates, so it was bisected again at 77.421875
+m/s. Training is continuing there. This is not yet a safe-pad result.
 
 ## Findings
 
