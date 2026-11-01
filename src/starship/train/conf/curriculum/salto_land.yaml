@@ -2,8 +2,11 @@
 # Preserve the learned loop stages so a loop checkpoint can resume, then make the policy remain
 # alive and progressively tighten a real pad touchdown.
 enabled: true
-promote_landed: 0.01
-promote_evals: 1
+# A 1% gate promoted on lucky stochastic contacts and left the deterministic controller unable
+# to brake (the old stage-21 checkpoint hit at 145 m/s). Require a behavior to work for most of
+# the evaluation batch twice before tightening the touchdown envelope.
+promote_landed: 0.5
+promote_evals: 2
 stages:
   - name: 0 loop, upright within 30 deg and 120 deg/s
     overrides:
