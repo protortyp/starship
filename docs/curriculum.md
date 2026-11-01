@@ -42,7 +42,7 @@ rate. It uses 95 stages and a 2,000-update default budget; promotion requires at
 deterministic evaluation episodes twice in succession. The final stage additionally requires exactly
 one inverted-to-upright recovery with no re-flip and penalizes axial roll and rotation beyond 360°.
 
-Current run: `salto_stage40_continuous_head_v1`. The 0.625 m/s braking ladder reached and solved the
+Current run: `salto_stage60_lateral_pad_v1`. The 0.625 m/s braking ladder reached and solved the
 80 m/s boundary (stage 34) after about 1,000 stage updates. Tightening all five landing constraints
 directly from 80 to 70 m/s then dropped deterministic landings to zero. Interpolating that transition
 over 16 stages restored a learnable boundary: the first 79.375 m/s stage passed in about 90 updates,
@@ -94,7 +94,12 @@ actor and refreshing its critic. The historical landing ablation actually attrib
 Total distance is dominated by altitude during the salto descent, so stage 60 now also applies the
 same 0.05-per-metre horizontal potential with a 500 m exponential fade. This remains
 policy-invariant shaping and directly distinguishes pad-centred approaches from the measured miss
-mode without changing the touchdown gate.
+mode without changing the touchdown gate. The total-distance-only control was then allowed 1,500
+actor updates rather than being judged from a short window. It remained flat at about 39% and its
+protected best still landed 40.9% over a final 1,024-episode probe: 61% of crashes broke the
+horizontal-speed limit, 42% missed the pad, and neither attitude nor angular rate was binding. The
+actor adapter remained plastic, but critic feature rank collapsed from 22/128 to 4/128. The lateral
+run therefore starts from the protected actor with a fresh critic and optimizer.
 
 ## Findings
 
