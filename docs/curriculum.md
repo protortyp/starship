@@ -34,6 +34,19 @@
 | 16 | 12 km handover | |
 | 17 | 20 km handover, 280 ±10 m/s at 64 ±3° (IFT-5 target) | |
 
+## Single-salto landing
+
+The `salto_land` curriculum first learns one powered end-over-end rotation and recovery, then keeps
+the same recurrent policy alive while tightening touchdown speed, pad radius, attitude and angular
+rate. It uses 48 stages and a 2,000-update default budget; promotion requires at least 45% of 256
+deterministic evaluation episodes twice in succession. The final stage additionally requires exactly
+one inverted-to-upright recovery with no re-flip and penalizes axial roll and rotation beyond 360°.
+
+Current run: `salto_braking_polish_v2`. It resumed the learned loop-and-ground controller at stage 16
+and passed stages 16–23 without a rollback by iteration 357 (187.7M total environment steps), reaching
+the 86.25 m/s touchdown stage. Training continues through the full long-run budget; this is not yet a
+safe-pad result.
+
 ## Findings
 
 - The first telemetry calibration (IFT-5, 2026-10-17) fits speed to 4.16 m/s RMSE but does not complete IFT-6’s held-descent window. Mass, drag and flap effectiveness remain coupled; keep the training defaults neutral. Details and cross-flight errors: [calibration.md](calibration.md).
@@ -52,6 +65,19 @@
 - Promotions shift the returns faster than the critic follows: at stage 10 the critic loss peaked 16x its prior median and train landing fell 94 % → 0 % within ~5 updates at a KL of ~0.004 (stage 9: 93 % → 16 %, 43 iterations to recover). The checkpoint at promotion still landed 70 % on stage 10, so the damage came from updates driven by wrong advantages, not from the stage itself.
 
 - The KL early stop must freeze only the policy. It used to end the whole update, so when one policy step overshot `max_kl` (40 % of stage-12 iterations) the critic also got one step, fell behind (loss 70 → 720) and its stale advantages took stage 12 from 90 % to 0 % in ~15 iterations without any curriculum change; rollback recovered it. The critic now trains on the remaining minibatches.
+
+- Independent Bernoulli engine heads made deterministic threshold decoding much worse than the
+  stochastic training policy: on the same 256 stage-11 scenarios, `p > 0.5` landed 21.1%, while
+  selecting the most confident `floor(sum(p))` engines landed 84.8%. The expected-count decoder is
+  opt-in and is used by the salto policy in training evaluation, export and diagnostics.
+- A 1% salto promotion gate advanced on lucky contacts and left an unusable deterministic controller.
+  Requiring 45% landed in two consecutive 256-episode evaluations retained capability across the
+  braking transitions. Fine 1.25 m/s stages then progressed only after the run was allowed to train
+  for hundreds of updates rather than being restarted on short-window variance.
+- Cumulative absolute horizontal rotation was not enough to define a single salto. A deterministic
+  probe of an otherwise promising stage-18 controller averaged about 930° of horizontal travel and
+  repeated re-flips. Final touchdown now checks exactly one inverted-to-upright recovery and zero
+  re-flips, with dense overshoot, roll-travel and re-flip costs to make that sparse invariant learnable.
 
 ## Carried over from 2D
 
