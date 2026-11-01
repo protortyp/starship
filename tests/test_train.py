@@ -375,6 +375,55 @@ def test_continuous_head_scope_preserves_engine_schedule_and_backbone(tmp_path):
         assert torch.equal(value, alg.actor.obs_normalizer.state_dict()[name])
 
 
+def test_continuous_adapter_loads_old_policy_exactly_and_trains_only_residual(tmp_path):
+    base = make_runner(compose_cfg("num_envs=8"), tmp_path / "base")
+    checkpoint = tmp_path / "base" / "model.pt"
+    base.save(str(checkpoint))
+    obs = base.env.get_observations()
+    base.alg.actor.reset()
+    expected = base.alg.actor(obs, stochastic_output=False).detach()
+
+    cfg = compose_cfg(
+        "num_envs=8",
+        "runner.actor.class_name=starship.train.models:ContinuousAdapterRNNModel",
+        "+runner.actor.continuous_adapter_hidden_dim=16",
+        "+runner.algorithm.actor_update_scope=continuous_adapter",
+    )
+    runner = make_runner(cfg, tmp_path / "adapter")
+    runner.load(str(checkpoint))
+    actor = runner.alg.actor
+    actor.reset()
+    actual = actor(obs, stochastic_output=False).detach()
+    assert torch.equal(expected, actual)
+
+    before = {name: parameter.detach().clone() for name, parameter in actor.named_parameters()}
+    collect(runner)
+    runner.alg.update()
+    after = dict(actor.named_parameters())
+    for name, value in before.items():
+        if name.startswith("continuous_adapter.") or name == "distribution.log_std":
+            assert not torch.equal(value, after[name]), name
+        else:
+            assert torch.equal(value, after[name]), name
+
+
+def test_continuous_adapter_jit_matches_policy(tmp_path):
+    cfg = compose_cfg(
+        "num_envs=1",
+        "runner.actor.class_name=starship.train.models:ContinuousAdapterRNNModel",
+        "+runner.actor.continuous_adapter_hidden_dim=16",
+    )
+    runner = make_runner(cfg, tmp_path)
+    actor = runner.alg.actor.eval()
+    obs = runner.env.get_observations()
+    actor.reset()
+    expected = actor(obs, stochastic_output=False)
+    with pytest.warns(FutureWarning, match="torch.jit.script"):
+        exported = torch.jit.script(actor.as_jit().eval())
+    actual = exported(obs["policy"])
+    torch.testing.assert_close(actual, expected)
+
+
 def test_resume_evaluates_before_learning(tmp_path, monkeypatch):
     from types import SimpleNamespace
 

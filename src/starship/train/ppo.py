@@ -63,8 +63,10 @@ class InstrumentedPPO(PPO):
             raise ValueError("critic_warmup_updates must be nonnegative")
         if post_warmup_learning_rate is not None and post_warmup_learning_rate <= 0:
             raise ValueError("post_warmup_learning_rate must be positive or None")
-        if actor_update_scope not in ("all", "continuous_head"):
-            raise ValueError("actor_update_scope must be 'all' or 'continuous_head'")
+        if actor_update_scope not in ("all", "continuous_head", "continuous_adapter"):
+            raise ValueError(
+                "actor_update_scope must be 'all', 'continuous_head', or 'continuous_adapter'"
+            )
         super().__init__(*args, **kwargs)
         self.max_kl = max_kl
         self.critic_warmup_updates = critic_warmup_updates
@@ -72,6 +74,8 @@ class InstrumentedPPO(PPO):
         self.actor_update_scope = actor_update_scope
         if actor_update_scope == "continuous_head":
             self._freeze_actor_backbone_and_engine_head()
+        elif actor_update_scope == "continuous_adapter":
+            self._freeze_actor_except_continuous_adapter()
         # Every `diagnostics_interval` updates, log network health under plasticity/* (0 = off).
         self.diagnostics_interval = diagnostics_interval
         self._updates_done = 0
@@ -102,6 +106,19 @@ class InstrumentedPPO(PPO):
         bias_mask[:ENGINE_HEADS] = 0
         output.weight.register_hook(lambda grad: grad * weight_mask)
         output.bias.register_hook(lambda grad: grad * bias_mask)
+
+    def _freeze_actor_except_continuous_adapter(self) -> None:
+        """Train a continuous residual while keeping the complete deployed policy fixed."""
+        adapter = getattr(self.actor, "continuous_adapter", None)
+        if adapter is None:
+            raise ValueError(
+                "actor_update_scope='continuous_adapter' requires an actor with continuous_adapter"
+            )
+        for parameter in self.actor.parameters():
+            parameter.requires_grad_(False)
+        for parameter in adapter.parameters():
+            parameter.requires_grad_(True)
+        self.actor.distribution.log_std.requires_grad_(True)
 
     def _activation_diagnostics(self, max_envs: int = 4096) -> dict[str, float]:
         """Unit, rank and gate diagnostics on a random rollout step and its stored hidden state."""

@@ -74,7 +74,12 @@ impact speed was already inside the limit, stage 56 now raises horizontal-speed 
 45% promotion gate. After more than 300 continuous-head updates, however, the recent-100 mean was
 still 38.8%. The boundary is therefore split into a horizontal-only half-step and then a pad-radius
 half-step before the coupled 73.59375 m/s limits; vertical speed, attitude, and angular rate remain
-at their solved stage-55 values during both bridges.
+at their solved stage-55 values during both bridges. The horizontal-only bridge likewise stayed at
+40.0% through 225 actor updates; a 1,024-episode probe showed 40.5% landed and unchanged horizontal
+failure statistics. The final linear continuous output rows therefore lacked useful capacity for
+this correction. `ContinuousAdapterRNNModel` adds a zero-initialized nonlinear residual fed by the
+frozen recurrent latent. Existing checkpoints load with bit-identical initial actions, and the
+adapter has no computation path to engine logits.
 
 ## Findings
 

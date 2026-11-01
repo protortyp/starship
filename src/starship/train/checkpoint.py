@@ -17,6 +17,17 @@ def _pad(value: torch.Tensor, fill: float = 0) -> torch.Tensor:
 
 def migrate_checkpoint(checkpoint: dict, actor: nn.Module, critic: nn.Module, optimizer) -> None:
     changed = set()
+    actor_state = checkpoint["actor_state_dict"]
+    actor_target = actor.state_dict()
+    added_adapter = False
+    for key, value in actor_target.items():
+        if key.startswith("continuous_adapter.") and key not in actor_state:
+            actor_state[key] = value.detach().clone()
+            added_adapter = True
+    if added_adapter and "optimizer_state_dict" in checkpoint:
+        # Parameter ordering changes when the adapter is introduced. Start fresh optimizer
+        # moments rather than attaching old moments to the wrong tensors.
+        checkpoint["optimizer_state_dict"] = optimizer.state_dict()
     for name, model in (("actor", actor), ("critic", critic)):
         state = checkpoint[f"{name}_state_dict"]
         target = model.state_dict()
