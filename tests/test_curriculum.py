@@ -87,6 +87,19 @@ def test_loop_curriculum_tightens_recovery_limits():
     )
 
 
+def test_salto_landing_curriculum_finishes_with_a_strict_single_loop():
+    with initialize_config_module("starship.train.conf", version_base=None):
+        cfg = compose("salto_land")
+    curriculum = Curriculum(cfg, cfg.curriculum)
+    assert len(curriculum.stages) == 48
+    sim, reward = curriculum.target_configs()
+    assert sim.require_loop_before_landing
+    assert sim.require_single_loop_before_landing
+    assert reward.loop_overshoot_cost == 10
+    assert reward.roll_travel_cost == 1
+    assert reward.reflip_cost == 10
+
+
 def test_overrides_outside_sim_and_reward_are_rejected():
     cfg = two_stage()
     cfg.stages[0]["overrides"] = ["runner.algorithm.gamma=0.9"]
