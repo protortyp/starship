@@ -326,6 +326,14 @@ def probe_section(
         lines.append(f"- {name} {stats.get(f'rate/{name}', 0.0):.3f}")
     if undecided:
         lines.append(f"- undecided engine choices (0.1 < p < 0.9): {np.mean(undecided):.0%}")
+    for subset in ("landed", "crashed"):
+        count = stats.get(f"{subset}/actuators/engine_count_mean")
+        if count is not None:
+            duties = [stats[f"{subset}/actuators/engine{i}_duty"] for i in range(3)]
+            lines.append(
+                f"- {subset} mean engine count {count:.3f} "
+                f"(duties {' '.join(f'{value:.3f}' for value in duties)})"
+            )
     for key, value in sorted(stats.items()):
         if key.startswith("crashed/breaks_"):
             lines.append(f"- crashes breaking {key.removeprefix('crashed/breaks_')}: {value:.0%}")

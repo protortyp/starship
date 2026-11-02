@@ -154,10 +154,17 @@ class EpisodeTracker:
             out[f"rate/{name}"] = (ep["status"] == code).float().mean().item()
         for i, name in enumerate(ENGINE_NAMES):
             out[f"actuators/{name}_duty"] = ep["engine_duty"][:, i].mean().item()
+        out["actuators/engine_count_mean"] = ep["engine_duty"].sum(dim=-1).mean().item()
         for i, (name, _, _) in enumerate(CONTINUOUS):
             out[f"actuators/{name}_mean"] = ep["action_mean"][:, i].mean().item()
             out[f"actuators/{name}_saturated"] = ep["saturated"][:, i].mean().item()
         landed, crashed = ep["status"] == LANDED, ep["status"] == CRASHED
+        for subset, mask in (("landed", landed), ("crashed", crashed)):
+            if mask.any():
+                duty = ep["engine_duty"][mask]
+                out[f"{subset}/actuators/engine_count_mean"] = duty.sum(dim=-1).mean().item()
+                for i, name in enumerate(ENGINE_NAMES):
+                    out[f"{subset}/actuators/{name}_duty"] = duty[:, i].mean().item()
         for key in ATTITUDE_METRICS:
             values = ep[f"attitude/{key}"]
             out[f"attitude/{key}"] = values.mean().item()

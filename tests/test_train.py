@@ -139,6 +139,8 @@ def test_episode_tracker_summarizes_finished_episodes():
     assert summary["train/env/episodes"] == 8
     assert summary["train/env/rate/crashed"] == 1.0
     assert summary["train/env/actuators/engine0_duty"] == 0.0
+    assert summary["train/env/actuators/engine_count_mean"] == 0.0
+    assert summary["train/env/crashed/actuators/engine_count_mean"] == 0.0
     assert summary["train/env/crashed/breaks_vertical_speed"] == 1.0
     assert summary["train/env/return"] == pytest.approx(returns.mean().item(), rel=1e-4)
     assert tracker.summarize("train/env") == {}
