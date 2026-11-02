@@ -481,6 +481,83 @@ def test_hybrid_adapter_jit_matches_policy(tmp_path):
     torch.testing.assert_close(actual, expected)
 
 
+def test_post_loop_adapter_loads_exactly_and_trains_only_phase_residual(tmp_path):
+    base_cfg = compose_cfg(
+        "num_envs=8",
+        "runner.actor.class_name=starship.train.models:ContinuousAdapterRNNModel",
+        "+runner.actor.continuous_adapter_hidden_dim=16",
+        "+runner.actor.engine_adapter_hidden_dim=8",
+    )
+    base = make_runner(base_cfg, tmp_path / "base")
+    checkpoint = tmp_path / "base" / "model.pt"
+    base.save(str(checkpoint))
+    obs = base.env.get_observations()
+    base.alg.actor.reset()
+    expected = base.alg.actor(obs, stochastic_output=False).detach()
+
+    cfg = compose_cfg(
+        "num_envs=8",
+        "runner.actor.class_name=starship.train.models:ContinuousAdapterRNNModel",
+        "+runner.actor.continuous_adapter_hidden_dim=16",
+        "+runner.actor.engine_adapter_hidden_dim=8",
+        "+runner.actor.post_loop_adapter_hidden_dim=16",
+        "+runner.actor.post_loop_progress_threshold=0.0",
+        "+runner.algorithm.actor_update_scope=post_loop_adapter",
+    )
+    runner = make_runner(cfg, tmp_path / "post-loop")
+    runner.load(str(checkpoint))
+    actor = runner.alg.actor
+    actor.reset()
+    actual = actor(obs, stochastic_output=False).detach()
+    assert torch.equal(expected, actual)
+
+    before = {name: parameter.detach().clone() for name, parameter in actor.named_parameters()}
+    collect(runner)
+    runner.alg.update()
+    after = dict(actor.named_parameters())
+    for name, value in before.items():
+        trainable = name.startswith("post_loop_adapter.")
+        if trainable or name == "distribution.log_std":
+            assert not torch.equal(value, after[name]), name
+        else:
+            assert torch.equal(value, after[name]), name
+
+
+def test_post_loop_adapter_is_gated_and_jit_matches_policy(tmp_path):
+    cfg = compose_cfg(
+        "num_envs=1",
+        "runner.actor.class_name=starship.train.models:ContinuousAdapterRNNModel",
+        "+runner.actor.continuous_adapter_hidden_dim=16",
+        "+runner.actor.engine_adapter_hidden_dim=8",
+        "+runner.actor.post_loop_adapter_hidden_dim=16",
+    )
+    runner = make_runner(cfg, tmp_path)
+    actor = runner.alg.actor.eval()
+    obs = runner.env.get_observations()
+    obs["policy"][:, 27] = 0.0
+    actor.reset()
+    gated_off_before = actor(obs, stochastic_output=False).detach()
+    with torch.no_grad():
+        output = next(
+            module
+            for module in reversed(list(actor.post_loop_adapter.modules()))
+            if isinstance(module, torch.nn.Linear)
+        )
+        output.bias.fill_(0.25)
+    actor.reset()
+    gated_off_after = actor(obs, stochastic_output=False).detach()
+    assert torch.equal(gated_off_before, gated_off_after)
+
+    obs["policy"][:, 27] = 1.0
+    actor.reset()
+    expected = actor(obs, stochastic_output=False)
+    actor.reset()
+    with pytest.warns(FutureWarning, match="torch.jit.script"):
+        exported = torch.jit.script(actor.as_jit().eval())
+    actual = exported(obs["policy"])
+    torch.testing.assert_close(actual, expected)
+
+
 def test_resume_evaluates_before_learning(tmp_path, monkeypatch):
     from types import SimpleNamespace
 

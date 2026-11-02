@@ -68,10 +68,11 @@ class InstrumentedPPO(PPO):
             "continuous_head",
             "continuous_adapter",
             "hybrid_adapter",
+            "post_loop_adapter",
         ):
             raise ValueError(
                 "actor_update_scope must be 'all', 'continuous_head', 'continuous_adapter', "
-                "or 'hybrid_adapter'"
+                "'hybrid_adapter', or 'post_loop_adapter'"
             )
         super().__init__(*args, **kwargs)
         self.max_kl = max_kl
@@ -84,6 +85,8 @@ class InstrumentedPPO(PPO):
             self._freeze_actor_except_continuous_adapter()
         elif actor_update_scope == "hybrid_adapter":
             self._freeze_actor_except_hybrid_adapters()
+        elif actor_update_scope == "post_loop_adapter":
+            self._freeze_actor_except_post_loop_adapter()
         # Every `diagnostics_interval` updates, log network health under plasticity/* (0 = off).
         self.diagnostics_interval = diagnostics_interval
         self._updates_done = 0
@@ -141,6 +144,19 @@ class InstrumentedPPO(PPO):
         for adapter in (continuous, engine):
             for parameter in adapter.parameters():
                 parameter.requires_grad_(True)
+        self.actor.distribution.log_std.requires_grad_(True)
+
+    def _freeze_actor_except_post_loop_adapter(self) -> None:
+        """Train a phase-gated landing controller while preserving the complete stunt policy."""
+        adapter = getattr(self.actor, "post_loop_adapter", None)
+        if adapter is None:
+            raise ValueError(
+                "actor_update_scope='post_loop_adapter' requires an actor with post_loop_adapter"
+            )
+        for parameter in self.actor.parameters():
+            parameter.requires_grad_(False)
+        for parameter in adapter.parameters():
+            parameter.requires_grad_(True)
         self.actor.distribution.log_std.requires_grad_(True)
 
     def _activation_diagnostics(self, max_envs: int = 4096) -> dict[str, float]:

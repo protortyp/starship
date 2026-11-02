@@ -7,10 +7,11 @@ import copy
 import torch
 from rsl_rl.models.rnn_model import RNNModel
 from rsl_rl.modules import MLP, HiddenState
+from rsl_rl.utils import unpad_trajectories
 from tensordict import TensorDict
 from torch import nn
 
-from starship.train.actions import CONTINUOUS_HEADS, ENGINE_HEADS
+from starship.train.actions import ACTION_DIM, CONTINUOUS_HEADS, ENGINE_HEADS
 
 
 class ContinuousAdapterRNNModel(RNNModel):
@@ -27,13 +28,24 @@ class ContinuousAdapterRNNModel(RNNModel):
         *args,
         continuous_adapter_hidden_dim: int = 64,
         engine_adapter_hidden_dim: int = 0,
+        post_loop_adapter_hidden_dim: int = 0,
+        post_loop_progress_index: int = 27,
+        post_loop_progress_threshold: float = 0.999999,
         **kwargs,
     ) -> None:
         if continuous_adapter_hidden_dim <= 0:
             raise ValueError("continuous_adapter_hidden_dim must be positive")
         if engine_adapter_hidden_dim < 0:
             raise ValueError("engine_adapter_hidden_dim must be nonnegative")
+        if post_loop_adapter_hidden_dim < 0:
+            raise ValueError("post_loop_adapter_hidden_dim must be nonnegative")
         super().__init__(*args, **kwargs)
+        if not 0 <= post_loop_progress_index < self.obs_dim:
+            raise ValueError("post_loop_progress_index must address an actor observation")
+        if not 0.0 <= post_loop_progress_threshold <= 1.0:
+            raise ValueError("post_loop_progress_threshold must be between zero and one")
+        self.post_loop_progress_index = post_loop_progress_index
+        self.post_loop_progress_threshold = post_loop_progress_threshold
         self.continuous_adapter = MLP(
             self.latent_dim,
             CONTINUOUS_HEADS,
@@ -62,6 +74,24 @@ class ContinuousAdapterRNNModel(RNNModel):
             )
             nn.init.zeros_(engine_output.weight)
             nn.init.zeros_(engine_output.bias)
+        self.post_loop_adapter = None
+        if post_loop_adapter_hidden_dim:
+            # The frozen recurrent latent was optimized for the stunt and can discard landing
+            # details. Give the post-loop controller a direct Markov-state path while gating the
+            # complete residual off until the observed stunt progress is complete.
+            self.post_loop_adapter = MLP(
+                self.obs_dim,
+                ACTION_DIM,
+                [post_loop_adapter_hidden_dim, post_loop_adapter_hidden_dim],
+                kwargs.get("activation", "elu"),
+            )
+            post_loop_output = next(
+                module
+                for module in reversed(list(self.post_loop_adapter.modules()))
+                if isinstance(module, nn.Linear)
+            )
+            nn.init.zeros_(post_loop_output.weight)
+            nn.init.zeros_(post_loop_output.bias)
 
     def forward(
         self,
@@ -70,13 +100,22 @@ class ContinuousAdapterRNNModel(RNNModel):
         hidden_state: HiddenState = None,
         stochastic_output: bool = False,
     ) -> torch.Tensor:
-        latent = self.get_latent(obs, masks, hidden_state)
+        raw = torch.cat([obs[group] for group in self.obs_groups], dim=-1)
+        normalized = self.obs_normalizer(raw)
+        latent = self.rnn(normalized, masks, hidden_state).squeeze(0)
         base = self.mlp(latent)
         engine = base[..., :ENGINE_HEADS]
         if self.engine_adapter is not None:
             engine = engine + self.engine_adapter(latent)
         continuous = base[..., 3:] + self.continuous_adapter(latent)
         output = torch.cat((engine, continuous), dim=-1)
+        if self.post_loop_adapter is not None:
+            adapter_obs = unpad_trajectories(normalized, masks) if masks is not None else normalized
+            progress = raw[..., self.post_loop_progress_index]
+            if masks is not None:
+                progress = unpad_trajectories(progress.unsqueeze(-1), masks).squeeze(-1)
+            gate = (progress >= self.post_loop_progress_threshold).to(output.dtype).unsqueeze(-1)
+            output = output + gate * self.post_loop_adapter(adapter_obs)
         if self.distribution is not None:
             if stochastic_output:
                 self.distribution.update(output)
@@ -113,6 +152,13 @@ class _TorchLSTMContinuousAdapter(nn.Module):
             if model.engine_adapter is not None
             else _ZeroEngineAdapter()
         )
+        self.post_loop_adapter = (
+            copy.deepcopy(model.post_loop_adapter)
+            if model.post_loop_adapter is not None
+            else _ZeroPostLoopAdapter()
+        )
+        self.post_loop_progress_index = model.post_loop_progress_index
+        self.post_loop_progress_threshold = model.post_loop_progress_threshold
         if model.distribution is not None:
             self.deterministic_output = model.distribution.as_deterministic_output_module()
         else:
@@ -125,7 +171,8 @@ class _TorchLSTMContinuousAdapter(nn.Module):
         )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        x = self.obs_normalizer(x)
+        raw = x
+        x = self.obs_normalizer(raw)
         latent, (hidden, cell) = self.rnn(x.unsqueeze(0), (self.hidden_state, self.cell_state))
         self.hidden_state[:] = hidden
         self.cell_state[:] = cell
@@ -134,6 +181,9 @@ class _TorchLSTMContinuousAdapter(nn.Module):
         engine = base[..., :3] + self.engine_adapter(latent)
         continuous = base[..., 3:] + self.continuous_adapter(latent)
         output = torch.cat((engine, continuous), dim=-1)
+        progress = raw[..., self.post_loop_progress_index]
+        gate = (progress >= self.post_loop_progress_threshold).to(output.dtype).unsqueeze(-1)
+        output = output + gate * self.post_loop_adapter(x)
         return self.deterministic_output(output)
 
     @torch.jit.export
@@ -147,3 +197,14 @@ class _ZeroEngineAdapter(nn.Module):
 
     def forward(self, latent: torch.Tensor) -> torch.Tensor:
         return torch.zeros_like(latent[..., :3])
+
+
+class _ZeroPostLoopAdapter(nn.Module):
+    """Keep the exported wrapper uniform when the phase-gated residual is disabled."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.output_dim = ACTION_DIM
+
+    def forward(self, obs: torch.Tensor) -> torch.Tensor:
+        return torch.zeros_like(obs[..., : self.output_dim])
