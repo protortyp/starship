@@ -33,6 +33,12 @@ TRACES = (
         62,
         "#dc2626",
     ),
+    Trace(
+        "20-step persistent count",
+        ROOT / "out/salto-stage62-hybrid-hold20-v1.log",
+        62,
+        "#db2777",
+    ),
 )
 
 
@@ -112,7 +118,8 @@ def landing_panel() -> list[str]:
         )
         lines.append(text(x, top + height + 23, str(tick), anchor="middle"))
     lines.append(text(left + width / 2, top + height + 48, "evaluation iteration", anchor="middle"))
-    lines.append(text(left + width - 5, top + 23, "promotion gate", size=12, anchor="end"))
+    gate_y = top + (y_max - 0.45) / (y_max - y_min) * height
+    lines.append(text(left + 5, gate_y - 6, "promotion gate", size=12))
     for trace, values in series:
         lines.append(
             polyline(
@@ -127,9 +134,12 @@ def landing_panel() -> list[str]:
                 color=trace.color,
             )
         )
-    legend_x = 545
+    legend_x = 535
+    lines.append(
+        f'<rect x="{legend_x - 10}" y="30" width="290" height="126" fill="white" opacity="0.9"/>'
+    )
     for index, trace in enumerate(TRACES):
-        y = 51 + 20 * index
+        y = 43 + 20 * index
         lines.append(
             f'<line x1="{legend_x}" y1="{y}" x2="{legend_x + 22}" y2="{y}" '
             f'stroke="{trace.color}" stroke-width="3"/>'

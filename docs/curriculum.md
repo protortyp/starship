@@ -120,6 +120,17 @@ well below saturation. Continuous-only adaptation therefore cannot discover the 
 authority needed by the remaining curriculum. The actor now supports a separate zero-initialized
 engine-logit adapter: it preserves the checkpoint bit-for-bit at load, but a hybrid-adapter update
 scope can learn engine count while the recurrent controller and original action head remain frozen.
+Per-step count sampling gave that adapter no successful rollout landings in its first 500-update
+control. Holding each sampled count for 20 control steps restored a useful signal: rollout landing
+rose to 5--7%, and a 512-episode matched probe found successful trajectories used 1.123 engines on
+average versus 1.079 for crashes. Deterministic landing nevertheless remained near 37% through the
+first 500 actor updates, while critic feature rank declined to 31/128. An offline persistence sweep
+on the same policy measured 4.7% stochastic landing at 20 steps, 11.0% at 60, 16.2% at 100, and
+24.8% at 150 steps across four seeds. A once-per-phase variant (one count for the salto, resampled
+once at recovery and then held through landing) retains about 20% successful exploratory episodes
+without interrupting the two-second ignition transient. The actor now also has a zero-initialized
+post-loop observation adapter and explicit recovery-handoff resampling, both exactly gated off during
+the learned salto; these are the next long-run intervention if the 20-step control stays flat.
 
 ## Findings
 
