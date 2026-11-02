@@ -36,6 +36,8 @@ def test_rejects_other_action_dims():
         HybridDistribution(ACTION_DIM, stochastic_engine_selection="random")
     with pytest.raises(ValueError, match="ranked_count_temperature"):
         HybridDistribution(ACTION_DIM, ranked_count_temperature=0)
+    with pytest.raises(ValueError, match="ranked_count_hold_steps"):
+        HybridDistribution(ACTION_DIM, ranked_count_hold_steps=0)
 
 
 @pytest.mark.parametrize("batch", [(5,), (3, 4)])
@@ -194,6 +196,34 @@ def test_ranked_count_log_prob_entropy_kl_and_gradients():
     dist.log_prob(actions).sum().backward()
     assert out.grad is not None
     assert torch.isfinite(out.grad).all()
+
+
+def test_ranked_count_sampling_can_hold_counts_and_reset_finished_envs():
+    dist = HybridDistribution(
+        ACTION_DIM,
+        stochastic_engine_selection="ranked_count",
+        ranked_count_temperature=0.01,
+        ranked_count_hold_steps=3,
+    )
+
+    def update(engine_logit):
+        logits = torch.full((2, ENGINE_HEADS), engine_logit)
+        dist.update(torch.cat([logits, torch.zeros(2, CONTINUOUS_HEADS)], -1))
+
+    with torch.inference_mode():
+        update(-10.0)
+        assert torch.equal(dist.sample()[:, :ENGINE_HEADS].sum(-1), torch.tensor([0.0, 0.0]))
+        update(1.0)
+        # The new distribution overwhelmingly selects two engines, but the rollout action remains
+        # at zero until its three-step hold expires.
+        assert torch.equal(dist.sample()[:, :ENGINE_HEADS].sum(-1), torch.tensor([0.0, 0.0]))
+        dist.reset(torch.tensor([True, False]))
+        assert torch.equal(dist.sample()[:, :ENGINE_HEADS].sum(-1), torch.tensor([2.0, 0.0]))
+        assert torch.equal(dist.sample()[:, :ENGINE_HEADS].sum(-1), torch.tensor([2.0, 2.0]))
+
+    dist.reset()
+    assert dist._held_engine_count is None
+    assert dist._engine_count_steps_left is None
 
 
 def test_ppo_smoke_update_on_random_data():

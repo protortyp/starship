@@ -33,6 +33,7 @@ class HybridDistribution(Distribution):
         deterministic_engine_selection: str = "threshold",
         stochastic_engine_selection: str = "independent",
         ranked_count_temperature: float = 0.75,
+        ranked_count_hold_steps: int = 1,
     ) -> None:
         if output_dim != ACTION_DIM:
             raise ValueError(f"HybridDistribution needs output_dim={ACTION_DIM}, got {output_dim}")
@@ -44,10 +45,15 @@ class HybridDistribution(Distribution):
             raise ValueError("stochastic_engine_selection must be 'independent' or 'ranked_count'")
         if ranked_count_temperature <= 0:
             raise ValueError("ranked_count_temperature must be positive")
+        if ranked_count_hold_steps < 1:
+            raise ValueError("ranked_count_hold_steps must be positive")
         super().__init__(output_dim)
         self.deterministic_engine_selection = deterministic_engine_selection
         self.stochastic_engine_selection = stochastic_engine_selection
         self.ranked_count_temperature = ranked_count_temperature
+        self.ranked_count_hold_steps = ranked_count_hold_steps
+        self._held_engine_count: torch.Tensor | None = None
+        self._engine_count_steps_left: torch.Tensor | None = None
         # Pre-tanh units: std 0.5 explores the middle of each actuator range without piling
         # samples onto the tanh limits; the clamp keeps the policy from freezing (std -> 0) or
         # from saturating every actuator (std >> 1), where log_prob gradients become useless.
@@ -87,8 +93,37 @@ class HybridDistribution(Distribution):
             on = heads.engine.sample()
         else:
             count = heads.engine.sample()
+            if self.ranked_count_hold_steps > 1 and not torch.is_grad_enabled() and count.ndim == 1:
+                if (
+                    self._held_engine_count is None
+                    or self._held_engine_count.shape != count.shape
+                    or self._held_engine_count.device != count.device
+                ):
+                    self._held_engine_count = count.clone()
+                    self._engine_count_steps_left = torch.full_like(
+                        count, self.ranked_count_hold_steps
+                    )
+                refresh = self._engine_count_steps_left <= 0
+                self._held_engine_count = torch.where(refresh, count, self._held_engine_count)
+                self._engine_count_steps_left = torch.where(
+                    refresh,
+                    torch.full_like(count, self.ranked_count_hold_steps),
+                    self._engine_count_steps_left,
+                )
+                count = self._held_engine_count
+                self._engine_count_steps_left -= 1
             on = (heads.engine_rank < count.unsqueeze(-1)).to(heads.continuous.mean.dtype)
         return torch.cat([on, heads.continuous.sample()], dim=-1)
+
+    def reset(self, dones: torch.Tensor | None = None) -> None:
+        """Clear held exploratory counts globally or for completed environments."""
+        if dones is None or self._engine_count_steps_left is None:
+            self._held_engine_count = None
+            self._engine_count_steps_left = None
+            return
+        done = dones.bool()
+        if done.shape == self._engine_count_steps_left.shape:
+            self._engine_count_steps_left[done] = 0
 
     def deterministic_output(self, mlp_output: torch.Tensor) -> torch.Tensor:
         logits, mean = self._split(mlp_output)

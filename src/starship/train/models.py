@@ -92,6 +92,12 @@ class ContinuousAdapterRNNModel(RNNModel):
     def as_onnx(self, verbose: bool = False) -> nn.Module:
         raise NotImplementedError("ContinuousAdapterRNNModel ONNX export is not implemented")
 
+    def reset(self, dones: torch.Tensor | None = None, hidden_state: HiddenState = None) -> None:
+        super().reset(dones, hidden_state)
+        reset_distribution = getattr(self.distribution, "reset", None)
+        if reset_distribution is not None:
+            reset_distribution(dones)
+
 
 class _TorchLSTMContinuousAdapter(nn.Module):
     """TorchScript-friendly deterministic LSTM policy with the continuous adapter."""
