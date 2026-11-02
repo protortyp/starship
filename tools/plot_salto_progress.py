@@ -11,6 +11,7 @@ from tensorboard.backend.event_processing.event_accumulator import EventAccumula
 
 ROOT = Path(__file__).resolve().parents[1]
 OUTPUT = ROOT / "docs" / "assets" / "salto-training-progress.svg"
+RANK_EXPERIMENT = ROOT / "logs" / "salto_stage62_hybrid_hold20_v1"
 LINE = re.compile(r"eval landed\s+(?P<landed>\d+\.\d+).*stage\s+(?P<stage>\d+)")
 
 
@@ -149,7 +150,7 @@ def landing_panel() -> list[str]:
 
 
 def latest_event_file() -> Path:
-    candidates = list((ROOT / "logs/salto_stage62_midpoint_v1").glob("*/*tfevents*"))
+    candidates = list(RANK_EXPERIMENT.glob("*/*tfevents*"))
     return max(candidates, key=lambda path: path.stat().st_mtime)
 
 
@@ -168,14 +169,15 @@ def rank_panel() -> list[str]:
     # updates rather than one. Keep the axis in actual training updates and inside the viewport.
     diagnostics_interval = 10
     x_max = max(500, (max(len(values) for _, _, values in series) - 1) * diagnostics_interval)
-    lines = [text(left, 430, "Policy plasticity during the 501-update midpoint trial", size=20)]
+    lines = [text(left, 430, "Policy plasticity during the persistent-count trial", size=20)]
     for tick in (0, 32, 64, 96, 128):
         y = top + (128 - tick) / 128 * height
         lines.append(
             f'<line x1="{left}" y1="{y:.1f}" x2="{left + width}" y2="{y:.1f}" stroke="#e5e7eb"/>'
         )
         lines.append(text(left - 10, y + 4, str(tick), anchor="end"))
-    for tick in (0, 100, 300, 500):
+    tick_step = max(100, (x_max // 400) * 100)
+    for tick in range(0, x_max + 1, tick_step):
         x = left + tick / max(x_max, 1) * width
         lines.append(text(x, top + height + 23, str(tick), anchor="middle"))
     lines.append(text(left + width / 2, top + height + 48, "training update", anchor="middle"))
