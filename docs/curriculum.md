@@ -145,7 +145,10 @@ The corrected run then trained a fresh critic for 200 updates on a stable 30--31
 landing distribution (explained variance reached 0.81), while keeping the protected salto actor
 exactly frozen. Once enabled, the direct-observation post-loop adapter raised rollout landing to
 38--41% and produced consecutive 48% deterministic evaluations, passing stage 62 after only about
-65 actor updates. Training continues into the original 72.96875 m/s stage 63 boundary.
+65 actor updates. The same policy then passed every remaining fine braking boundary through 70 m/s
+(stages 63--73) without a rollback or restart, reaching the 60 m/s stage 74 cliff after only about
+175 actor updates in total. This clears the complete segment that had blocked all continuous-only and
+20-step count controls.
 
 ## Findings
 
