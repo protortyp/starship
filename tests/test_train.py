@@ -584,6 +584,48 @@ def test_standalone_policy_saved_before_optional_adapters_still_loads(tmp_path):
     assert exported(obs["policy"]).shape == (1, ACTION_DIM)
 
 
+def test_ranked_engine_count_resamples_once_at_post_loop_handoff(tmp_path):
+    cfg = compose_cfg(
+        "num_envs=2",
+        "runner.actor.class_name=starship.train.models:ContinuousAdapterRNNModel",
+        "+runner.actor.continuous_adapter_hidden_dim=16",
+        "+runner.actor.resample_engine_count_post_loop=true",
+        "+runner.actor.distribution_cfg.stochastic_engine_selection=ranked_count",
+        "+runner.actor.distribution_cfg.ranked_count_temperature=0.01",
+        "+runner.actor.distribution_cfg.ranked_count_hold_steps=1000",
+    )
+    runner = make_runner(cfg, tmp_path)
+    actor = runner.alg.actor
+    output = next(
+        module
+        for module in reversed(list(actor.mlp.modules()))
+        if isinstance(module, torch.nn.Linear)
+    )
+    obs = runner.env.get_observations()
+    obs["policy"][:, 27] = 0.0
+    actor.reset()
+    with torch.no_grad():
+        output.weight[:3].zero_()
+        output.bias[:3].fill_(-10.0)
+    with torch.inference_mode():
+        before = actor(obs, stochastic_output=True)[:, :3].sum(-1)
+        assert torch.equal(before, torch.tensor([0.0, 0.0]))
+
+        output.bias[:3].fill_(1.0)
+        obs["policy"][:, 27] = 1.0
+        at_handoff = actor(obs, stochastic_output=True)[:, :3].sum(-1)
+        assert torch.equal(at_handoff, torch.tensor([2.0, 2.0]))
+
+        # The handoff samples only once: later logits do not interrupt the coherent burn.
+        output.bias[:3].fill_(-10.0)
+        held = actor(obs, stochastic_output=True)[:, :3].sum(-1)
+        assert torch.equal(held, torch.tensor([2.0, 2.0]))
+
+        actor.reset(torch.tensor([True, False]))
+        after_done = actor(obs, stochastic_output=True)[:, :3].sum(-1)
+        assert torch.equal(after_done, torch.tensor([0.0, 2.0]))
+
+
 def test_resume_evaluates_before_learning(tmp_path, monkeypatch):
     from types import SimpleNamespace
 

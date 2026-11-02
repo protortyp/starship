@@ -31,6 +31,7 @@ class ContinuousAdapterRNNModel(RNNModel):
         post_loop_adapter_hidden_dim: int = 0,
         post_loop_progress_index: int = 27,
         post_loop_progress_threshold: float = 0.999999,
+        resample_engine_count_post_loop: bool = False,
         **kwargs,
     ) -> None:
         if continuous_adapter_hidden_dim <= 0:
@@ -46,6 +47,8 @@ class ContinuousAdapterRNNModel(RNNModel):
             raise ValueError("post_loop_progress_threshold must be between zero and one")
         self.post_loop_progress_index = post_loop_progress_index
         self.post_loop_progress_threshold = post_loop_progress_threshold
+        self.resample_engine_count_post_loop = resample_engine_count_post_loop
+        self._post_loop_count_sampled: torch.Tensor | None = None
         self.continuous_adapter = MLP(
             self.latent_dim,
             CONTINUOUS_HEADS,
@@ -123,9 +126,34 @@ class ContinuousAdapterRNNModel(RNNModel):
         if self.distribution is not None:
             if stochastic_output:
                 self.distribution.update(output)
+                self._resample_count_at_post_loop_handoff(raw, masks)
                 return self.distribution.sample()
             return self.distribution.deterministic_output(output)
         return output
+
+    def _resample_count_at_post_loop_handoff(
+        self, raw: torch.Tensor, masks: torch.Tensor | None
+    ) -> None:
+        """Choose one coherent engine count per phase instead of switching during ignition."""
+        if (
+            not getattr(self, "resample_engine_count_post_loop", False)
+            or masks is not None
+            or torch.is_grad_enabled()
+            or raw.ndim != 2
+        ):
+            return
+        progress_index = getattr(self, "post_loop_progress_index", 27)
+        progress_threshold = getattr(self, "post_loop_progress_threshold", 0.999999)
+        complete = raw[:, progress_index] >= progress_threshold
+        sampled = getattr(self, "_post_loop_count_sampled", None)
+        if sampled is None or sampled.shape != complete.shape or sampled.device != complete.device:
+            sampled = torch.zeros_like(complete)
+        handoff = complete & ~sampled
+        if handoff.any():
+            reset_distribution = getattr(self.distribution, "reset", None)
+            if reset_distribution is not None:
+                reset_distribution(handoff)
+        self._post_loop_count_sampled = sampled | complete
 
     def as_jit(self) -> nn.Module:
         if isinstance(self.rnn.rnn, nn.LSTM):
@@ -140,6 +168,11 @@ class ContinuousAdapterRNNModel(RNNModel):
         reset_distribution = getattr(self.distribution, "reset", None)
         if reset_distribution is not None:
             reset_distribution(dones)
+        sampled = getattr(self, "_post_loop_count_sampled", None)
+        if dones is None or sampled is None:
+            self._post_loop_count_sampled = None
+        elif dones.shape == sampled.shape:
+            sampled[dones.bool()] = False
 
 
 class _TorchLSTMContinuousAdapter(nn.Module):
