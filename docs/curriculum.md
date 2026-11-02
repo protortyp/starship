@@ -141,6 +141,11 @@ controller is the next long-run intervention. The completed 1,500-actor-update c
 promoted: its final recent-500 deterministic mean was 35.6%, its exploratory landing mean was 5.8%
 (8.2% over the final 100), and its protected 39.6% best was never replaced. Actor feature rank stayed
 healthy at 91/128 while critic rank ended at 26/128; the run had one protected rollback.
+The corrected run then trained a fresh critic for 200 updates on a stable 30--31% exploratory
+landing distribution (explained variance reached 0.81), while keeping the protected salto actor
+exactly frozen. Once enabled, the direct-observation post-loop adapter raised rollout landing to
+38--41% and produced consecutive 48% deterministic evaluations, passing stage 62 after only about
+65 actor updates. Training continues into the original 72.96875 m/s stage 63 boundary.
 
 ## Findings
 

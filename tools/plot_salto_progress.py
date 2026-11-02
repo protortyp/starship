@@ -11,7 +11,7 @@ from tensorboard.backend.event_processing.event_accumulator import EventAccumula
 
 ROOT = Path(__file__).resolve().parents[1]
 OUTPUT = ROOT / "docs" / "assets" / "salto-training-progress.svg"
-RANK_EXPERIMENT = ROOT / "logs" / "salto_stage62_hybrid_hold20_v1"
+RANK_EXPERIMENT = ROOT / "logs" / "salto_stage62_postloop_phase_v1"
 LINE = re.compile(r"eval landed\s+(?P<landed>\d+\.\d+).*stage\s+(?P<stage>\d+)")
 
 
@@ -39,6 +39,12 @@ TRACES = (
         ROOT / "out/salto-stage62-hybrid-hold20-v1.log",
         62,
         "#db2777",
+    ),
+    Trace(
+        "phase-coherent landing adapter",
+        ROOT / "out/salto-stage62-postloop-phase-v1.log",
+        62,
+        "#0891b2",
     ),
 )
 
@@ -137,7 +143,7 @@ def landing_panel() -> list[str]:
         )
     legend_x = 535
     lines.append(
-        f'<rect x="{legend_x - 10}" y="30" width="290" height="126" fill="white" opacity="0.9"/>'
+        f'<rect x="{legend_x - 10}" y="30" width="290" height="146" fill="white" opacity="0.9"/>'
     )
     for index, trace in enumerate(TRACES):
         y = 43 + 20 * index
@@ -169,7 +175,7 @@ def rank_panel() -> list[str]:
     # updates rather than one. Keep the axis in actual training updates and inside the viewport.
     diagnostics_interval = 10
     x_max = max(500, (max(len(values) for _, _, values in series) - 1) * diagnostics_interval)
-    lines = [text(left, 430, "Policy plasticity during the persistent-count trial", size=20)]
+    lines = [text(left, 430, "Policy plasticity during the phase-coherent trial", size=20)]
     for tick in (0, 32, 64, 96, 128):
         y = top + (128 - tick) / 128 * height
         lines.append(
