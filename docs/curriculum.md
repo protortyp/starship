@@ -112,7 +112,14 @@ stage-61 policy, with another fresh critic, before retrying both stricter bounda
 bridge nevertheless stayed at a 37.2% recent-500 mean with nine isolated gate-level evaluations and
 no promotion. Further subdivision would only train against the same marginal stage-61 behavior, so
 stage 62 now raises horizontal-speed shaping from 0.5 to 1.0, directly targeting the dominant 61%
-horizontal-limit crash mode measured by the last 1,024-episode probe.
+horizontal-limit crash mode measured by the last 1,024-episode probe. A full 2,500-evaluation run
+with that stronger shaping still ended at a 36.1% recent-500 mean after two protected rollbacks. Its
+512-episode protected-best probe landed 39.6%; 63% of crashes broke horizontal speed, 41% broke
+vertical speed, and 39% missed the pad. The policy used exactly one engine throughout, with throttle
+well below saturation. Continuous-only adaptation therefore cannot discover the extra braking
+authority needed by the remaining curriculum. The actor now supports a separate zero-initialized
+engine-logit adapter: it preserves the checkpoint bit-for-bit at load, but a hybrid-adapter update
+scope can learn engine count while the recurrent controller and original action head remain frozen.
 
 ## Findings
 

@@ -27,6 +27,12 @@ TRACES = (
     Trace("lateral pad shaping", ROOT / "out/salto-stage60-lateral-pad-v1.log", 60, "#10b981"),
     Trace("first stage-62 midpoint", ROOT / "out/salto-stage62-midpoint-v1.log", 62, "#f59e0b"),
     Trace("refined stage-62 bridge", ROOT / "out/salto-stage62-refined-v1.log", 62, "#2563eb"),
+    Trace(
+        "2x lateral-speed shaping",
+        ROOT / "out/salto-stage62-lateral-speed-v1.log",
+        62,
+        "#dc2626",
+    ),
 )
 
 
@@ -84,7 +90,10 @@ def text(x: float, y: float, value: str, *, size: int = 13, anchor: str = "start
 
 def landing_panel() -> list[str]:
     left, top, width, height = 72, 92, 742, 270
-    y_min, y_max, x_max = 0.25, 0.55, 1600
+    y_min, y_max = 0.25, 0.55
+    series = [(trace, rolling(read_landing(trace))) for trace in TRACES]
+    longest = max(len(values) for _, values in series)
+    x_max = max(500, ((longest + 499) // 500) * 500)
     lines = [text(left, 55, "Landing success at the hard braking boundary", size=20)]
     for tick in (0.3, 0.4, 0.45, 0.5):
         y = top + (y_max - tick) / (y_max - y_min) * height
@@ -95,7 +104,7 @@ def landing_panel() -> list[str]:
             f'stroke="{color}"{dash}/>'
         )
         lines.append(text(left - 10, y + 4, f"{tick:.0%}", anchor="end"))
-    for tick in (0, 500, 1000, 1500):
+    for tick in range(0, x_max + 1, 500):
         x = left + tick / x_max * width
         lines.append(
             f'<line x1="{x:.1f}" y1="{top}" x2="{x:.1f}" y2="{top + height}" stroke="#f3f4f6"/>'
@@ -103,8 +112,7 @@ def landing_panel() -> list[str]:
         lines.append(text(x, top + height + 23, str(tick), anchor="middle"))
     lines.append(text(left + width / 2, top + height + 48, "evaluation iteration", anchor="middle"))
     lines.append(text(left + width - 5, top + 23, "promotion gate", size=12, anchor="end"))
-    for trace in TRACES:
-        values = rolling(read_landing(trace))
+    for trace, values in series:
         lines.append(
             polyline(
                 values,
