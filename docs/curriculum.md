@@ -137,7 +137,10 @@ once, and the once-per-phase variant would also have sampled an untrainable rand
 post-loop gate. Ranked-count rollouts now use the deployment count during the salto, sample only at
 the recovery handoff, and apply categorical probability, entropy, and KL credit only at that actual
 decision. The post-loop-only scope also freezes shared continuous noise. This corrected phase-coherent
-controller is the next long-run intervention after the 1,500-update control completes.
+controller is the next long-run intervention. The completed 1,500-actor-update control never
+promoted: its final recent-500 deterministic mean was 35.6%, its exploratory landing mean was 5.8%
+(8.2% over the final 100), and its protected 39.6% best was never replaced. Actor feature rank stayed
+healthy at 91/128 while critic rank ended at 26/128; the run had one protected rollback.
 
 ## Findings
 
