@@ -424,6 +424,63 @@ def test_continuous_adapter_jit_matches_policy(tmp_path):
     torch.testing.assert_close(actual, expected)
 
 
+def test_hybrid_adapter_loads_continuous_policy_exactly_and_trains_both_residuals(tmp_path):
+    base_cfg = compose_cfg(
+        "num_envs=8",
+        "runner.actor.class_name=starship.train.models:ContinuousAdapterRNNModel",
+        "+runner.actor.continuous_adapter_hidden_dim=16",
+    )
+    base = make_runner(base_cfg, tmp_path / "base")
+    checkpoint = tmp_path / "base" / "model.pt"
+    base.save(str(checkpoint))
+    obs = base.env.get_observations()
+    base.alg.actor.reset()
+    expected = base.alg.actor(obs, stochastic_output=False).detach()
+
+    cfg = compose_cfg(
+        "num_envs=8",
+        "runner.actor.class_name=starship.train.models:ContinuousAdapterRNNModel",
+        "+runner.actor.continuous_adapter_hidden_dim=16",
+        "+runner.actor.engine_adapter_hidden_dim=8",
+        "+runner.algorithm.actor_update_scope=hybrid_adapter",
+    )
+    runner = make_runner(cfg, tmp_path / "hybrid")
+    runner.load(str(checkpoint))
+    actor = runner.alg.actor
+    actor.reset()
+    actual = actor(obs, stochastic_output=False).detach()
+    assert torch.equal(expected, actual)
+
+    before = {name: parameter.detach().clone() for name, parameter in actor.named_parameters()}
+    collect(runner)
+    runner.alg.update()
+    after = dict(actor.named_parameters())
+    for name, value in before.items():
+        trainable = name.startswith(("continuous_adapter.", "engine_adapter."))
+        if trainable or name == "distribution.log_std":
+            assert not torch.equal(value, after[name]), name
+        else:
+            assert torch.equal(value, after[name]), name
+
+
+def test_hybrid_adapter_jit_matches_policy(tmp_path):
+    cfg = compose_cfg(
+        "num_envs=1",
+        "runner.actor.class_name=starship.train.models:ContinuousAdapterRNNModel",
+        "+runner.actor.continuous_adapter_hidden_dim=16",
+        "+runner.actor.engine_adapter_hidden_dim=8",
+    )
+    runner = make_runner(cfg, tmp_path)
+    actor = runner.alg.actor.eval()
+    obs = runner.env.get_observations()
+    actor.reset()
+    expected = actor(obs, stochastic_output=False)
+    with pytest.warns(FutureWarning, match="torch.jit.script"):
+        exported = torch.jit.script(actor.as_jit().eval())
+    actual = exported(obs["policy"])
+    torch.testing.assert_close(actual, expected)
+
+
 def test_resume_evaluates_before_learning(tmp_path, monkeypatch):
     from types import SimpleNamespace
 

@@ -63,9 +63,15 @@ class InstrumentedPPO(PPO):
             raise ValueError("critic_warmup_updates must be nonnegative")
         if post_warmup_learning_rate is not None and post_warmup_learning_rate <= 0:
             raise ValueError("post_warmup_learning_rate must be positive or None")
-        if actor_update_scope not in ("all", "continuous_head", "continuous_adapter"):
+        if actor_update_scope not in (
+            "all",
+            "continuous_head",
+            "continuous_adapter",
+            "hybrid_adapter",
+        ):
             raise ValueError(
-                "actor_update_scope must be 'all', 'continuous_head', or 'continuous_adapter'"
+                "actor_update_scope must be 'all', 'continuous_head', 'continuous_adapter', "
+                "or 'hybrid_adapter'"
             )
         super().__init__(*args, **kwargs)
         self.max_kl = max_kl
@@ -76,6 +82,8 @@ class InstrumentedPPO(PPO):
             self._freeze_actor_backbone_and_engine_head()
         elif actor_update_scope == "continuous_adapter":
             self._freeze_actor_except_continuous_adapter()
+        elif actor_update_scope == "hybrid_adapter":
+            self._freeze_actor_except_hybrid_adapters()
         # Every `diagnostics_interval` updates, log network health under plasticity/* (0 = off).
         self.diagnostics_interval = diagnostics_interval
         self._updates_done = 0
@@ -118,6 +126,21 @@ class InstrumentedPPO(PPO):
             parameter.requires_grad_(False)
         for parameter in adapter.parameters():
             parameter.requires_grad_(True)
+        self.actor.distribution.log_std.requires_grad_(True)
+
+    def _freeze_actor_except_hybrid_adapters(self) -> None:
+        """Train zero-initialized continuous and engine residuals over a frozen controller."""
+        continuous = getattr(self.actor, "continuous_adapter", None)
+        engine = getattr(self.actor, "engine_adapter", None)
+        if continuous is None or engine is None:
+            raise ValueError(
+                "actor_update_scope='hybrid_adapter' requires continuous_adapter and engine_adapter"
+            )
+        for parameter in self.actor.parameters():
+            parameter.requires_grad_(False)
+        for adapter in (continuous, engine):
+            for parameter in adapter.parameters():
+                parameter.requires_grad_(True)
         self.actor.distribution.log_std.requires_grad_(True)
 
     def _activation_diagnostics(self, max_envs: int = 4096) -> dict[str, float]:
