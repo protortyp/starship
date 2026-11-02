@@ -130,7 +130,14 @@ on the same policy measured 4.7% stochastic landing at 20 steps, 11.0% at 60, 16
 once at recovery and then held through landing) retains about 20% successful exploratory episodes
 without interrupting the two-second ignition transient. The actor now also has a zero-initialized
 post-loop observation adapter and explicit recovery-handoff resampling, both exactly gated off during
-the learned salto; these are the next long-run intervention if the 20-step control stays flat.
+the learned salto. The 20-step control later climbed to 12--13% exploratory landing, but deterministic
+landing declined until the protected rollback fired after about 805 actor updates. The held count had
+been charged a fresh categorical log-probability at every timestep even though it was sampled only
+once, and the once-per-phase variant would also have sampled an untrainable random count before the
+post-loop gate. Ranked-count rollouts now use the deployment count during the salto, sample only at
+the recovery handoff, and apply categorical probability, entropy, and KL credit only at that actual
+decision. The post-loop-only scope also freezes shared continuous noise. This corrected phase-coherent
+controller is the next long-run intervention after the 1,500-update control completes.
 
 ## Findings
 

@@ -520,7 +520,7 @@ def test_post_loop_adapter_loads_exactly_and_trains_only_phase_residual(tmp_path
     after = dict(actor.named_parameters())
     for name, value in before.items():
         trainable = name.startswith("post_loop_adapter.")
-        if trainable or name == "distribution.log_std":
+        if trainable:
             assert not torch.equal(value, after[name]), name
         else:
             assert torch.equal(value, after[name]), name
@@ -612,20 +612,24 @@ def test_ranked_engine_count_resamples_once_at_post_loop_handoff(tmp_path):
     with torch.inference_mode():
         before = actor(obs, stochastic_output=True)[:, :3].sum(-1)
         assert torch.equal(before, torch.tensor([0.0, 0.0]))
+        assert torch.equal(actor.distribution.params[3], torch.tensor([0.0, 0.0]))
 
         output.bias[:3].fill_(1.0)
         obs["policy"][:, 27] = 1.0
         at_handoff = actor(obs, stochastic_output=True)[:, :3].sum(-1)
         assert torch.equal(at_handoff, torch.tensor([2.0, 2.0]))
+        assert torch.equal(actor.distribution.params[3], torch.tensor([1.0, 1.0]))
 
         # The handoff samples only once: later logits do not interrupt the coherent burn.
         output.bias[:3].fill_(-10.0)
         held = actor(obs, stochastic_output=True)[:, :3].sum(-1)
         assert torch.equal(held, torch.tensor([2.0, 2.0]))
+        assert torch.equal(actor.distribution.params[3], torch.tensor([0.0, 0.0]))
 
         actor.reset(torch.tensor([True, False]))
         after_done = actor(obs, stochastic_output=True)[:, :3].sum(-1)
         assert torch.equal(after_done, torch.tensor([0.0, 2.0]))
+        assert torch.equal(actor.distribution.params[3], torch.tensor([1.0, 0.0]))
 
 
 def test_resume_evaluates_before_learning(tmp_path, monkeypatch):

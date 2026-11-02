@@ -157,7 +157,6 @@ class InstrumentedPPO(PPO):
             parameter.requires_grad_(False)
         for parameter in adapter.parameters():
             parameter.requires_grad_(True)
-        self.actor.distribution.log_std.requires_grad_(True)
 
     def _activation_diagnostics(self, max_envs: int = 4096) -> dict[str, float]:
         """Unit, rank and gate diagnostics on a random rollout step and its stored hidden state."""
@@ -267,6 +266,11 @@ class InstrumentedPPO(PPO):
                     hidden_state=batch.hidden_states[0],
                     stochastic_output=True,
                 )
+                distribution = self.actor.distribution
+                if len(batch.old_distribution_params) > 3:
+                    set_credit = getattr(distribution, "set_engine_credit_mask", None)
+                    if set_credit is not None:
+                        set_credit(batch.old_distribution_params[3])
                 log_prob = self.actor.get_output_log_prob(batch.actions)
                 values = self.critic(
                     batch.observations, masks=batch.masks, hidden_state=batch.hidden_states[1]

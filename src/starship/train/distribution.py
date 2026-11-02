@@ -18,6 +18,7 @@ class _Heads(NamedTuple):
     continuous: Normal
     engine_logits: torch.Tensor
     engine_rank: torch.Tensor | None
+    deterministic_engine_count: torch.Tensor | None
 
 
 class HybridDistribution(Distribution):
@@ -54,6 +55,8 @@ class HybridDistribution(Distribution):
         self.ranked_count_hold_steps = ranked_count_hold_steps
         self._held_engine_count: torch.Tensor | None = None
         self._engine_count_steps_left: torch.Tensor | None = None
+        self._force_deterministic_engine_count: torch.Tensor | None = None
+        self._engine_credit_mask: torch.Tensor | None = None
         # Pre-tanh units: std 0.5 explores the middle of each actuator range without piling
         # samples onto the tanh limits; the clamp keeps the policy from freezing (std -> 0) or
         # from saturating every actuator (std >> 1), where log_prob gradients become useless.
@@ -73,9 +76,11 @@ class HybridDistribution(Distribution):
         logits, mean = self._split(mlp_output)
         std = torch.exp(self.log_std.clamp(*self.log_std_range)).expand_as(mean)
         rank = None
+        deterministic_count = None
         engine_logits = logits
         if self.stochastic_engine_selection == "ranked_count":
             expected = torch.sigmoid(logits).sum(dim=-1, keepdim=True)
+            deterministic_count = expected.squeeze(-1).floor().to(torch.long)
             counts = torch.arange(ENGINE_HEADS + 1, device=logits.device, dtype=logits.dtype)
             # Shift the nearest-integer boundaries onto 1, 2, ... so the categorical mode is
             # floor(expected), exactly matching deployment's conservative engine-count decoder.
@@ -85,7 +90,30 @@ class HybridDistribution(Distribution):
             rank = logits.argsort(dim=-1, descending=True).argsort(dim=-1)
         else:
             engine = Bernoulli(logits=logits)
-        self._distribution = _Heads(engine, Normal(mean, std), engine_logits, rank)
+        self._distribution = _Heads(
+            engine, Normal(mean, std), engine_logits, rank, deterministic_count
+        )
+        self._force_deterministic_engine_count = None
+        self._engine_credit_mask = torch.ones(
+            engine_logits.shape[:-1], dtype=mean.dtype, device=mean.device
+        )
+
+    def set_force_deterministic_engine_count(self, mask: torch.Tensor) -> None:
+        """Use deployment's count for selected rollout environments before a phase decision."""
+        self._force_deterministic_engine_count = mask.bool()
+
+    def set_engine_credit_mask(self, mask: torch.Tensor) -> None:
+        """Include count log-probability only where a fresh count was actually sampled."""
+        # Rollout storage can be allocated inside inference mode. Clone so policy gradients do not
+        # try to save an inference tensor for backward when this mask is reused during PPO updates.
+        self._engine_credit_mask = (
+            mask.clone()
+            .to(
+                dtype=self._distribution.continuous.mean.dtype,
+                device=self._distribution.continuous.mean.device,
+            )
+            .squeeze(-1)
+        )
 
     def sample(self) -> torch.Tensor:
         heads = self._distribution
@@ -93,6 +121,9 @@ class HybridDistribution(Distribution):
             on = heads.engine.sample()
         else:
             count = heads.engine.sample()
+            force = getattr(self, "_force_deterministic_engine_count", None)
+            if force is not None and heads.deterministic_engine_count is not None:
+                count = torch.where(force, heads.deterministic_engine_count, count)
             if self.ranked_count_hold_steps > 1 and not torch.is_grad_enabled() and count.ndim == 1:
                 if (
                     self._held_engine_count is None
@@ -165,6 +196,11 @@ class HybridDistribution(Distribution):
         """Entropy of each head's decision, shape (..., ACTION_DIM)."""
         heads = self._distribution
         engine = heads.engine.entropy()
+        credit = getattr(self, "_engine_credit_mask", None)
+        if credit is not None:
+            if engine.ndim > credit.ndim:
+                credit = credit.unsqueeze(-1)
+            engine = engine * credit
         if heads.engine_rank is not None:
             engine = engine.unsqueeze(-1).expand(*engine.shape, ENGINE_HEADS) / ENGINE_HEADS
         return torch.cat([engine, heads.continuous.entropy()], dim=-1)
@@ -172,7 +208,14 @@ class HybridDistribution(Distribution):
     @property
     def params(self) -> tuple[torch.Tensor, ...]:
         heads = self._distribution
-        return (heads.engine_logits, heads.continuous.mean, heads.continuous.stddev)
+        credit = getattr(self, "_engine_credit_mask", None)
+        if credit is None:
+            credit = torch.ones(
+                heads.engine_logits.shape[:-1],
+                dtype=heads.continuous.mean.dtype,
+                device=heads.continuous.mean.device,
+            )
+        return (heads.engine_logits, heads.continuous.mean, heads.continuous.stddev, credit)
 
     def log_prob(self, outputs: torch.Tensor) -> torch.Tensor:
         heads = self._distribution
@@ -181,13 +224,17 @@ class HybridDistribution(Distribution):
             engine_log_prob = heads.engine.log_prob(on).sum(dim=-1)
         else:
             engine_log_prob = heads.engine.log_prob(on.sum(dim=-1).to(torch.long))
+        credit = getattr(self, "_engine_credit_mask", None)
+        if credit is not None:
+            engine_log_prob = engine_log_prob * credit
         return engine_log_prob + heads.continuous.log_prob(cont).sum(dim=-1)
 
     def kl_divergence(
         self, old_params: tuple[torch.Tensor, ...], new_params: tuple[torch.Tensor, ...]
     ) -> torch.Tensor:
-        old_logits, old_mean, old_std = old_params
-        new_logits, new_mean, new_std = new_params
+        old_logits, old_mean, old_std = old_params[:3]
+        new_logits, new_mean, new_std = new_params[:3]
+        engine_credit = old_params[3] if len(old_params) > 3 else 1.0
         # Bernoulli KL from logits: torch's version goes through probabilities and returns inf
         # once a probability saturates to exactly 0 or 1 in float32.
         if self.stochastic_engine_selection == "ranked_count":
@@ -205,7 +252,7 @@ class HybridDistribution(Distribution):
         )
         if self.stochastic_engine_selection != "ranked_count":
             kl_engine = kl_engine.sum(dim=-1)
-        return kl_engine + kl_gauss.sum(dim=-1)
+        return kl_engine * engine_credit + kl_gauss.sum(dim=-1)
 
 
 class _DeterministicOutput(nn.Module):

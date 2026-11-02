@@ -149,6 +149,12 @@ class ContinuousAdapterRNNModel(RNNModel):
         if sampled is None or sampled.shape != complete.shape or sampled.device != complete.device:
             sampled = torch.zeros_like(complete)
         handoff = complete & ~sampled
+        set_deterministic = getattr(self.distribution, "set_force_deterministic_engine_count", None)
+        if set_deterministic is not None:
+            set_deterministic(~complete)
+        set_credit = getattr(self.distribution, "set_engine_credit_mask", None)
+        if set_credit is not None:
+            set_credit(handoff)
         if handoff.any():
             reset_distribution = getattr(self.distribution, "reset", None)
             if reset_distribution is not None:

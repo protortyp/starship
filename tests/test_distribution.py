@@ -51,13 +51,14 @@ def test_shapes(batch):
         assert t.shape == (*batch, ACTION_DIM)
     assert dist.entropy.shape == batch
     assert dist.log_prob(sample).shape == batch
-    logits, mean, std = dist.params
+    logits, mean, std, credit = dist.params
     assert logits.shape == (*batch, ENGINE_HEADS)
     assert mean.shape == std.shape == (*batch, CONTINUOUS_HEADS)
     assert torch.equal(mean, out[..., ENGINE_HEADS:])
     assert torch.equal(dist.mean[..., :ENGINE_HEADS], torch.sigmoid(logits))
     assert torch.equal(dist.mean[..., ENGINE_HEADS:], mean)
     assert torch.equal(dist.std[..., ENGINE_HEADS:], std)
+    assert torch.equal(credit, torch.ones(batch))
 
 
 def test_initial_std_and_clamp():
@@ -224,6 +225,35 @@ def test_ranked_count_sampling_can_hold_counts_and_reset_finished_envs():
     dist.reset()
     assert dist._held_engine_count is None
     assert dist._engine_count_steps_left is None
+
+
+def test_ranked_count_can_use_deterministic_count_before_phase_handoff():
+    dist = HybridDistribution(
+        ACTION_DIM,
+        deterministic_engine_selection="floor_expected",
+        stochastic_engine_selection="ranked_count",
+        ranked_count_temperature=10.0,
+        ranked_count_hold_steps=1000,
+    )
+    logits = torch.tensor([[2.0, 0.04, -2.0]]).expand(128, -1)
+    dist.update(torch.cat([logits, torch.zeros(128, CONTINUOUS_HEADS)], -1))
+    dist.set_force_deterministic_engine_count(torch.ones(128, dtype=torch.bool))
+    with torch.inference_mode():
+        count = dist.sample()[:, :ENGINE_HEADS].sum(-1)
+    assert torch.equal(count, torch.ones_like(count))
+
+
+def test_engine_credit_applies_only_at_actual_count_decisions():
+    dist = HybridDistribution(ACTION_DIM, stochastic_engine_selection="ranked_count")
+    output = torch.randn(2, ACTION_DIM, requires_grad=True)
+    dist.update(output)
+    actions = dist.sample().detach()
+    dist.set_engine_credit_mask(torch.tensor([False, True]))
+    dist.log_prob(actions).sum().backward()
+    assert torch.equal(output.grad[0, :ENGINE_HEADS], torch.zeros(ENGINE_HEADS))
+    assert output.grad[1, :ENGINE_HEADS].abs().sum() > 0
+    assert output.grad[:, ENGINE_HEADS:].abs().sum(dim=-1).gt(0).all()
+    assert torch.equal(dist.params[3], torch.tensor([0.0, 1.0]))
 
 
 def test_ppo_smoke_update_on_random_data():
