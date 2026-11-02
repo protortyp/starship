@@ -5,6 +5,7 @@ from omegaconf import OmegaConf
 
 from starship.train import RocketEnv
 from starship.train.actions import ACTION_DIM
+from starship.train.checkpoint import load_policy
 from starship.train.metrics import EpisodeTracker
 from starship.train.rsl_env import RslRocketEnv
 from starship.train.runner import StarshipRunner
@@ -556,6 +557,31 @@ def test_post_loop_adapter_is_gated_and_jit_matches_policy(tmp_path):
         exported = torch.jit.script(actor.as_jit().eval())
     actual = exported(obs["policy"])
     torch.testing.assert_close(actual, expected)
+
+
+def test_standalone_policy_saved_before_optional_adapters_still_loads(tmp_path):
+    cfg = compose_cfg(
+        "num_envs=1",
+        "runner.actor.class_name=starship.train.models:ContinuousAdapterRNNModel",
+        "+runner.actor.continuous_adapter_hidden_dim=16",
+    )
+    runner = make_runner(cfg, tmp_path)
+    actor = runner.alg.actor
+    del actor.engine_adapter
+    del actor.post_loop_adapter
+    del actor.post_loop_progress_index
+    del actor.post_loop_progress_threshold
+    path = tmp_path / "legacy_policy.pt"
+    torch.save(actor, path)
+
+    policy = load_policy(path)
+    obs = runner.env.get_observations().cpu()
+    policy.reset()
+    action = policy(obs, stochastic_output=True)
+    assert action.shape == (1, ACTION_DIM)
+    with pytest.warns(FutureWarning, match="torch.jit.script"):
+        exported = torch.jit.script(policy.as_jit().eval())
+    assert exported(obs["policy"]).shape == (1, ACTION_DIM)
 
 
 def test_resume_evaluates_before_learning(tmp_path, monkeypatch):

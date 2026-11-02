@@ -105,17 +105,21 @@ class ContinuousAdapterRNNModel(RNNModel):
         latent = self.rnn(normalized, masks, hidden_state).squeeze(0)
         base = self.mlp(latent)
         engine = base[..., :ENGINE_HEADS]
-        if self.engine_adapter is not None:
-            engine = engine + self.engine_adapter(latent)
+        engine_adapter = getattr(self, "engine_adapter", None)
+        if engine_adapter is not None:
+            engine = engine + engine_adapter(latent)
         continuous = base[..., 3:] + self.continuous_adapter(latent)
         output = torch.cat((engine, continuous), dim=-1)
-        if self.post_loop_adapter is not None:
+        post_loop_adapter = getattr(self, "post_loop_adapter", None)
+        if post_loop_adapter is not None:
             adapter_obs = unpad_trajectories(normalized, masks) if masks is not None else normalized
-            progress = raw[..., self.post_loop_progress_index]
+            progress_index = getattr(self, "post_loop_progress_index", 27)
+            progress_threshold = getattr(self, "post_loop_progress_threshold", 0.999999)
+            progress = raw[..., progress_index]
             if masks is not None:
                 progress = unpad_trajectories(progress.unsqueeze(-1), masks).squeeze(-1)
-            gate = (progress >= self.post_loop_progress_threshold).to(output.dtype).unsqueeze(-1)
-            output = output + gate * self.post_loop_adapter(adapter_obs)
+            gate = (progress >= progress_threshold).to(output.dtype).unsqueeze(-1)
+            output = output + gate * post_loop_adapter(adapter_obs)
         if self.distribution is not None:
             if stochastic_output:
                 self.distribution.update(output)
@@ -147,18 +151,16 @@ class _TorchLSTMContinuousAdapter(nn.Module):
         self.rnn = copy.deepcopy(model.rnn.rnn)
         self.mlp = copy.deepcopy(model.mlp)
         self.continuous_adapter = copy.deepcopy(model.continuous_adapter)
+        engine_adapter = getattr(model, "engine_adapter", None)
         self.engine_adapter = (
-            copy.deepcopy(model.engine_adapter)
-            if model.engine_adapter is not None
-            else _ZeroEngineAdapter()
+            copy.deepcopy(engine_adapter) if engine_adapter else _ZeroEngineAdapter()
         )
+        post_loop_adapter = getattr(model, "post_loop_adapter", None)
         self.post_loop_adapter = (
-            copy.deepcopy(model.post_loop_adapter)
-            if model.post_loop_adapter is not None
-            else _ZeroPostLoopAdapter()
+            copy.deepcopy(post_loop_adapter) if post_loop_adapter else _ZeroPostLoopAdapter()
         )
-        self.post_loop_progress_index = model.post_loop_progress_index
-        self.post_loop_progress_threshold = model.post_loop_progress_threshold
+        self.post_loop_progress_index = getattr(model, "post_loop_progress_index", 27)
+        self.post_loop_progress_threshold = getattr(model, "post_loop_progress_threshold", 0.999999)
         if model.distribution is not None:
             self.deterministic_output = model.distribution.as_deterministic_output_module()
         else:
