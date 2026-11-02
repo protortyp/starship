@@ -67,12 +67,13 @@ def polyline(
     y_min: float,
     y_max: float,
     color: str,
+    x_stride: float = 1.0,
 ) -> str:
     if len(values) < 2:
         return ""
     points = []
     for index, value in enumerate(values):
-        x = left + index / x_max * width
+        x = left + index * x_stride / x_max * width
         y = top + (y_max - value) / (y_max - y_min) * height
         points.append(f"{x:.1f},{y:.1f}")
     return (
@@ -153,7 +154,10 @@ def rank_panel() -> list[str]:
         (label, color, [event.value for event in accumulator.Scalars(tag)])
         for tag, label, color in tags
     ]
-    x_max = max(len(values) for _, _, values in series) - 1
+    # Plasticity diagnostics are emitted every ten actor updates, so each scalar sample spans ten
+    # updates rather than one. Keep the axis in actual training updates and inside the viewport.
+    diagnostics_interval = 10
+    x_max = max(500, (max(len(values) for _, _, values in series) - 1) * diagnostics_interval)
     lines = [text(left, 430, "Policy plasticity during the 501-update midpoint trial", size=20)]
     for tick in (0, 32, 64, 96, 128):
         y = top + (128 - tick) / 128 * height
@@ -177,6 +181,7 @@ def rank_panel() -> list[str]:
                 y_min=0,
                 y_max=128,
                 color=color,
+                x_stride=diagnostics_interval,
             )
         )
         legend_x = 650
