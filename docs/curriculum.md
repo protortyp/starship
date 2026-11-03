@@ -170,7 +170,11 @@ confirmed the predicted cliff at the old 50 m/s stage with zero train and determ
 was stopped after eight updates. A fresh-critic restart from the protected stage-77 actor now resumes at
 the new 58.75 m/s, 640.625 m pad boundary. Its first critic-warmup evaluations retain 35--37% landing
 and its first complete exploratory rollout lands 28%, demonstrating that stage 78 is learnable before
-any actor update. The run has a 20,000-update horizon for the complete dense tail.
+any actor update. After the full 200-update critic warmup reached about 0.59 explained variance, the
+post-loop adapter raised exploratory landing from about 27% to 40% and passed stage 78 in 40 actor
+updates with no rollback or KL stop. The inherited policy starts stage 79 at 31--36% deterministic
+landing, so capability transfers across the bounded transition. The run has a 20,000-update horizon
+for the complete dense tail.
 
 ## Findings
 

@@ -11,7 +11,7 @@ from tensorboard.backend.event_processing.event_accumulator import EventAccumula
 
 ROOT = Path(__file__).resolve().parents[1]
 OUTPUT = ROOT / "docs" / "assets" / "salto-training-progress.svg"
-RANK_EXPERIMENT = ROOT / "logs" / "salto_stage74_bridges_v1"
+RANK_EXPERIMENT = ROOT / "logs" / "salto_stage78_dense_tail_v1"
 LINE = re.compile(r"eval landed\s+(?P<landed>\d+\.\d+).*stage\s+(?P<stage>\d+)")
 
 
@@ -62,10 +62,17 @@ TRACES = (
         1,
     ),
     Trace(
-        "58.75 m/s dense tail (live)",
+        "58.75 m/s dense tail",
         ROOT / "out/salto-stage78-dense-tail-v1.log",
         78,
         "#92400e",
+    ),
+    Trace(
+        "57.5 m/s dense tail (live)",
+        ROOT / "out/salto-stage78-dense-tail-v1.log",
+        79,
+        "#a16207",
+        1,
     ),
 )
 
@@ -164,7 +171,7 @@ def landing_panel() -> list[str]:
         )
     legend_x = 535
     lines.append(
-        f'<rect x="{legend_x - 10}" y="30" width="290" height="206" fill="white" opacity="0.9"/>'
+        f'<rect x="{legend_x - 10}" y="30" width="290" height="226" fill="white" opacity="0.9"/>'
     )
     for index, trace in enumerate(TRACES):
         y = 43 + 20 * index
@@ -196,7 +203,7 @@ def rank_panel() -> list[str]:
     # updates rather than one. Keep the axis in actual training updates and inside the viewport.
     diagnostics_interval = 10
     x_max = max(500, (max(len(values) for _, _, values in series) - 1) * diagnostics_interval)
-    lines = [text(left, 430, "Policy plasticity during the live braking bridges", size=20)]
+    lines = [text(left, 430, "Policy plasticity during the live dense tail", size=20)]
     for tick in (0, 32, 64, 96, 128):
         y = top + (128 - tick) / 128 * height
         lines.append(
