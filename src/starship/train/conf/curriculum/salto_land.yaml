@@ -537,9 +537,20 @@ stages:
   # The final 36.25 -> 35 m/s transition plateaued around 38% deterministic landings for more than
   # 900 combined actor updates, despite a healthy actor and a protected 47.3% best. Preserve the
   # already-solved 38.75, 37.5 and 36.25 m/s stages exactly, then bisect only the blocked boundary.
+  # Switch to the measured one-engine braking envelope at the first stage after 40 m/s without
+  # interpolating the reward itself. Keep the three historical landing-limit waypoints exact.
+  - name: brake toward 38.75 m/s
+    overrides:
+      - sim.landing.pad_radius=487.5
+      - sim.landing.max_vertical_speed=38.75
+      - sim.landing.max_horizontal_speed=24.25
+      # One landing engine supplies about 3 m/s² net at the current mass. The stage-94+
+      # campaign, including every protected checkpoint used below, trains against this measured
+      # envelope rather than the old three-engine 10 m/s² assumption.
+      - reward.safe_deceleration=2
   - name: brake toward 36.25 m/s
     interpolate:
-      steps: 3
+      steps: 2
       overrides:
         - sim.landing.pad_radius=462.5
         - sim.landing.max_vertical_speed=36.25
