@@ -102,9 +102,14 @@ the 5e-7 touchdown-adapter rate, actor and critic rank are 73/128 and 43/128 res
 adapter has nonzero updates. Its first 100 actor updates average 33.5% deterministic evaluation
 landing with no rollback; a 1,024-episode probe is statistically flat at 32.8% versus 33.4% for the
 source actor. Horizontal-limit crash failures improve from 62% to 55%, while vertical-limit and pad
-miss failures move from 24% and 49% to 30% and 52%. This healthy but inconclusive trade remains the
-live long-horizon continuation. The 40% gate is only for intermediate traversal; final broad
-strict-target acceptance remains unchanged.
+miss failures move from 24% and 49% to 30% and 52%. By 500 actor updates, full-window evaluation
+landing averages 32.5% and latest-100 landing declines to 30.4%. The fixed-seed broad probe falls to
+29.1%; pad-miss failures improve to 40%, but vertical failures worsen to 33% and horizontal failures
+return to 62%. The healthy run remains an untouched 1,500-update control, but its actor is not the
+selected policy. The curriculum now inserts only fraction 11/18 between the preserved 5/9 and 2/3
+boundaries, making stages 0--168 bit-identical and moving the original blocked boundary unchanged to
+stage 170. The 40% gate is only for intermediate traversal; final broad strict-target acceptance
+remains unchanged.
 The protected midpoint best's new
 [40-second chase recording](assets/salto-stage167-midpoint-live.mp4) and
 [nine-frame sequence](assets/salto-stage167-midpoint-live-sequence.jpg) show seed 3 completing one

@@ -621,8 +621,9 @@ stages:
     interpolate:
       # The original 1/9--4/9 boundaries are solved. A protected 512-episode probe at the
       # original 5/9 boundary still lands 37.1%, but three healthy training trajectories move
-      # away from it. Insert only the measured half-step between 4/9 and 5/9, then preserve every
-      # original downstream fraction exactly.
+      # away from it. The next original 2/3 boundary likewise regresses from 33.4% to 29.1% broad
+      # landing over 500 healthy actor updates. Insert only the measured half-steps at those two
+      # blocked transitions, then preserve every original downstream fraction exactly.
       fractions:
         - 0.1111111111111111
         - 0.2222222222222222
@@ -630,6 +631,7 @@ stages:
         - 0.4444444444444444
         - 0.5
         - 0.5555555555555556
+        - 0.6111111111111112
         - 0.6666666666666666
         - 0.7777777777777778
         - 0.8888888888888888
