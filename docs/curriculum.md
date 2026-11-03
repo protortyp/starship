@@ -45,11 +45,13 @@ speed, 0.75 m/s horizontal speed, 12.5 m pad radius, 5° tilt, and 10°/s angula
 additionally requires exactly one inverted-to-upright recovery with no re-flip and penalizes axial
 roll and rotation beyond 360°.
 
-Current campaign: stages 0--153 are solved. The unified policy completed the 51-step two-engine
+Current campaign: stages 0--162 are solved. The unified policy completed the 51-step two-engine
 braking/pad ladder, restored the exact 35 m/s vertical, 22 m/s horizontal and 450 m pad waypoint,
 passed the 34.583 m/s vertical half-step after eight more iterations, passed its pad/horizontal
 half-step after another 13, cleared the original 34.167 m/s boundary after five, and reached stage
-154 (the first of five steps toward 30 m/s). The historical path to that
+154. It then completed all five steps to 30 m/s and all four to 25 m/s; the exact 25 m/s endpoint
+needed 51 stage-specific iterations and promoted to stage 163, the first of nine steps toward
+20 m/s. The historical path to that
 boundary starts with
 `salto_stage60_lateral_pad_v1`: its
 0.625 m/s braking ladder reached and solved the 80 m/s boundary (stage 34) after about 1,000 stage
@@ -351,9 +353,9 @@ and 35.4% at update 200. Mean crash horizontal speed falls from 67.4 to 62.8 m/s
 gate while vertical-limit failures stay at 2% and engine count stays near 1.41. The base run remains
 untouched for the long horizon. After one protected rollback before solving the bridge, it passes the
 90 m/s gate at iteration 14,523 and then clears all 51 cumulative braking/pad steps in another 865
-iterations without a further rollback, reaching stage 151. Actor feature rank is 42/128 and the
+iterations without a further rollback, reaching stage 151. Actor feature rank is 61/128 and the
 touchdown adapter retains strong nonzero updates. Critic rank oscillates from 8--45/128 and briefly
-triggers the collapse warning, but its latest sample rebounds to 32/128 while explained variance
+triggers the collapse warning, but its latest diagnostic is 34/128 while explained variance
 remains 0.84--0.92; retain it while promotions continue. A matched 5x
 horizontal-speed-shaping branch is retired during critic-only warmup because the base policy solves
 the measured lateral bottleneck before that A/B reaches actor training. The two-engine policy
