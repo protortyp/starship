@@ -199,7 +199,7 @@ def test_salto_landing_curriculum_finishes_with_a_strict_single_loop():
         cfg = compose("salto_land")
     assert cfg.iterations == 2000
     curriculum = Curriculum(cfg, cfg.curriculum)
-    assert len(curriculum.stages) == 207
+    assert len(curriculum.stages) == 208
     horizontal, horizontal_reward = curriculum.configs(56)
     assert horizontal.landing.pad_radius == pytest.approx(718.75)
     assert horizontal.landing.max_vertical_speed == pytest.approx(73.75)
@@ -299,6 +299,14 @@ def test_salto_landing_curriculum_finishes_with_a_strict_single_loop():
     assert second_original_step.landing.pad_radius == pytest.approx(316.6666666666667)
     assert second_original_step.landing.max_vertical_speed == pytest.approx(21.666666666666668)
     assert second_original_step.landing.max_horizontal_speed == pytest.approx(13)
+    third_midpoint, _ = curriculum.configs(171)
+    assert third_midpoint.landing.pad_radius == pytest.approx(313.8888888888889)
+    assert third_midpoint.landing.max_vertical_speed == pytest.approx(21.38888888888889)
+    assert third_midpoint.landing.max_horizontal_speed == pytest.approx(12.833333333333334)
+    third_original_step, _ = curriculum.configs(172)
+    assert third_original_step.landing.pad_radius == pytest.approx(311.1111111111111)
+    assert third_original_step.landing.max_vertical_speed == pytest.approx(21.11111111111111)
+    assert third_original_step.landing.max_horizontal_speed == pytest.approx(12.666666666666666)
     safe_stage = len(curriculum.stages) - 8
     safe, _ = curriculum.configs(safe_stage)
     assert safe.landing.pad_radius == pytest.approx(15)
