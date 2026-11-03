@@ -45,8 +45,8 @@ speed, 0.75 m/s horizontal speed, 12.5 m pad radius, 5° tilt, and 10°/s angula
 additionally requires exactly one inverted-to-upright recovery with no re-flip and penalizes axial
 roll and rotation beyond 360°.
 
-Current campaign: stages 0--109 are solved and the unified policy is advancing through the 51-step
-two-engine braking/pad ladder; it has reached stage 110 (step 11/51). The historical path to that
+Current campaign: stages 0--110 are solved and the unified policy is advancing through the 51-step
+two-engine braking/pad ladder; it has reached stage 111 (step 12/51). The historical path to that
 boundary starts with
 `salto_stage60_lateral_pad_v1`: its
 0.625 m/s braking ladder reached and solved the 80 m/s boundary (stage 34) after about 1,000 stage
@@ -347,8 +347,8 @@ continuation improves clean 1,024-seed landing from 16.2% at actor update 50 to 
 and 35.4% at update 200. Mean crash horizontal speed falls from 67.4 to 62.8 m/s against the 60 m/s
 gate while vertical-limit failures stay at 2% and engine count stays near 1.41. The base run remains
 untouched for the long horizon. After one protected rollback before solving the bridge, it passes the
-90 m/s gate at iteration 14,523 and then clears the first 11 cumulative braking/pad steps in another
-179 iterations without a further rollback, reaching stage 110. A matched 5x
+90 m/s gate at iteration 14,523 and then clears the first 12 cumulative braking/pad steps in another
+217 iterations without a further rollback, reaching stage 111. A matched 5x
 horizontal-speed-shaping branch is retired during critic-only warmup because the base policy solves
 the measured lateral bottleneck before that A/B reaches actor training. The two-engine policy
 must subsequently traverse a dense braking ladder and re-tighten the pad before the strict 15 m
@@ -360,6 +360,11 @@ authority. On matched 256-scenario evaluations, logit shifts through +0.60 retai
 to 37.9%, 23.4%, 10.5% and 0.8%, respectively, while +0.70 and above land 0%. A static whole-descent
 count shift is therefore rejected; the altitude-gated bridge above instead adds authority only for
 the landing burn and jointly adapts throttle, gimbal and count. A new
+[34.2-second stage-110 chase recording](assets/salto-stage110-live.mp4) and
+[nine-frame sequence](assets/salto-stage110-live-sequence.jpg) show seed 1 completing one salto and
+the two-engine descent at step 11/51. It contacts at 67.8 m/s vertical speed, 43.8 m/s horizontal
+speed and 519 m pad miss under the still-loose 78.1 m/s, 51.8 m/s and 646 m curriculum limits; the
+visibly rough touchdown is transparent intermediate evidence, not a safe-landing claim. The earlier
 [27.8-second 90 m/s two-engine recording](assets/salto-stage99-v90-u50.mp4) and
 [nine-frame sequence](assets/salto-stage99-v90-u50-sequence.jpg) show the actor-update-50 bridge
 policy completing one salto and landing with a persistent two-engine burn. This is live training
