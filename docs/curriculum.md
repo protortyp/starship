@@ -68,7 +68,11 @@ to 5e-7. It also declined and rolled back after 135 updates, so optimizer state 
 out as the boundary's cause. A nonuniform interpolation now inserts only the measured midpoint at
 325 m pad radius, 22.5 m/s vertical speed and 13.5 m/s horizontal speed. Saved stages 0--166 are
 bit-identical, and the former stage 167 remains exact at stage 168. The protected midpoint run opens
-at 39--40% deterministic landing. The historical path to that boundary starts from a protected
+at 39--40% deterministic landing and broad-probes at 40.2%. A matched 1,024-episode stochastic
+sweep on that policy raises landing from 27.0% at the existing 0.10 throttle-noise cap to 29.2% at
+0.05 and 30.8% at 0.03, while return rises from 105.7 to 114.4. The long midpoint continuation now
+uses the measured 0.03 cap so the rollout distribution supplies more successful terminal examples.
+The historical path to that boundary starts from a protected
 512-episode landing rate of 37.1%; among its crashes, 58% miss the
 pad, 47% exceed horizontal speed and 33% exceed vertical speed. The tighter step is therefore a
 balanced terminal-control problem rather than another critic-collapse or single-limit failure. The
