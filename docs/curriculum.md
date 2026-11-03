@@ -105,8 +105,14 @@ source actor. Horizontal-limit crash failures improve from 62% to 55%, while ver
 miss failures move from 24% and 49% to 30% and 52%. By 500 actor updates, full-window evaluation
 landing averages 32.5% and latest-100 landing declines to 30.4%. The fixed-seed broad probe falls to
 29.1%; pad-miss failures improve to 40%, but vertical failures worsen to 33% and horizontal failures
-return to 62%. The healthy run remains an untouched 1,500-update control, but its actor is not the
-selected policy. The curriculum now inserts only fraction 11/18 between the preserved 5/9 and 2/3
+return to 62%. The healthy run then completes the promised 1,500 actor updates without promotion.
+It has one protected rollback near update 886, averages 30.7% deterministic landing across the full
+window, and declines to 30.5%, 28.0% and 27.4% over its latest 500, 100 and 20 evaluations. Actor and
+critic ranks remain healthy at 72/128 and 43/128 with 0.959 recent explained variance, so this is not
+critic collapse or lost adapter plasticity. Its final fixed 1,024-seed policy lands only 27.3% versus
+33.4% for the protected source; 46% of crashes exceed vertical speed, 59% exceed horizontal speed and
+39% miss the pad. The trained touchdown-only actor is therefore rejected. The curriculum now inserts
+only fraction 11/18 between the preserved 5/9 and 2/3
 boundaries, making stages 0--168 bit-identical and moving the original blocked boundary unchanged to
 stage 170. The unchanged source actor passes that midpoint during critic-only adaptation on
 consecutive 41% evaluations. Its 512-environment critic then falls to rank 26/128 after 44 warmup
@@ -115,8 +121,18 @@ source actor with the long control's healthy, original-boundary-adapted critic a
 keeps feature ranks at 59/128 actor and 39/128 critic through 100 direct actor updates, but broad
 landing rises only from 33.4% to 34.2% at update 50 and falls to 33.0% at update 100; a critic output
 update-ratio warning retires it. The midpoint pass is retained, neither small-branch actor replaces
-the protected source, and full GPU throughput returns to the 1,500-update control. The 40% gate is
-only for intermediate traversal; final broad strict-target acceptance remains unchanged.
+the protected source, and full GPU throughput returns to the 1,500-update control. A static
+architecture sweep then tests whether the touchdown residual merely begins too late. Applying its
+learned output below 1,200, 1,500 or 2,000 m yields 0/1,024 landings at every setting, versus 33.4%
+at the trained 1,000 m gate. The respective crash means are 24/40 m/s and 558 m miss, 52/47 m/s and
+1,054 m miss, and 95/25 m/s and 435 m miss, demonstrating severe out-of-distribution behavior rather
+than a useful earlier correction. The selected intervention keeps that gate unchanged, restores all
+35 actor tensors from the protected source, and combines them with all 14 critic tensors plus the
+critic optimizer from the completed long control. At the unchanged stage-170 boundary it trains only
+the already phase-gated post-loop residual, which can correct the descent earlier while remaining
+exactly off throughout the learned salto. The verified 4,096-environment run opens at 36% landing
+with the untouched source behavior. The 40% gate is only for intermediate traversal; final broad
+strict-target acceptance remains unchanged.
 The protected midpoint best's new
 [40-second chase recording](assets/salto-stage167-midpoint-live.mp4) and
 [nine-frame sequence](assets/salto-stage167-midpoint-live-sequence.jpg) show seed 3 completing one

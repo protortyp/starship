@@ -61,6 +61,7 @@ STAGE169_MIDPOINT2_CRITIC_EXPERIMENT = (
 STAGE170_BOUNDARY_CRITIC_EXPERIMENT = (
     ROOT / "logs" / "salto_stage170_source_actor_boundary_critic_512_v1"
 )
+STAGE170_POST_LOOP_EXPERIMENT = ROOT / "logs" / "salto_stage170_post_loop_boundary_4k_v1"
 STAGE99_VERTICAL_TOUCHDOWN1000_EXPERIMENT = (
     ROOT / "logs" / "salto_stage99_vertical_touchdown1000_v1"
 )
@@ -482,7 +483,7 @@ TRACES = (
         "#a21caf",
     ),
     Trace(
-        "healthy-critic transplant at stage 169 (live)",
+        "touchdown-only 1,500-update control (retired)",
         ROOT / "out/salto-stage169-hspeed2-gate40-critic-transplant-v1.log",
         169,
         "#db2777",
@@ -498,6 +499,12 @@ TRACES = (
         ROOT / "out/salto-stage170-source-actor-boundary-critic-512-v1.log",
         170,
         "#ef4444",
+    ),
+    Trace(
+        "post-loop boundary controller (live)",
+        ROOT / "out/salto-stage170-post-loop-boundary-4k-v1.log",
+        170,
+        "#16a34a",
     ),
 )
 
@@ -709,6 +716,9 @@ def rank_panel() -> list[str]:
     ).Reload()
     stage170_boundary_critic = EventAccumulator(
         str(latest_event_file(STAGE170_BOUNDARY_CRITIC_EXPERIMENT))
+    ).Reload()
+    stage170_post_loop = EventAccumulator(
+        str(latest_event_file(STAGE170_POST_LOOP_EXPERIMENT))
     ).Reload()
     tags = (
         (control, "plasticity/actor/features/effective_rank", "control actor rank", "#2563eb"),
@@ -994,6 +1004,18 @@ def rank_panel() -> list[str]:
             "plasticity/critic/features/effective_rank",
             "boundary-critic restart critic rank",
             "#ef4444",
+        ),
+        (
+            stage170_post_loop,
+            "plasticity/actor/features/effective_rank",
+            "post-loop boundary actor rank",
+            "#15803d",
+        ),
+        (
+            stage170_post_loop,
+            "plasticity/critic/features/effective_rank",
+            "post-loop boundary critic rank",
+            "#16a34a",
         ),
     )
     series = [
