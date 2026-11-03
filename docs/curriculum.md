@@ -45,8 +45,10 @@ speed, 0.75 m/s horizontal speed, 12.5 m pad radius, 5° tilt, and 10°/s angula
 additionally requires exactly one inverted-to-upright recovery with no re-flip and penalizes axial
 roll and rotation beyond 360°.
 
-Current run: `salto_stage60_lateral_pad_v1`. The 0.625 m/s braking ladder reached and solved the
-80 m/s boundary (stage 34) after about 1,000 stage updates. Tightening all five landing constraints
+Current campaign: stages 0--98 are solved and the protected stage-99 vertical-speed bridge is
+active. The historical path to that boundary starts with `salto_stage60_lateral_pad_v1`: its
+0.625 m/s braking ladder reached and solved the 80 m/s boundary (stage 34) after about 1,000 stage
+updates. Tightening all five landing constraints
 directly from 80 to 70 m/s then dropped deterministic landings to zero. Interpolating that transition
 over 16 stages restored a learnable boundary: the first 79.375 m/s stage passed in about 90 updates,
 78.75 m/s passed after about 270 updates, and 78.125 m/s passed after a critic refresh restored its
@@ -269,6 +271,14 @@ the protected actor bit-identical for its first 100 updates. A second zero-initi
 adapter now provides a direct-observation residual only after the salto and below 500 m. It preserves
 the stunt, recovery and high-altitude descent exactly at initialization, then lets the remaining
 strict stages learn near-ground braking and pad corrections without moving those solved behaviors.
+The 500 m specialist completed 100 live actor updates after its fresh-critic warmup, but both its
+40-update and 90-update checkpoints remained exactly at the protected 39.1% over 1,024 fixed-seed
+episodes. Mean crash speed moved only from 41.1 to 40.9 m/s; 87% of crashes still violated vertical
+speed and 52% missed the pad. It was therefore retired in favor of a matched 1,000 m-gated specialist
+that has more altitude to alter the braking trajectory while keeping the completed salto protected.
+A matched 256-episode sweep also rejects a constant post-loop throttle warm start at this boundary:
+the unshifted actor lands 39.1%, offsets from +0.1 through +0.8 fall from 37.5% to 21.1%, and negative
+offsets of -0.1 and -0.2 likewise regress to 37.5% and 35.2%.
 A checkpoint-safe post-loop engine-logit warm start then tested whether the fixed one-engine landing
 schedule lacked braking
 authority. On matched 256-scenario evaluations, logit shifts through +0.60 retain one engine and

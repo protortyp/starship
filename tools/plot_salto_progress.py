@@ -20,6 +20,7 @@ MIDPOINT_EXPERIMENT = ROOT / "logs" / "salto_stage97_midpoint_v1"
 STAGE99_MIDPOINT_EXPERIMENT = ROOT / "logs" / "salto_stage99_midpoint_v1"
 STAGE99_SPLIT_EXPERIMENT = ROOT / "logs" / "salto_stage99_split_v2"
 STAGE99_TOUCHDOWN_EXPERIMENT = ROOT / "logs" / "salto_stage99_touchdown_v1"
+STAGE99_TOUCHDOWN1000_EXPERIMENT = ROOT / "logs" / "salto_stage99_touchdown1000_v1"
 STAGE99_SPEED20_EXPERIMENT = ROOT / "logs" / "salto_stage99_speed20_v1"
 STAGE99_SAFE1_EXPERIMENT = ROOT / "logs" / "salto_stage99_safe1_v1"
 LINE = re.compile(r"eval landed\s+(?P<landed>\d+\.\d+).*stage\s+(?P<stage>\d+)")
@@ -277,10 +278,16 @@ TRACES = (
         "#7e22ce",
     ),
     Trace(
-        "near-ground touchdown specialist (live)",
+        "500 m touchdown specialist (retired)",
         ROOT / "out/salto-stage99-touchdown-v1.log",
         99,
         "#be123c",
+    ),
+    Trace(
+        "1,000 m touchdown specialist (live)",
+        ROOT / "out/salto-stage99-touchdown1000-v1.log",
+        99,
+        "#c026d3",
     ),
     Trace(
         "2x vertical-speed shaping (live)",
@@ -426,6 +433,9 @@ def rank_panel() -> list[str]:
     stage99_touchdown = EventAccumulator(
         str(latest_event_file(STAGE99_TOUCHDOWN_EXPERIMENT))
     ).Reload()
+    stage99_touchdown1000 = EventAccumulator(
+        str(latest_event_file(STAGE99_TOUCHDOWN1000_EXPERIMENT))
+    ).Reload()
     stage99_speed20 = EventAccumulator(str(latest_event_file(STAGE99_SPEED20_EXPERIMENT))).Reload()
     stage99_safe1 = EventAccumulator(str(latest_event_file(STAGE99_SAFE1_EXPERIMENT))).Reload()
     tags = (
@@ -500,8 +510,14 @@ def rank_panel() -> list[str]:
         (
             stage99_touchdown,
             "plasticity/critic/features/effective_rank",
-            "touchdown-specialist critic rank",
+            "500 m specialist critic rank",
             "#be123c",
+        ),
+        (
+            stage99_touchdown1000,
+            "plasticity/critic/features/effective_rank",
+            "1,000 m specialist critic rank",
+            "#c026d3",
         ),
         (
             stage99_speed20,
