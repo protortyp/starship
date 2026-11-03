@@ -74,14 +74,16 @@ sweep on that policy raises landing from 27.0% at the existing 0.10 throttle-noi
 that measured 0.03 cap so the rollout distribution supplied more successful terminal examples.
 A second matched sweep across every continuous head further raises stochastic landing from 30.3%
 at 0.03 to 31.7% at 0.02, 32.0% at 0.01 and 33.4% at the configured 0.005 minimum; return is also
-highest at 0.005. The fixed-0.005 continuation remains stable through 173 updates at 32--36% live
-landing, sets a 47% deterministic best with actor rank 72/128 and has no rollback, although it has
-not yet produced consecutive gate crossings.
-The historical path to that boundary starts from a protected
-512-episode landing rate of 37.1%; among its crashes, 58% miss the
-pad, 47% exceed horizontal speed and 33% exceed vertical speed. The tighter step is therefore a
-balanced terminal-control problem rather than another critic-collapse or single-limit failure. The
-historical path to that boundary starts with
+highest at 0.005. The fixed-0.005 continuation remains stable through 270 updates at 30--36% live
+landing, sets an isolated 47% deterministic best with actor rank 72/128 and critic rank 46/128, and
+has no rollback, although it has not yet produced consecutive gate crossings. Its latest protected
+best lands 38.9% over a fresh 1,024-episode probe. Among crashes, 56% exceed horizontal speed, 51%
+miss the pad and 27% exceed vertical speed: compared with the initial midpoint policy, pad-miss
+failures improve from 59% to 51% while horizontal-limit failures worsen from 49% to 56%. A protected
+parallel branch therefore doubles only horizontal-speed shaping, trains a fresh critic for 100
+updates, and then uses the same 5e-7 touchdown-adapter rate and 0.005 exploration. The 4,096-environment
+control continues untouched during that bounded A/B. This is a balanced terminal-control problem,
+not another critic-collapse or single-limit failure. The historical path to that boundary starts with
 `salto_stage60_lateral_pad_v1`: its
 0.625 m/s braking ladder reached and solved the 80 m/s boundary (stage 34) after about 1,000 stage
 updates. Tightening all five landing constraints
