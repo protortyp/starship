@@ -151,13 +151,15 @@ exactly frozen. Once enabled, the direct-observation post-loop adapter raised ro
 20-step count controls. The following direct 70 to 60 m/s transition then produced zero train and
 deterministic landings for 311 updates while critic rank fell to 13/128. The protected stage-73 actor
 then resumed with a fresh critic and passed the new 67.5 m/s bridge after 36 actor updates and the
-65 m/s bridge after another 144, without rollback. At the active 62.5 m/s bridge, the first 215
-stage-specific updates retain about a 27% recent-100 deterministic landing rate and a 20% exploratory
-rate, with a 39.1% protected best. The apparent 45% point on the promotion iteration belonged to the
-passing stage-75 evaluation and is excluded from the stage-76 trace. Actor feature rank has recovered
-to about 65/128 and the post-loop adapter still has nonzero gradients; critic rank remains low at
-about 21/128, but explained variance is about 0.59. The long run therefore continues rather than
-discarding this useful signal before the 60 m/s retry.
+65 m/s bridge after another 144, without rollback. The 62.5 m/s bridge then stayed near 20--29%
+deterministic landing for its first 340 updates, but the healthy actor continued improving: rollout
+landing rose into the 30--38% range, the protected deterministic best reached 43.4%, and the run
+finally produced the consecutive gate-level evaluations needed to pass after 497 stage-specific
+updates. Actor feature rank remained about 63--66/128, the post-loop adapter retained nonzero
+gradients, and the run had no rollback. This validates the long horizon instead of a premature
+midpoint restart. The original 60 m/s boundary now starts with 27--34% deterministic landing rather
+than the zero signal measured by the failed direct 70 to 60 m/s trial; training continues from the
+promoted actor.
 
 ## Findings
 
