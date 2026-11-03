@@ -46,7 +46,8 @@ additionally requires exactly one inverted-to-upright recovery with no re-flip a
 roll and rotation beyond 360°.
 
 Current campaign: stages 0--98 are solved and the protected stage-99 altitude-gated engine-count
-bridge is active. The historical path to that boundary starts with `salto_stage60_lateral_pad_v1`: its
+bridge is training on a 90 m/s two-engine gate. The historical path to that boundary starts with
+`salto_stage60_lateral_pad_v1`: its
 0.625 m/s braking ladder reached and solved the 80 m/s boundary (stage 34) after about 1,000 stage
 updates. Tightening all five landing constraints
 directly from 80 to 70 m/s then dropped deterministic landings to zero. Interpolating that transition
@@ -340,9 +341,13 @@ conservative branch is retired after 149 actor updates. The loose high-throughpu
 after 200 actor updates: its update-190 probe lands 38.7%, averages 1.003 engines and leaves 99% of
 crashes above the 95 m/s vertical limit, confirming that the loose success gate rewards a retreat to
 the inherited one-engine schedule. A stricter 90 m/s branch instead lands 12.3% at actor update 29;
-its successful episodes retain 1.424 engines versus 1.159 on crashes. That desired count/success
-correlation now continues in matched 1,024-environment and 4,096-environment runs rather than
-spending the long horizon on the demonstrably saturated loose objective. Any successful two-engine policy
+its successful episodes retain 1.424 engines versus 1.159 on crashes. Its 4,096-environment
+continuation improves clean 1,024-seed landing from 16.2% at actor update 50 to 20.9% at update 150
+and 35.4% at update 200. Mean crash horizontal speed falls from 67.4 to 62.8 m/s against the 60 m/s
+gate while vertical-limit failures stay at 2% and engine count stays near 1.41. The base run remains
+untouched for the long horizon; a matched 5x horizontal-speed-shaping branch restarts its fresh
+critic with rollback tolerance widened so warmup variance cannot discard the value fit. Any
+successful two-engine policy
 must subsequently traverse a dense braking ladder and re-tighten the pad before the strict 15 m
 target.
 A checkpoint-safe post-loop engine-logit warm start then tested whether the fixed one-engine landing
@@ -351,7 +356,11 @@ authority. On matched 256-scenario evaluations, logit shifts through +0.60 retai
 45.3% landing; the first state-dependent two-engine mixtures at +0.62, +0.64, +0.66 and +0.68 fall
 to 37.9%, 23.4%, 10.5% and 0.8%, respectively, while +0.70 and above land 0%. A static whole-descent
 count shift is therefore rejected; the altitude-gated bridge above instead adds authority only for
-the landing burn and jointly adapts throttle, gimbal and count. A
+the landing burn and jointly adapts throttle, gimbal and count. A new
+[27.8-second 90 m/s two-engine recording](assets/salto-stage99-v90-u50.mp4) and
+[nine-frame sequence](assets/salto-stage99-v90-u50-sequence.jpg) show the actor-update-50 bridge
+policy completing one salto and landing with a persistent two-engine burn. This is live training
+evidence, not the final safe-pad claim. A
 [39.8-second stage-97 chase recording](assets/salto-stage97-35ms.mp4) and
 [nine-frame sequence](assets/salto-stage97-35ms-sequence.jpg) show a landed 35 m/s curriculum
 episode. They are an interim stricter-boundary artifact, not the final 15 m safe-pad claim.

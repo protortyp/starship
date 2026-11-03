@@ -39,6 +39,9 @@ STAGE99_TOUCHDOWN_COUNT_V90_EXPERIMENT = ROOT / "logs" / "salto_stage99_touchdow
 STAGE99_TOUCHDOWN_COUNT_V90_FAST_EXPERIMENT = (
     ROOT / "logs" / "salto_stage99_touchdown_count_v90_fast_v1"
 )
+STAGE99_TOUCHDOWN_COUNT_V90_HSPEED5_EXPERIMENT = (
+    ROOT / "logs" / "salto_stage99_touchdown_count_v90_hspeed5_v2"
+)
 STAGE99_VERTICAL_TOUCHDOWN1000_EXPERIMENT = (
     ROOT / "logs" / "salto_stage99_vertical_touchdown1000_v1"
 )
@@ -387,7 +390,7 @@ TRACES = (
         "#ea580c",
     ),
     Trace(
-        "altitude-gated count, 90 m/s gate (live)",
+        "altitude-gated count, 90 m/s 1k (retired)",
         ROOT / "out/salto-stage99-touchdown-count-v90-v1.log",
         99,
         "#9333ea",
@@ -397,6 +400,12 @@ TRACES = (
         ROOT / "out/salto-stage99-touchdown-count-v90-fast-v1.log",
         99,
         "#c026d3",
+    ),
+    Trace(
+        "90 m/s + 5x horizontal shaping (live)",
+        ROOT / "out/salto-stage99-touchdown-count-v90-hspeed5-v2.log",
+        99,
+        "#4f46e5",
     ),
 )
 
@@ -572,6 +581,9 @@ def rank_panel() -> list[str]:
     stage99_touchdown_count_v90_fast = EventAccumulator(
         str(latest_event_file(STAGE99_TOUCHDOWN_COUNT_V90_FAST_EXPERIMENT))
     ).Reload()
+    stage99_touchdown_count_v90_hspeed5 = EventAccumulator(
+        str(latest_event_file(STAGE99_TOUCHDOWN_COUNT_V90_HSPEED5_EXPERIMENT))
+    ).Reload()
     stage99_vertical_touchdown1000 = EventAccumulator(
         str(latest_event_file(STAGE99_VERTICAL_TOUCHDOWN1000_EXPERIMENT))
     ).Reload()
@@ -739,6 +751,12 @@ def rank_panel() -> list[str]:
             "plasticity/critic/features/effective_rank",
             "altitude-gated 90 m/s 4k critic rank",
             "#c026d3",
+        ),
+        (
+            stage99_touchdown_count_v90_hspeed5,
+            "plasticity/critic/features/effective_rank",
+            "90 m/s + 5x horizontal critic rank",
+            "#4f46e5",
         ),
         (
             stage99_vertical_touchdown1000,
