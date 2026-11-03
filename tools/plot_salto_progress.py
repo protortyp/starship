@@ -21,6 +21,7 @@ class Trace:
     path: Path
     stage: int
     color: str
+    skip: int = 0
 
 
 TRACES = (
@@ -51,6 +52,7 @@ TRACES = (
         ROOT / "out/salto-stage74-bridges-v1.log",
         76,
         "#7c3aed",
+        1,
     ),
 )
 
@@ -72,7 +74,7 @@ def read_landing(trace: Trace) -> list[float]:
         match = LINE.search(line)
         if match and int(match["stage"]) == trace.stage:
             values.append(float(match["landed"]))
-    return values
+    return values[trace.skip :]
 
 
 def polyline(
