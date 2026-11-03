@@ -34,6 +34,7 @@ STAGE99_VERTICAL_SAFE1_PAD500_CENTER01_EXPERIMENT = (
     ROOT / "logs" / "salto_stage99_vertical_safe1_pad500_center01_v1"
 )
 STAGE99_TOUCHDOWN_COUNT_EXPERIMENT = ROOT / "logs" / "salto_stage99_touchdown_count_v1"
+STAGE99_TOUCHDOWN_COUNT_FAST_EXPERIMENT = ROOT / "logs" / "salto_stage99_touchdown_count_fast_v1"
 STAGE99_VERTICAL_TOUCHDOWN1000_EXPERIMENT = (
     ROOT / "logs" / "salto_stage99_vertical_touchdown1000_v1"
 )
@@ -358,13 +359,13 @@ TRACES = (
         "#166534",
     ),
     Trace(
-        "500 m gate to pad re-tightening (live)",
+        "500 m gate to pad re-tightening (retired)",
         ROOT / "out/salto-stage99-vertical-safe1-pad500-v1.log",
         99,
         "#1d4ed8",
     ),
     Trace(
-        "500 m gate + 2x centering to re-tightening (live)",
+        "500 m gate + 2x centering to re-tightening (retired)",
         ROOT / "out/salto-stage99-vertical-safe1-pad500-center01-v1.log",
         99,
         "#7c3aed",
@@ -374,6 +375,12 @@ TRACES = (
         ROOT / "out/salto-stage99-touchdown-count-v1.log",
         99,
         "#dc2626",
+    ),
+    Trace(
+        "altitude-gated count, 4k fast A/B (live)",
+        ROOT / "out/salto-stage99-touchdown-count-fast-v1.log",
+        99,
+        "#ea580c",
     ),
 )
 
@@ -540,6 +547,9 @@ def rank_panel() -> list[str]:
     stage99_touchdown_count = EventAccumulator(
         str(latest_event_file(STAGE99_TOUCHDOWN_COUNT_EXPERIMENT))
     ).Reload()
+    stage99_touchdown_count_fast = EventAccumulator(
+        str(latest_event_file(STAGE99_TOUCHDOWN_COUNT_FAST_EXPERIMENT))
+    ).Reload()
     stage99_vertical_touchdown1000 = EventAccumulator(
         str(latest_event_file(STAGE99_VERTICAL_TOUCHDOWN1000_EXPERIMENT))
     ).Reload()
@@ -689,6 +699,12 @@ def rank_panel() -> list[str]:
             "plasticity/critic/features/effective_rank",
             "altitude-gated count critic rank",
             "#dc2626",
+        ),
+        (
+            stage99_touchdown_count_fast,
+            "plasticity/critic/features/effective_rank",
+            "altitude-gated 4k critic rank",
+            "#ea580c",
         ),
         (
             stage99_vertical_touchdown1000,

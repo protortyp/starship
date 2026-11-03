@@ -316,8 +316,9 @@ separate those objectives more cleanly with a temporary 500 m stage-99 pad gate.
 same protected actor, vertical-only 1.0 m/s² objective, fresh-critic warmup and 5e-7 actor rate; the
 4,096-environment run keeps the baseline 0.05 centering weight and the matched 1,024-environment run
 uses 0.10. Their resolved 153-stage configurations were checked before actor training. Both passed
-the relaxed pad gate during critic-only warmup and now test the unchanged stage-100 re-tightening;
-neither result is counted as new braking behavior.
+the relaxed pad gate during critic-only warmup, but their first stage-100 actor checkpoints land only
+38.9% and 37.9% broadly, retain exactly one engine and leave 88% of crashes above the vertical limit.
+They are retired at update 40; neither result is counted as new braking behavior.
 A trajectory audit then identified a physical limit hidden by the aggregate crash metrics: the
 one-engine controller is already at essentially full throttle from 1,000 m to touchdown. Failed
 episodes cross 500 m at 62--69 m/s and still contact at 36--48 m/s, so reward tuning cannot create
@@ -329,7 +330,9 @@ handoff uses a +1.24 engine-logit and -3.0 throttle residual while leaving the s
 one-engine descent bit-exact. On a 700 m pad, 95 m/s vertical and 60 m/s horizontal bridge it lands
 34.4% over 256 fixed-seed episodes and uses 1.18 engines on average; the remaining crashes are 57%
 vertical-limit, 40% horizontal-limit and only 10% pad-miss failures. A fresh critic now warms up on
-that bridge before the altitude-gated adapter begins actor updates. Any successful two-engine policy
+that bridge before the altitude-gated adapter begins actor updates; a matched seed-1 run uses 4,096
+environments and a 2x adapter rate to test the same handoff with higher-throughput experience. Any
+successful two-engine policy
 must subsequently traverse a dense braking ladder and re-tighten the pad before the strict 15 m
 target.
 A checkpoint-safe post-loop engine-logit warm start then tested whether the fixed one-engine landing
