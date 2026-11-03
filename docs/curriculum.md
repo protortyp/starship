@@ -70,8 +70,13 @@ out as the boundary's cause. A nonuniform interpolation now inserts only the mea
 bit-identical, and the former stage 167 remains exact at stage 168. The protected midpoint run opens
 at 39--40% deterministic landing and broad-probes at 40.2%. A matched 1,024-episode stochastic
 sweep on that policy raises landing from 27.0% at the existing 0.10 throttle-noise cap to 29.2% at
-0.05 and 30.8% at 0.03, while return rises from 105.7 to 114.4. The long midpoint continuation now
-uses the measured 0.03 cap so the rollout distribution supplies more successful terminal examples.
+0.05 and 30.8% at 0.03, while return rises from 105.7 to 114.4. The first midpoint continuation used
+that measured 0.03 cap so the rollout distribution supplied more successful terminal examples.
+A second matched sweep across every continuous head further raises stochastic landing from 30.3%
+at 0.03 to 31.7% at 0.02, 32.0% at 0.01 and 33.4% at the configured 0.005 minimum; return is also
+highest at 0.005. The fixed-0.005 continuation reaches 39% live landing on complete rollouts and a
+46% deterministic evaluation in its first 15 updates, although it has not yet produced consecutive
+gate crossings.
 The historical path to that boundary starts from a protected
 512-episode landing rate of 37.1%; among its crashes, 58% miss the
 pad, 47% exceed horizontal speed and 33% exceed vertical speed. The tighter step is therefore a

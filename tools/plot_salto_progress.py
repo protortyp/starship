@@ -48,6 +48,7 @@ STAGE167_ACTOR_RESET_EXPERIMENT = (
 )
 STAGE167_MIDPOINT_EXPERIMENT = ROOT / "logs" / "salto_stage167_midpoint_v1"
 STAGE167_MIDPOINT_LOWSTD_EXPERIMENT = ROOT / "logs" / "salto_stage167_midpoint_lowstd_v1"
+STAGE167_MIDPOINT_MINSTD_EXPERIMENT = ROOT / "logs" / "salto_stage167_midpoint_minstd_v1"
 STAGE99_VERTICAL_TOUCHDOWN1000_EXPERIMENT = (
     ROOT / "logs" / "salto_stage99_vertical_touchdown1000_v1"
 )
@@ -438,10 +439,16 @@ TRACES = (
         "#0f766e",
     ),
     Trace(
-        "22.5 m/s midpoint, low throttle noise (live)",
+        "22.5 m/s midpoint, low throttle noise (retired)",
         ROOT / "out/salto-stage167-midpoint-lowstd-v1.log",
         167,
         "#0891b2",
+    ),
+    Trace(
+        "22.5 m/s midpoint, minimum noise (live)",
+        ROOT / "out/salto-stage167-midpoint-minstd-v1.log",
+        167,
+        "#0369a1",
     ),
 )
 
@@ -634,6 +641,9 @@ def rank_panel() -> list[str]:
     ).Reload()
     stage167_midpoint_lowstd = EventAccumulator(
         str(latest_event_file(STAGE167_MIDPOINT_LOWSTD_EXPERIMENT))
+    ).Reload()
+    stage167_midpoint_minstd = EventAccumulator(
+        str(latest_event_file(STAGE167_MIDPOINT_MINSTD_EXPERIMENT))
     ).Reload()
     tags = (
         (control, "plasticity/actor/features/effective_rank", "control actor rank", "#2563eb"),
@@ -859,6 +869,18 @@ def rank_panel() -> list[str]:
             "plasticity/critic/features/effective_rank",
             "low-noise midpoint critic rank",
             "#06b6d4",
+        ),
+        (
+            stage167_midpoint_minstd,
+            "plasticity/actor/features/effective_rank",
+            "minimum-noise midpoint actor rank",
+            "#0369a1",
+        ),
+        (
+            stage167_midpoint_minstd,
+            "plasticity/critic/features/effective_rank",
+            "minimum-noise midpoint critic rank",
+            "#0284c7",
         ),
     )
     series = [
