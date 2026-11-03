@@ -248,10 +248,16 @@ TRACES = (
         "#0284c7",
     ),
     Trace(
-        "original 35 m/s boundary after bridge (live)",
+        "original 35 m/s boundary after bridge (passed)",
         ROOT / "out/salto-stage97-midpoint-v1.log",
         98,
         "#0369a1",
+    ),
+    Trace(
+        "first 30 m/s braking step (live)",
+        ROOT / "out/salto-stage97-midpoint-v1.log",
+        99,
+        "#0e7490",
     ),
 )
 
