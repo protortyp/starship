@@ -184,8 +184,19 @@ rolled back or hit a KL stop. The exact protected stage-85 actor landed seed 3 i
 [chase-camera recording](assets/salto-stage85-50ms.mp4) and
 [nine-frame sequence](assets/salto-stage85-50ms-sequence.jpg) show the full single salto, recovery,
 and deliberately still-loose 50 m/s curriculum touchdown. Stage 87 (47.5 m/s) inherited 36--39%
-deterministic landing and passed after 81 updates; stage 88 (46.25 m/s) inherits 34--38%. The run has
-a 20,000-update horizon for the complete dense tail.
+deterministic landing and passed after 81 updates. Stages 88--91 then passed in 79, 81, 49, and 81
+updates, reaching the 42.5 m/s boundary without a rollback. Stage 92 (41.25 m/s) exposed a
+train/deployment mismatch: the protected policy landed 26.2% over 512 deterministic episodes, but
+the original std-0.10 run collapsed to 0% deterministic landing while stochastic rollouts remained
+near 30%. Reducing the actor rate fivefold only delayed the same collapse. A matched 512-episode
+exploration sweep improved expected landing from 28.5% at std 0.10 to 32.4% at std 0.03. The current
+protected restart therefore combines the untouched actor with its adapted critic, clears the actor's
+Adam moments, caps continuous std at 0.03, and uses a 5e-7 post-loop-adapter rate. It improved from a
+27.6% first-20 evaluation mean to 34.7% over the latest 20 and set a 39.1% protected best in its first
+125 updates, with critic explained variance near 0.93 and no rollback or KL stop. A 512-episode probe
+attributes about 89% of remaining crashes to the 41.25 m/s vertical-speed limit; attitude and angular
+rate are non-binding. The run will continue through a long 500--1,500-update evidence window before
+that measured vertical-braking mode triggers a curriculum or reward intervention.
 
 ## Findings
 

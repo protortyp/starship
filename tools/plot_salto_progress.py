@@ -11,9 +11,9 @@ from tensorboard.backend.event_processing.event_accumulator import EventAccumula
 
 ROOT = Path(__file__).resolve().parents[1]
 OUTPUT = ROOT / "docs" / "assets" / "salto-training-progress.svg"
-RANK_EXPERIMENT = ROOT / "logs" / "salto_stage78_dense_tail_v1"
+RANK_EXPERIMENT = ROOT / "logs" / "salto_stage92_lowstd_v1"
 LINE = re.compile(r"eval landed\s+(?P<landed>\d+\.\d+).*stage\s+(?P<stage>\d+)")
-PROMOTED_DENSE = "promoted dense tail (58.75 to 47.5 m/s)"
+PROMOTED_DENSE = "promoted dense tail (58.75 to 42.5 m/s)"
 
 
 @dataclass(frozen=True)
@@ -132,11 +132,51 @@ TRACES = (
         1,
     ),
     Trace(
-        "46.25 m/s dense tail (live)",
+        PROMOTED_DENSE,
         ROOT / "out/salto-stage78-dense-tail-v1.log",
         88,
-        "#0f766e",
+        "#92400e",
         1,
+    ),
+    Trace(
+        PROMOTED_DENSE,
+        ROOT / "out/salto-stage78-dense-tail-v1.log",
+        89,
+        "#92400e",
+        1,
+    ),
+    Trace(
+        PROMOTED_DENSE,
+        ROOT / "out/salto-stage78-dense-tail-v1.log",
+        90,
+        "#92400e",
+        1,
+    ),
+    Trace(
+        PROMOTED_DENSE,
+        ROOT / "out/salto-stage78-dense-tail-v1.log",
+        91,
+        "#92400e",
+        1,
+    ),
+    Trace(
+        "stage 92, std 0.10 collapse",
+        ROOT / "out/salto-stage78-dense-tail-v1.log",
+        92,
+        "#dc2626",
+        1,
+    ),
+    Trace(
+        "stage 92, lower learning rate",
+        ROOT / "out/salto-stage92-slow-v1.log",
+        92,
+        "#f59e0b",
+    ),
+    Trace(
+        "stage 92, std 0.03 (live)",
+        ROOT / "out/salto-stage92-lowstd-v1.log",
+        92,
+        "#0f766e",
     ),
 )
 
@@ -269,7 +309,7 @@ def rank_panel() -> list[str]:
     # updates rather than one. Keep the axis in actual training updates and inside the viewport.
     diagnostics_interval = 10
     x_max = max(500, (max(len(values) for _, _, values in series) - 1) * diagnostics_interval)
-    lines = [text(left, 430, "Policy plasticity during the live dense tail", size=20)]
+    lines = [text(left, 430, "Policy plasticity during the live stage-92 restart", size=20)]
     for tick in (0, 32, 64, 96, 128):
         y = top + (128 - tick) / 128 * height
         lines.append(
