@@ -240,7 +240,10 @@ speed for worse pad accuracy. The live optimizer therefore continues instead of 
 older sweep. The longer window is now paying off: by 300 stage-97 evaluations the latest 50 mean rose
 to 37.8%, three evaluations crossed the 45% gate, and the protected best reached 46.9%. A new
 1,024-episode probe improved from 37.1% to 39.5%, with explained variance near 0.73, actor rank
-67/128, and no rollback. The crossings are not yet consecutive, so stage 97 remains active.
+67/128, and no rollback. The crossings are not yet consecutive, so stage 97 remains active. A
+[39.8-second stage-97 chase recording](assets/salto-stage97-35ms.mp4) and
+[nine-frame sequence](assets/salto-stage97-35ms-sequence.jpg) show a landed 35 m/s curriculum
+episode. They are an interim stricter-boundary artifact, not the final 15 m safe-pad claim.
 
 ## Findings
 
