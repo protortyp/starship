@@ -92,8 +92,14 @@ variance, so the 1,024-environment process is retired after about 150 actor upda
 checkpoint protected. The 4,096-environment slot now resumes from that stage-168 best with a gentler
 1e-5 fresh-critic warmup and a 40% intermediate promotion gate. It passes stage 168 on startup and
 begins stage 169 before any actor update. The final broad strict-target acceptance remains unchanged.
-This is a balanced terminal-control problem, not another single-limit failure. The historical path
-to that boundary starts with
+The protected midpoint best's new
+[40-second chase recording](assets/salto-stage167-midpoint-live.mp4) and
+[nine-frame sequence](assets/salto-stage167-midpoint-live-sequence.jpg) show seed 3 completing one
+powered salto, recovery and the two-engine descent. It contacts at 19.13 m/s vertical speed,
+4.89 m/s horizontal speed and 237 m miss under the interim 22.5 m/s, 13.5 m/s and 325 m limits;
+this is closer than the stage-131 recording but is still not the safe-target claim. This is a
+balanced terminal-control problem, not another single-limit failure. The historical path to that
+boundary starts with
 `salto_stage60_lateral_pad_v1`: its
 0.625 m/s braking ladder reached and solved the 80 m/s boundary (stage 34) after about 1,000 stage
 updates. Tightening all five landing constraints
