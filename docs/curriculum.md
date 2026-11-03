@@ -231,8 +231,8 @@ and stage 96 after another 13. Stage 97 inherited 36--39% deterministic landing.
 control vindicated the requested long horizon by eventually passing stage 94 after 539 evaluations,
 without rollback, and moving to stage 95. It continues in parallel as an independent comparison.
 Over the first 120 stage-97 updates, the protected best rose to 42.2% and the latest 20-evaluation
-mean recovered to 36.3% after
-an intervening dip to 29.9%. A 1,024-episode probe of the newer best lands 37.1%; 82.8% of crashes
+mean recovered to 36.3% after an intervening dip to 29.9%. A 1,024-episode probe of the newer best
+lands 37.1%; 82.8% of crashes
 exceed the vertical-speed limit and 48.3% miss the pad. Repeating the throttle-residual sweep on that
 newer checkpoint finds that the actor has already learned the earlier braking offset: a further +0.1
 changes the matched 256-scenario rate only from 41.4% to 41.8%, and larger offsets trade vertical
@@ -241,7 +241,12 @@ older sweep. The longer window is now paying off: by 500 stage-97 evaluations th
 to 38.1%, six evaluations since update 250 crossed the 45% gate, and the protected best reached
 47.3%. A 1,024-episode probe at update 300 improved from 37.1% to 39.5%; current explained variance
 is near 0.74, actor rank is 66/128, and rollback count remains zero. The crossings are not yet
-consecutive, so stage 97 remains active toward the requested 1,500-update horizon. A
+consecutive. By update 750 the best had not improved for roughly 275 updates and the latest 50 mean
+had fallen to 32.3%, despite healthy 0.79 explained variance. A protected restart from the 47.3%
+best preserved the actor, critic, optimizer, reward and exploration settings. Its four first
+25-update means are 36.1%, 37.4%, 37.4%, and 37.5%, with two isolated gate crossings, 0.78 explained
+variance, actor rank 67/128, and no rollback. Stage 97 therefore remains active toward a combined
+1,500-update horizon. A
 [39.8-second stage-97 chase recording](assets/salto-stage97-35ms.mp4) and
 [nine-frame sequence](assets/salto-stage97-35ms-sequence.jpg) show a landed 35 m/s curriculum
 episode. They are an interim stricter-boundary artifact, not the final 15 m safe-pad claim.
