@@ -45,8 +45,8 @@ speed, 0.75 m/s horizontal speed, 12.5 m pad radius, 5° tilt, and 10°/s angula
 additionally requires exactly one inverted-to-upright recovery with no re-flip and penalizes axial
 roll and rotation beyond 360°.
 
-Current campaign: stages 0--115 are solved and the unified policy is advancing through the 51-step
-two-engine braking/pad ladder; it has reached stage 116 (step 17/51). The historical path to that
+Current campaign: stages 0--119 are solved and the unified policy is advancing through the 51-step
+two-engine braking/pad ladder; it has reached stage 120 (step 21/51). The historical path to that
 boundary starts with
 `salto_stage60_lateral_pad_v1`: its
 0.625 m/s braking ladder reached and solved the 80 m/s boundary (stage 34) after about 1,000 stage
@@ -347,9 +347,10 @@ continuation improves clean 1,024-seed landing from 16.2% at actor update 50 to 
 and 35.4% at update 200. Mean crash horizontal speed falls from 67.4 to 62.8 m/s against the 60 m/s
 gate while vertical-limit failures stay at 2% and engine count stays near 1.41. The base run remains
 untouched for the long horizon. After one protected rollback before solving the bridge, it passes the
-90 m/s gate at iteration 14,523 and then clears the first 16 cumulative braking/pad steps in another
-410 iterations without a further rollback, reaching stage 116. The last five solved steps require
-95, 36, 33, 16 and 13 iterations, respectively. Actor feature rank is 75/128, critic rank has
+90 m/s gate at iteration 14,523 and then clears the first 20 cumulative braking/pad steps in another
+469 iterations without a further rollback, reaching stage 120. After a 95-iteration boundary, the
+next eight solved steps require 36, 33, 16, 13, 24, 7, 9 and 19 iterations. Actor feature rank is
+75/128, critic rank has
 recovered from 19/128 to 38/128, and the touchdown adapter retains nonzero updates. A matched 5x
 horizontal-speed-shaping branch is retired during critic-only warmup because the base policy solves
 the measured lateral bottleneck before that A/B reaches actor training. The two-engine policy
