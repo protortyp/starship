@@ -172,9 +172,13 @@ the new 58.75 m/s, 640.625 m pad boundary. Its first critic-warmup evaluations r
 and its first complete exploratory rollout lands 28%, demonstrating that stage 78 is learnable before
 any actor update. After the full 200-update critic warmup reached about 0.59 explained variance, the
 post-loop adapter raised exploratory landing from about 27% to 40% and passed stage 78 in 40 actor
-updates with no rollback or KL stop. The inherited policy starts stage 79 at 31--36% deterministic
-landing, so capability transfers across the bounded transition. The run has a 20,000-update horizon
-for the complete dense tail.
+updates with no rollback or KL stop. Stage 79 inherited 31--36% deterministic landing and passed in
+another 63 actor updates. Stage 80 (56.25 m/s vertical speed, 621.875 m pad) then inherited a usable
+policy, climbed from 31--44% to consecutive gate-level evaluations, and passed after 83 actor updates.
+Stage 81 (55 m/s, 612.5 m pad) starts at 30--33% deterministic landing, still without a rollback or
+KL stop. Actor feature rank is 68/128 with no dead units and the trainable post-loop adapter retains
+nonzero gradients; critic feature rank has fallen to 14/128, so its value fit and landing trend remain
+under observation. The run has a 20,000-update horizon for the complete dense tail.
 
 ## Findings
 

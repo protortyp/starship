@@ -68,10 +68,24 @@ TRACES = (
         "#92400e",
     ),
     Trace(
-        "57.5 m/s dense tail (live)",
+        "57.5 m/s dense tail",
         ROOT / "out/salto-stage78-dense-tail-v1.log",
         79,
         "#a16207",
+        1,
+    ),
+    Trace(
+        "56.25 m/s dense tail",
+        ROOT / "out/salto-stage78-dense-tail-v1.log",
+        80,
+        "#15803d",
+        1,
+    ),
+    Trace(
+        "55 m/s dense tail (live)",
+        ROOT / "out/salto-stage78-dense-tail-v1.log",
+        81,
+        "#0f766e",
         1,
     ),
 )
