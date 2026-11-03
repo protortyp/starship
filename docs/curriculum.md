@@ -199,8 +199,13 @@ rate are non-binding. A second matched probe found that deterministic decoding b
 one to zero engines after the recovery handoff in 35% of episodes, despite persistent-count training.
 Holding the deterministic handoff count through landing raised success from 35.9% to 40.4%, kept the
 mean count exactly one, reduced crash vertical speed from 45.64 to 45.26 m/s, and is now implemented
-for both evaluation and TorchScript export. The existing process will still receive its 500-update
-evidence window before the protected best restarts under the corrected deployment semantics.
+for both evaluation and TorchScript export. The old-decoder control completed 500 updates: exploratory
+landing reached 40--43% while its flickering deterministic evaluation ended at 24--27%. Re-evaluating
+its saved actors with the corrected decoder instead improved monotonically; the final checkpoint
+landed 51.6% on the 256 curriculum scenarios and 46.9% over 1,024 episodes, with mean crash vertical
+speed down to 44.22--44.47 m/s. Restarting its matching model, critic, and optimizer under corrected
+semantics passed stage 92 after six updates. Stage 93, the final 40 m/s boundary, inherited 44--49%
+landing and protected a 46.9% best in its first evaluations.
 
 ## Findings
 
