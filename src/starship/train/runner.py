@@ -247,8 +247,15 @@ class StarshipRunner(OnPolicyRunner):
         self.best_eval = tuple(best) if best is not None else None
         self._below_best = 0
         self._reset_rollout()
-        # The checkpoint carries the old learning rate; the configured one should win.
+        # The checkpoint carries the old learning rate; the configured phase should win.  During
+        # an in-process rollback, PPO has already moved beyond critic warmup, so restoring the
+        # bootstrap rate here would silently undo post-warmup stabilization.
         self.alg.learning_rate = self.cfg["algorithm"]["learning_rate"]
+        if (
+            self.alg.post_warmup_learning_rate is not None
+            and self.alg._updates_done > self.alg.critic_warmup_updates
+        ):
+            self.alg.learning_rate = self.alg.post_warmup_learning_rate
         for group in self.alg.optimizer.param_groups:
             group["lr"] = self.alg.learning_rate
         self.next_iteration = self.current_learning_iteration + 1

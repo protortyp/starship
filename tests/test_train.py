@@ -175,6 +175,24 @@ def test_training_resumes_from_checkpoint(tmp_path):
     assert resumed.current_learning_iteration == 2
 
 
+def test_in_process_checkpoint_restore_keeps_post_warmup_learning_rate(tmp_path):
+    cfg = compose_cfg(
+        *SHORT_EPISODES,
+        "runner.algorithm.learning_rate=3e-5",
+        "+runner.algorithm.critic_warmup_updates=1",
+        "+runner.algorithm.post_warmup_learning_rate=1e-6",
+    )
+    runner = make_runner(cfg, tmp_path)
+    checkpoint = tmp_path / "model.pt"
+    runner.save(str(checkpoint))
+    runner.alg._updates_done = 2
+
+    runner.load(str(checkpoint))
+
+    assert runner.alg.learning_rate == pytest.approx(1e-6)
+    assert all(group["lr"] == pytest.approx(1e-6) for group in runner.alg.optimizer.param_groups)
+
+
 def test_reset_critic_preserves_actor_and_its_optimizer_state(tmp_path):
     cfg = compose_cfg(*SHORT_EPISODES)
     first = make_runner(cfg, tmp_path / "a")
