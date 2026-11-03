@@ -164,7 +164,18 @@ update 1,016 remains at 29.8% broadly, matching update 516; vertical-limit failu
 to 29%, horizontal-limit failures worsen from 60% to 64%, and pad misses remain 49%. Actor/critic
 ranks are still 72/128 and 43/128 with no rollback or actionable diagnostic warning. This is a flat
 healthy long control rather than a collapse, so it continues through 1,500. The 40% gate is only for
-intermediate traversal; final broad strict-target acceptance remains unchanged.
+intermediate traversal. The full 1,500-update result never promotes or rolls back: deterministic
+landing averages 30.1% overall and declines gently to 29.9%, 29.6%, 29.1%, 29.6% and 28.9% over the
+latest 1,000, 500, 250, 100 and 20 evaluations. Its fixed checkpoint near update 1,516 lands 27.7%;
+32% of crashes exceed vertical speed, 63% exceed horizontal speed and 51% miss the pad. Actor and
+critic ranks remain healthy at 73/128 and 44/128, so the constrained final output rows have exhausted
+their capacity rather than collapsed. The stalled 2/3 to 7/9 transition is twice the size of the two
+preceding measured half-steps. Fraction 13/18 now inserts only its midpoint at 313.89 m pad radius,
+21.39 m/s vertical speed and 12.83 m/s horizontal speed; stages 0--170 remain config-identical and the
+original stage-171 boundary moves unchanged to stage 172. A verified restart carries the exact solved
+stage-170 actor, critic and optimizer into that midpoint. It opens at 35% deterministic landing and
+its first diagnostic is warning-free at 67/128 actor and 42/128 critic rank. Final broad strict-target
+acceptance remains unchanged.
 The protected midpoint best's new
 [40-second chase recording](assets/salto-stage167-midpoint-live.mp4) and
 [nine-frame sequence](assets/salto-stage167-midpoint-live-sequence.jpg) show seed 3 completing one

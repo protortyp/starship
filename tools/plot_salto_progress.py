@@ -68,6 +68,7 @@ STAGE170_POST_LOOP_LATERAL_EXPERIMENT = (
 STAGE171_POST_LOOP_LATERAL_EXPERIMENT = (
     ROOT / "logs" / "salto_stage171_post_loop_lateral_head_4k_v1"
 )
+STAGE171_MIDPOINT_LATERAL_EXPERIMENT = ROOT / "logs" / "salto_stage171_midpoint_lateral_head_4k_v1"
 STAGE99_VERTICAL_TOUCHDOWN1000_EXPERIMENT = (
     ROOT / "logs" / "salto_stage99_vertical_touchdown1000_v1"
 )
@@ -519,10 +520,16 @@ TRACES = (
         "#65a30d",
     ),
     Trace(
-        "protected lateral head at stage 171 (live)",
+        "lateral head at stage 171, 1,500 updates (retired)",
         ROOT / "out/salto-stage171-post-loop-lateral-head-4k-v1.log",
         171,
         "#3f6212",
+    ),
+    Trace(
+        "measured stage-171 midpoint (live)",
+        ROOT / "out/salto-stage171-midpoint-lateral-head-4k-v1.log",
+        171,
+        "#84cc16",
     ),
 )
 
@@ -743,6 +750,9 @@ def rank_panel() -> list[str]:
     ).Reload()
     stage171_post_loop_lateral = EventAccumulator(
         str(latest_event_file(STAGE171_POST_LOOP_LATERAL_EXPERIMENT))
+    ).Reload()
+    stage171_midpoint_lateral = EventAccumulator(
+        str(latest_event_file(STAGE171_MIDPOINT_LATERAL_EXPERIMENT))
     ).Reload()
     tags = (
         (control, "plasticity/actor/features/effective_rank", "control actor rank", "#2563eb"),
@@ -1065,6 +1075,18 @@ def rank_panel() -> list[str]:
             "stage-171 lateral critic rank",
             "#3f6212",
         ),
+        (
+            stage171_midpoint_lateral,
+            "plasticity/actor/features/effective_rank",
+            "stage-171 midpoint actor rank",
+            "#4d7c0f",
+        ),
+        (
+            stage171_midpoint_lateral,
+            "plasticity/critic/features/effective_rank",
+            "stage-171 midpoint critic rank",
+            "#84cc16",
+        ),
     )
     series = [
         (label, color, [event.value for event in accumulator.Scalars(tag)])
@@ -1122,8 +1144,9 @@ def rank_panel() -> list[str]:
 def main() -> None:
     OUTPUT.parent.mkdir(parents=True, exist_ok=True)
     elements = [
-        '<svg xmlns="http://www.w3.org/2000/svg" width="880" height="1025" viewBox="0 0 880 1025">',
-        '<rect width="880" height="1025" fill="white"/>',
+        '<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="1050" '
+        'viewBox="0 0 1000 1050">',
+        '<rect width="1000" height="1050" fill="white"/>',
         '<g font-family="ui-sans-serif, system-ui, sans-serif">',
         *landing_panel(),
         *rank_panel(),
