@@ -1,5 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="880" height="930" viewBox="0 0 880 930">
-<rect width="880" height="930" fill="white"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="880" height="970" viewBox="0 0 880 970">
+<rect width="880" height="970" fill="white"/>
 <g font-family="ui-sans-serif, system-ui, sans-serif">
 <text x="72" y="55" font-size="20" text-anchor="start" fill="#374151">Hard-boundary landing success</text>
 <line x1="72" y1="317.0" x2="814" y2="317.0" stroke="#e5e7eb"/>
@@ -90,8 +90,9 @@
 <polyline points="72.0,227.0 72.3,231.5 72.6,230.0 72.9,227.0 73.2,219.8 73.5,212.0 73.8,216.7 74.1,219.1 74.4,226.0 74.7,229.7 75.0,228.6 75.3,229.3 75.6,231.8 75.9,234.7 76.2,233.6 76.5,232.6 76.7,232.3 77.0,230.5 77.3,229.8 77.6,230.2 77.9,227.9 78.2,228.6 78.5,230.5 78.8,230.8 79.1,229.9 79.4,227.7 79.7,227.7 80.0,228.4 80.3,228.4 80.6,229.9 80.9,232.4 81.2,232.0 81.5,233.5 81.8,230.6 82.1,229.5 82.4,230.2 82.7,228.1 83.0,226.6 83.3,224.5 83.6,223.8 83.9,224.8 84.2,225.2 84.5,227.0 84.8,225.9 85.1,225.6 85.4,227.4 85.7,226.3 85.9,224.8 86.2,223.4 86.5,224.5 86.8,227.4 87.1,227.0 87.4,227.4 87.7,227.4 88.0,227.7 88.3,228.4 88.6,228.8 88.9,225.2 89.2,226.6 89.5,225.6 89.8,223.8 90.1,224.5 90.4,225.2 90.7,228.1 91.0,229.2 91.3,228.1 91.6,226.6 91.9,225.2 92.2,227.7 92.5,227.4 92.8,228.1 93.1,228.8 93.4,230.2 93.7,229.5 94.0,229.2 94.3,226.3 94.6,226.3 94.9,227.7 95.2,226.3 95.4,228.1 95.7,226.3 96.0,227.0 96.3,229.2 96.6,228.8 96.9,230.2 97.2,230.6 97.5,231.3 97.8,232.0 98.1,228.4 98.4,228.4 98.7,226.3 99.0,229.5 99.3,229.2 99.6,228.8 99.9,228.4 100.2,227.4 100.5,226.6 100.8,224.8 101.1,226.6 101.4,226.6 101.7,228.8 102.0,228.8 102.3,225.2 102.6,227.0 102.9,225.9 103.2,225.9 103.5,225.2 103.8,225.6 104.1,228.4 104.4,227.4 104.6,228.8 104.9,232.0 105.2,231.7 105.5,232.8 105.8,233.5 106.1,238.2 106.4,235.6 106.7,235.6 107.0,234.9 107.3,234.9 107.6,234.2 107.9,234.9 108.2,235.3 108.5,234.2 108.8,233.1 109.1,231.3 109.4,231.7 109.7,233.8 110.0,234.6 110.3,236.4 110.6,237.8 110.9,237.4 111.2,238.2 111.5,235.3 111.8,236.4 112.1,236.7 112.4,233.5 112.7,235.3 113.0,235.3 113.3,234.2 113.6,232.8 113.8,231.7 114.1,233.1 114.4,232.8 114.7,234.9 115.0,235.6 115.3,234.6 115.6,232.0 115.9,234.6 116.2,236.0 116.5,237.8 116.8,237.8 117.1,236.0 117.4,236.4 117.7,235.3 118.0,233.8 118.3,232.4 118.6,229.9 118.9,230.6 119.2,231.3 119.5,232.8 119.8,232.8 120.1,232.4 120.4,231.0 120.7,233.5 121.0,233.1 121.3,236.0 121.6,235.3 121.9,236.0 122.2,233.8 122.5,235.6 122.8,237.8 123.0,240.7 123.3,238.2 123.6,236.4 123.9,237.4 124.2,239.2 124.5,240.3 124.8,239.6 125.1,238.9 125.4,240.0 125.7,242.5 126.0,242.8 126.3,243.2 126.6,241.8 126.9,240.3 127.2,241.0 127.5,239.6 127.8,241.8 128.1,241.0 128.4,242.5 128.7,239.6 129.0,241.0 129.3,240.7 129.6,241.8 129.9,241.0 130.2,240.3 130.5,240.7 130.8,243.2 131.1,246.1 131.4,244.6 131.7,243.9 132.0,243.2 132.3,242.8 132.5,243.6 132.8,245.4 133.1,245.4 133.4,246.1 133.7,245.0 134.0,244.6 134.3,246.1 134.6,243.9 134.9,244.3 135.2,244.6 135.5,243.6 135.8,241.4 136.1,240.7 136.4,240.3 136.7,239.2 137.0,240.3 137.3,240.7 137.6,242.1 137.9,242.5 138.2,241.0 138.5,238.5 138.8,239.6 139.1,238.5 139.4,238.9 139.7,239.2 140.0,238.9 140.3,238.5 140.6,236.7 140.9,237.1 141.2,235.6 141.5,236.7 141.7,234.2 142.0,234.2 142.3,233.5 142.6,235.3 142.9,235.3 143.2,235.3 143.5,236.4 143.8,236.0 144.1,237.8 144.4,237.4 144.7,237.8 145.0,235.6 145.3,234.9 145.6,236.4 145.9,239.6 146.2,239.2 146.5,237.8 146.8,241.0 147.1,243.2 147.4,243.6 147.7,243.9 148.0,243.6 148.3,243.9 148.6,245.7 148.9,245.7 149.2,246.4 149.5,249.7 149.8,249.0 150.1,246.8 150.4,246.4 150.7,247.2 150.9,248.2 151.2,250.4 151.5,251.1 151.8,252.2 152.1,248.6 152.4,247.9 152.7,247.9 153.0,247.9 153.3,247.5 153.6,247.5 153.9,250.4 154.2,247.9 154.5,246.4 154.8,244.6 155.1,241.8 155.4,243.6 155.7,242.8 156.0,242.8 156.3,243.6 156.6,243.6 156.9,244.3 157.2,246.4 157.5,245.7 157.8,247.9 158.1,249.0 158.4,248.2 158.7,246.1 159.0,244.6 159.3,241.4 159.6,244.6 159.9,247.5 160.1,247.5 160.4,249.7 160.7,248.6 161.0,251.1 161.3,251.1 161.6,250.4 161.9,249.3 162.2,250.0 162.5,252.2 162.8,251.5 163.1,252.2 163.4,253.3 163.7,252.6 164.0,252.6 164.3,253.3 164.6,252.6 164.9,254.0 165.2,252.6 165.5,252.2 165.8,255.1 166.1,255.4 166.4,256.2 166.7,258.0 167.0,255.1 167.3,254.7 167.6,254.7 167.9,253.3 168.2,251.5 168.5,250.4 168.8,249.3 169.1,249.3 169.4,250.8 169.6,251.5 169.9,252.2 170.2,253.3 170.5,253.6 170.8,254.4 171.1,254.7 171.4,255.1 171.7,254.4 172.0,254.0 172.3,254.0 172.6,252.6 172.9,252.2 173.2,251.1 173.5,251.1 173.8,252.6 174.1,252.6 174.4,256.5 174.7,254.4 175.0,252.2 175.3,251.1 175.6,254.4 175.9,254.4 176.2,256.2 176.5,260.1 176.8,259.8 177.1,257.2 177.4,256.2 177.7,255.4 178.0,256.2 178.3,256.2 178.6,258.0 178.8,259.4 179.1,257.6 179.4,255.1 179.7,256.5 180.0,256.9 180.3,256.9 180.6,257.6 180.9,259.8 181.2,259.0 181.5,260.5 181.8,258.7 182.1,259.8 182.4,263.7 182.7,264.8 183.0,261.6 183.3,261.2 183.6,260.1 183.9,256.5 184.2,256.9 184.5,258.3 184.8,259.0 185.1,260.5 185.4,259.8 185.7,259.4 186.0,257.2 186.3,255.1 186.6,255.8 186.9,260.1 187.2,259.4 187.5,259.4 187.8,258.7 188.0,258.3 188.3,257.2 188.6,258.0 188.9,254.0 189.2,254.0 189.5,254.4 189.8,252.9 190.1,252.9 190.4,256.2 190.7,256.5 191.0,256.5 191.3,257.2 191.6,258.3 191.9,260.1 192.2,261.9 192.5,261.2 192.8,260.1 193.1,259.4 193.4,261.6 193.7,261.9 194.0,260.5 194.3,261.2 194.6,261.9 194.9,264.8 195.2,267.7 195.5,269.1 195.8,269.1 196.1,269.1 196.4,271.6 196.7,271.6 197.0,273.4 197.2,273.8 197.5,272.7 197.8,272.7 198.1,269.8 198.4,270.6 198.7,271.3 199.0,269.5 199.3,268.8 199.6,267.3 199.9,266.2 200.2,268.4 200.5,270.9 200.8,270.2 201.1,272.7 201.4,276.0 201.7,274.5 202.0,273.8 202.3,273.8 202.6,274.5 202.9,273.1 203.2,274.2 203.5,272.4 203.8,272.7 204.1,274.5 204.4,273.1 204.7,272.0 205.0,273.8 205.3,274.2 205.6,279.6 205.9,279.6 206.2,280.6 206.5,281.4 206.7,281.0 207.0,279.2 207.3,279.9 207.6,279.9 207.9,277.0 208.2,278.8 208.5,277.4 208.8,277.8 209.1,276.0 209.4,276.0 209.7,274.9 210.0,271.6 210.3,273.1 210.6,270.9 210.9,274.2 211.2,273.4 211.5,273.4 211.8,274.9 212.1,276.0 212.4,277.0 212.7,276.0 213.0,273.1 213.3,274.9 213.6,272.0 213.9,273.1 214.2,272.4 214.5,270.6 214.8,271.3 215.1,270.6 215.4,272.7 215.7,270.9 215.9,271.6 216.2,270.2 216.5,271.3 216.8,272.4 217.1,272.7 217.4,275.6 217.7,275.2 218.0,276.7 218.3,275.2 218.6,275.6 218.9,275.6 219.2,274.5 219.5,276.3 219.8,272.7 220.1,272.7 220.4,274.2 220.7,271.3 221.0,272.4 221.3,272.4" fill="none" stroke="#0369a1" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/>
 <polyline points="72.0,227.0 72.3,236.0 72.6,233.0 72.9,229.2 73.2,223.4 73.5,215.0 73.8,219.3 74.1,221.4 74.4,226.0 74.7,227.9 75.0,227.0 75.3,227.8 75.6,229.8 75.9,232.1 76.2,230.6 76.5,229.8 76.7,229.6 77.0,229.0 77.3,228.9 77.6,228.8 77.9,227.0 78.2,226.6 78.5,227.8 78.8,228.5 79.1,228.1 79.4,226.3 79.7,225.6 80.0,226.6 80.3,226.6 80.6,228.4 80.9,230.2 81.2,229.5 81.5,230.6 81.8,228.4 82.1,227.7 82.4,228.1 82.7,225.6 83.0,225.9 83.3,224.5 83.6,224.8 83.9,225.6 84.2,226.3 84.5,227.0 84.8,226.3 85.1,227.4 85.4,228.4 85.7,228.8 85.9,228.1 86.2,225.6 86.5,225.9 86.8,227.4 87.1,227.4 87.4,226.6 87.7,225.9 88.0,226.3 88.3,227.4 88.6,228.1 88.9,224.5 89.2,226.3 89.5,224.8 89.8,223.4 90.1,224.8 90.4,224.5 90.7,226.3 91.0,226.6 91.3,225.6 91.6,225.2 91.9,224.1 92.2,225.2 92.5,223.8 92.8,225.6 93.1,226.6 93.4,228.4 93.7,229.2 94.0,228.1 94.3,225.6 94.6,224.5 94.9,225.6 95.2,224.8 95.4,225.9 95.7,224.5 96.0,224.1 96.3,226.6 96.6,225.2 96.9,227.4 97.2,227.7 97.5,227.4 97.8,225.9 98.1,222.7 98.4,223.0 98.7,221.6 99.0,221.6 99.3,222.0 99.6,221.6 99.9,221.2 100.2,219.8 100.5,218.4 100.8,216.6 101.1,217.6 101.4,219.1 101.7,220.9 102.0,220.9 102.3,218.0 102.6,219.4 102.9,218.0 103.2,216.9 103.5,215.5 103.8,215.5 104.1,217.6 104.4,215.1 104.6,215.5 104.9,218.7 105.2,219.1 105.5,219.1 105.8,219.4 106.1,222.3 106.4,220.9 106.7,219.1 107.0,218.7 107.3,217.6 107.6,215.5 107.9,214.4 108.2,213.7 108.5,211.9" fill="none" stroke="#9333ea" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/>
 <polyline points="72.0,263.0 72.3,245.0 72.6,245.0 72.9,240.5 73.2,241.4 73.5,242.0 73.8,245.0 74.1,241.6 74.4,237.0 74.7,233.3 75.0,232.7 75.3,233.0 75.6,233.9 75.9,234.7 76.2,235.4 76.5,240.5 76.7,241.3 77.0,241.5 77.3,241.2 77.6,240.1 77.9,239.9 78.2,239.7 78.5,241.9 78.8,244.2 79.1,243.9 79.4,242.5 79.7,242.5 80.0,241.8 80.3,242.5 80.6,241.8 80.9,240.0 81.2,238.5 81.5,240.0 81.8,240.7 82.1,243.2 82.4,246.1 82.7,247.9 83.0,247.2 83.3,245.4 83.6,243.6 83.9,239.6 84.2,238.2 84.5,238.5 84.8,240.3 85.1,242.1 85.4,242.5 85.7,240.0 85.9,237.8 86.2,235.6 86.5,234.9 86.8,235.6 87.1,235.3 87.4,235.3 87.7,233.5 88.0,233.8 88.3,233.8 88.6,234.6 88.9,235.3 89.2,234.9 89.5,233.1 89.8,230.2 90.1,228.8 90.4,227.7 90.7,228.4 91.0,231.3 91.3,232.0 91.6,232.8 91.9,232.0 92.2,230.2 92.5,228.1 92.8,229.9 93.1,232.8 93.4,232.0 93.7,232.4 94.0,233.8 94.3,234.6 94.6,233.5 94.9,233.5 95.2,236.4 95.4,238.2 95.7,237.4 96.0,237.1 96.3,236.4 96.6,237.8 96.9,240.0 97.2,242.5 97.5,244.6 97.8,247.9 98.1,252.6 98.4,251.8 98.7,252.6 99.0,252.9 99.3,254.0 99.6,255.1 99.9,257.2 100.2,257.6 100.5,255.8 100.8,259.4 101.1,259.8 101.4,259.8 101.7,259.0 102.0,264.4 102.3,267.7 102.6,267.7 102.9,266.2 103.2,270.9 103.5,272.4 103.8,273.4 104.1,276.7 104.4,277.4 104.6,277.8 104.9,276.3 105.2,278.8 105.5,278.8 105.8,280.3 106.1,282.8 106.4,285.0 106.7,285.7 107.0,287.8 107.3,292.2 107.6,292.2 107.9,295.4 108.2,298.3 108.5,301.5 108.8,303.7 109.1,306.9 109.4,306.6" fill="none" stroke="#7e22ce" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/>
-<polyline points="72.0,209.0 72.3,240.5 72.6,251.0 72.9,258.5 73.2,264.8 73.5,267.5 73.8,274.6 74.1,276.5 74.4,277.0 74.7,275.6 75.0,277.7 75.3,281.0 75.6,280.3 75.9,280.4 76.2,281.6 76.5,282.7 76.7,282.1 77.0,283.0" fill="none" stroke="#a21caf" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/>
-<rect x="425" y="30" width="440" height="360" fill="white"/>
+<polyline points="72.0,209.0 72.3,240.5 72.6,251.0 72.9,258.5 73.2,264.8 73.5,267.5 73.8,274.6 74.1,276.5 74.4,277.0 74.7,275.6 75.0,277.7 75.3,281.0 75.6,280.3 75.9,280.4 76.2,281.6 76.5,282.7 76.7,282.1 77.0,283.0 77.3,281.5 77.6,283.2 77.9,284.0 78.2,283.9 78.5,284.9 78.8,285.5 79.1,287.1 79.4,289.6 79.7,291.4 80.0,288.9 80.3,287.1 80.6,285.3 80.9,285.0 81.2,285.3 81.5,285.7 81.8,287.1 82.1,288.2 82.4,289.6 82.7,289.6 83.0,290.4 83.3,291.8 83.6,291.8 83.9,291.1 84.2,291.4 84.5,291.8 84.8,292.5 85.1,291.8 85.4,291.8 85.7,292.5 85.9,292.2 86.2,291.4 86.5,292.2 86.8,292.9 87.1,292.5 87.4,296.1 87.7,299.4 88.0,299.4 88.3,300.1 88.6,296.8" fill="none" stroke="#a21caf" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="72.0,254.0 72.3,267.5 72.6,281.0 72.9,278.8 73.2,279.2 73.5,275.0 73.8,278.4 74.1,276.5 74.4,286.0 74.7,290.9 75.0,292.5 75.3,291.5 75.6,293.5 75.9,297.1 76.2,294.8 76.5,293.9 76.7,292.1 77.0,290.0 77.3,289.5 77.6,289.6 77.9,289.1 78.2,290.4 78.5,290.0 78.8,290.0 79.1,290.4 79.4,291.8 79.7,292.5 80.0,291.4 80.3,292.2 80.6,294.0 80.9,294.7 81.2,293.2 81.5,295.8 81.8,292.5 82.1,291.1 82.4,288.6 82.7,286.8 83.0,285.0 83.3,283.2 83.6,283.5 83.9,284.2 84.2,286.0 84.5,287.8 84.8,287.1 85.1,287.5 85.4,287.8 85.7,286.8 85.9,287.5 86.2,287.1 86.5,288.6 86.8,289.6 87.1,287.5 87.4,288.6 87.7,287.8 88.0,285.7 88.3,285.7 88.6,287.1 88.9,283.9 89.2,285.7 89.5,285.7 89.8,286.0 90.1,287.8 90.4,290.4 90.7,291.4 91.0,291.8 91.3,290.4 91.6,290.0 91.9,288.9 92.2,291.1 92.5,290.0 92.8,290.0 93.1,288.6 93.4,288.6 93.7,287.8 94.0,285.3 94.3,282.1 94.6,282.4 94.9,283.5 95.2,283.2 95.4,285.3 95.7,285.7 96.0,286.8 96.3,289.6 96.6,287.8 96.9,288.2 97.2,288.9 97.5,290.0 97.8,289.3 98.1,285.3 98.4,286.0 98.7,285.0 99.0,286.0 99.3,285.0 99.6,283.9 99.9,284.2 100.2,283.5 100.5,283.9 100.8,284.2 101.1,285.3 101.4,284.2 101.7,286.8 102.0,288.6 102.3,286.4 102.6,288.2 102.9,287.5 103.2,286.0 103.5,285.0 103.8,283.5 104.1,285.3 104.4,283.2 104.6,284.2 104.9,286.0 105.2,286.4 105.5,288.2 105.8,287.5 106.1,290.7 106.4,288.2 106.7,289.3 107.0,289.3 107.3,288.2 107.6,286.8 107.9,287.5 108.2,286.4 108.5,284.6 108.8,284.6 109.1,281.7 109.4,281.7 109.7,282.8 110.0,282.1 110.3,282.8 110.6,285.7 110.9,285.7 111.2,286.0 111.5,284.6 111.8,285.7 112.1,284.6 112.4,280.6 112.7,281.4 113.0,281.4 113.3,281.4 113.6,279.2 113.8,278.1 114.1,279.2 114.4,277.8 114.7,280.3 115.0,281.4 115.3,280.6 115.6,279.6 115.9,281.7 116.2,283.5 116.5,285.7 116.8,285.0 117.1,283.9 117.4,284.2 117.7,284.2 118.0,282.4 118.3,281.4 118.6,281.0 118.9,281.4 119.2,281.4 119.5,283.2 119.8,284.6 120.1,283.2 120.4,281.7 120.7,284.2 121.0,284.6 121.3,287.5 121.6,287.1 121.9,288.9 122.2,286.0 122.5,287.5 122.8,288.6 123.0,288.9 123.3,286.4 123.6,284.2 123.9,285.7 124.2,286.4 124.5,285.3 124.8,283.9 125.1,282.4 125.4,283.5 125.7,285.7 126.0,285.0 126.3,284.6 126.6,284.2 126.9,283.5 127.2,282.8 127.5,282.4 127.8,284.6 128.1,282.8 128.4,284.6 128.7,282.1 129.0,282.8 129.3,281.7 129.6,283.2 129.9,282.8 130.2,283.2 130.5,285.0 130.8,286.4 131.1,288.9 131.4,287.5 131.7,287.5 132.0,287.8 132.3,289.3 132.5,290.0 132.8,290.4 133.1,289.3 133.4,290.0 133.7,288.9 134.0,287.8 134.3,288.9 134.6,286.8 134.9,286.8 135.2,286.8 135.5,286.0 135.8,284.6 136.1,283.9" fill="none" stroke="#db2777" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/>
+<rect x="425" y="30" width="440" height="374" fill="white"/>
 <line x1="450" y1="43" x2="472" y2="43" stroke="#9ca3af" stroke-width="3"/>
 <text x="479" y="47" font-size="8" text-anchor="start" fill="#374151">3D distance only</text>
 <line x1="450" y1="57" x2="472" y2="57" stroke="#10b981" stroke-width="3"/>
@@ -142,56 +143,58 @@
 <text x="479" y="369" font-size="8" text-anchor="start" fill="#374151">vertical-only bridge, fresh critic (retired)</text>
 <line x1="450" y1="379" x2="472" y2="379" stroke="#be123c" stroke-width="3"/>
 <text x="479" y="383" font-size="8" text-anchor="start" fill="#374151">500 m touchdown specialist (retired)</text>
-<line x1="655" y1="43" x2="677" y2="43" stroke="#c026d3" stroke-width="3"/>
-<text x="684" y="47" font-size="8" text-anchor="start" fill="#374151">1,000 m legacy-objective specialist (retired)</text>
-<line x1="655" y1="57" x2="677" y2="57" stroke="#4d7c0f" stroke-width="3"/>
-<text x="684" y="61" font-size="8" text-anchor="start" fill="#374151">2x vertical-speed shaping (retired)</text>
-<line x1="655" y1="71" x2="677" y2="71" stroke="#6d28d9" stroke-width="3"/>
-<text x="684" y="75" font-size="8" text-anchor="start" fill="#374151">1 m/s² legacy objective (retired)</text>
-<line x1="655" y1="85" x2="677" y2="85" stroke="#0f766e" stroke-width="3"/>
-<text x="684" y="89" font-size="8" text-anchor="start" fill="#374151">0.5 m/s² critic warmup (superseded)</text>
-<line x1="655" y1="99" x2="677" y2="99" stroke="#0891b2" stroke-width="3"/>
-<text x="684" y="103" font-size="8" text-anchor="start" fill="#374151">vertical-only 2 m/s² objective (retired)</text>
-<line x1="655" y1="113" x2="677" y2="113" stroke="#047857" stroke-width="3"/>
-<text x="684" y="117" font-size="8" text-anchor="start" fill="#374151">vertical-only + 1 m/s² profile (retired)</text>
-<line x1="655" y1="127" x2="677" y2="127" stroke="#0e7490" stroke-width="3"/>
-<text x="684" y="131" font-size="8" text-anchor="start" fill="#374151">vertical-only + 1,000 m specialist (retired)</text>
-<line x1="655" y1="141" x2="677" y2="141" stroke="#b45309" stroke-width="3"/>
-<text x="684" y="145" font-size="8" text-anchor="start" fill="#374151">vertical-only + 1 m/s², 4x actor rate (retired)</text>
-<line x1="655" y1="155" x2="677" y2="155" stroke="#15803d" stroke-width="3"/>
-<text x="684" y="159" font-size="8" text-anchor="start" fill="#374151">vertical-only + 1 m/s² + 2x pad shaping (retired)</text>
-<line x1="655" y1="169" x2="677" y2="169" stroke="#166534" stroke-width="3"/>
-<text x="684" y="173" font-size="8" text-anchor="start" fill="#374151">vertical-only + 1 m/s² + 4x pad shaping (retired)</text>
-<line x1="655" y1="183" x2="677" y2="183" stroke="#1d4ed8" stroke-width="3"/>
-<text x="684" y="187" font-size="8" text-anchor="start" fill="#374151">500 m gate to pad re-tightening (retired)</text>
-<line x1="655" y1="197" x2="677" y2="197" stroke="#7c3aed" stroke-width="3"/>
-<text x="684" y="201" font-size="8" text-anchor="start" fill="#374151">500 m gate + 2x centering to re-tightening (retired)</text>
-<line x1="655" y1="211" x2="677" y2="211" stroke="#dc2626" stroke-width="3"/>
-<text x="684" y="215" font-size="8" text-anchor="start" fill="#374151">altitude-gated engine-count bridge (live)</text>
-<line x1="655" y1="225" x2="677" y2="225" stroke="#ea580c" stroke-width="3"/>
-<text x="684" y="229" font-size="8" text-anchor="start" fill="#374151">altitude-gated count, 4k fast A/B (live)</text>
-<line x1="655" y1="239" x2="677" y2="239" stroke="#9333ea" stroke-width="3"/>
-<text x="684" y="243" font-size="8" text-anchor="start" fill="#374151">altitude-gated count, 90 m/s 1k (retired)</text>
-<line x1="655" y1="253" x2="677" y2="253" stroke="#c026d3" stroke-width="3"/>
-<text x="684" y="257" font-size="8" text-anchor="start" fill="#374151">altitude-gated count, 90 m/s 4k (live)</text>
-<line x1="655" y1="267" x2="677" y2="267" stroke="#4f46e5" stroke-width="3"/>
-<text x="684" y="271" font-size="8" text-anchor="start" fill="#374151">90 m/s + 5x horizontal shaping (retired warmup)</text>
-<line x1="655" y1="281" x2="677" y2="281" stroke="#16a34a" stroke-width="3"/>
-<text x="684" y="285" font-size="8" text-anchor="start" fill="#374151">protected 1e-6 recovery (retired)</text>
-<line x1="655" y1="295" x2="677" y2="295" stroke="#0d9488" stroke-width="3"/>
-<text x="684" y="299" font-size="8" text-anchor="start" fill="#374151">actor-moment reset at 5e-7 (retired)</text>
-<line x1="655" y1="309" x2="677" y2="309" stroke="#0f766e" stroke-width="3"/>
-<text x="684" y="313" font-size="8" text-anchor="start" fill="#374151">22.5 m/s measured midpoint (retired)</text>
-<line x1="655" y1="323" x2="677" y2="323" stroke="#0891b2" stroke-width="3"/>
-<text x="684" y="327" font-size="8" text-anchor="start" fill="#374151">22.5 m/s midpoint, low throttle noise (retired)</text>
-<line x1="655" y1="337" x2="677" y2="337" stroke="#0369a1" stroke-width="3"/>
-<text x="684" y="341" font-size="8" text-anchor="start" fill="#374151">22.5 m/s midpoint, minimum noise (retired)</text>
-<line x1="655" y1="351" x2="677" y2="351" stroke="#9333ea" stroke-width="3"/>
-<text x="684" y="355" font-size="8" text-anchor="start" fill="#374151">minimum noise + 2x horizontal shaping (passed midpoint)</text>
-<line x1="655" y1="365" x2="677" y2="365" stroke="#7e22ce" stroke-width="3"/>
-<text x="684" y="369" font-size="8" text-anchor="start" fill="#374151">2x horizontal shaping at original boundary (retired)</text>
-<line x1="655" y1="379" x2="677" y2="379" stroke="#a21caf" stroke-width="3"/>
-<text x="684" y="383" font-size="8" text-anchor="start" fill="#374151">40% intermediate gate at stage 169 (live)</text>
+<line x1="450" y1="393" x2="472" y2="393" stroke="#c026d3" stroke-width="3"/>
+<text x="479" y="397" font-size="8" text-anchor="start" fill="#374151">1,000 m legacy-objective specialist (retired)</text>
+<line x1="655" y1="43" x2="677" y2="43" stroke="#4d7c0f" stroke-width="3"/>
+<text x="684" y="47" font-size="8" text-anchor="start" fill="#374151">2x vertical-speed shaping (retired)</text>
+<line x1="655" y1="57" x2="677" y2="57" stroke="#6d28d9" stroke-width="3"/>
+<text x="684" y="61" font-size="8" text-anchor="start" fill="#374151">1 m/s² legacy objective (retired)</text>
+<line x1="655" y1="71" x2="677" y2="71" stroke="#0f766e" stroke-width="3"/>
+<text x="684" y="75" font-size="8" text-anchor="start" fill="#374151">0.5 m/s² critic warmup (superseded)</text>
+<line x1="655" y1="85" x2="677" y2="85" stroke="#0891b2" stroke-width="3"/>
+<text x="684" y="89" font-size="8" text-anchor="start" fill="#374151">vertical-only 2 m/s² objective (retired)</text>
+<line x1="655" y1="99" x2="677" y2="99" stroke="#047857" stroke-width="3"/>
+<text x="684" y="103" font-size="8" text-anchor="start" fill="#374151">vertical-only + 1 m/s² profile (retired)</text>
+<line x1="655" y1="113" x2="677" y2="113" stroke="#0e7490" stroke-width="3"/>
+<text x="684" y="117" font-size="8" text-anchor="start" fill="#374151">vertical-only + 1,000 m specialist (retired)</text>
+<line x1="655" y1="127" x2="677" y2="127" stroke="#b45309" stroke-width="3"/>
+<text x="684" y="131" font-size="8" text-anchor="start" fill="#374151">vertical-only + 1 m/s², 4x actor rate (retired)</text>
+<line x1="655" y1="141" x2="677" y2="141" stroke="#15803d" stroke-width="3"/>
+<text x="684" y="145" font-size="8" text-anchor="start" fill="#374151">vertical-only + 1 m/s² + 2x pad shaping (retired)</text>
+<line x1="655" y1="155" x2="677" y2="155" stroke="#166534" stroke-width="3"/>
+<text x="684" y="159" font-size="8" text-anchor="start" fill="#374151">vertical-only + 1 m/s² + 4x pad shaping (retired)</text>
+<line x1="655" y1="169" x2="677" y2="169" stroke="#1d4ed8" stroke-width="3"/>
+<text x="684" y="173" font-size="8" text-anchor="start" fill="#374151">500 m gate to pad re-tightening (retired)</text>
+<line x1="655" y1="183" x2="677" y2="183" stroke="#7c3aed" stroke-width="3"/>
+<text x="684" y="187" font-size="8" text-anchor="start" fill="#374151">500 m gate + 2x centering to re-tightening (retired)</text>
+<line x1="655" y1="197" x2="677" y2="197" stroke="#dc2626" stroke-width="3"/>
+<text x="684" y="201" font-size="8" text-anchor="start" fill="#374151">altitude-gated engine-count bridge (live)</text>
+<line x1="655" y1="211" x2="677" y2="211" stroke="#ea580c" stroke-width="3"/>
+<text x="684" y="215" font-size="8" text-anchor="start" fill="#374151">altitude-gated count, 4k fast A/B (live)</text>
+<line x1="655" y1="225" x2="677" y2="225" stroke="#9333ea" stroke-width="3"/>
+<text x="684" y="229" font-size="8" text-anchor="start" fill="#374151">altitude-gated count, 90 m/s 1k (retired)</text>
+<line x1="655" y1="239" x2="677" y2="239" stroke="#c026d3" stroke-width="3"/>
+<text x="684" y="243" font-size="8" text-anchor="start" fill="#374151">altitude-gated count, 90 m/s 4k (live)</text>
+<line x1="655" y1="253" x2="677" y2="253" stroke="#4f46e5" stroke-width="3"/>
+<text x="684" y="257" font-size="8" text-anchor="start" fill="#374151">90 m/s + 5x horizontal shaping (retired warmup)</text>
+<line x1="655" y1="267" x2="677" y2="267" stroke="#16a34a" stroke-width="3"/>
+<text x="684" y="271" font-size="8" text-anchor="start" fill="#374151">protected 1e-6 recovery (retired)</text>
+<line x1="655" y1="281" x2="677" y2="281" stroke="#0d9488" stroke-width="3"/>
+<text x="684" y="285" font-size="8" text-anchor="start" fill="#374151">actor-moment reset at 5e-7 (retired)</text>
+<line x1="655" y1="295" x2="677" y2="295" stroke="#0f766e" stroke-width="3"/>
+<text x="684" y="299" font-size="8" text-anchor="start" fill="#374151">22.5 m/s measured midpoint (retired)</text>
+<line x1="655" y1="309" x2="677" y2="309" stroke="#0891b2" stroke-width="3"/>
+<text x="684" y="313" font-size="8" text-anchor="start" fill="#374151">22.5 m/s midpoint, low throttle noise (retired)</text>
+<line x1="655" y1="323" x2="677" y2="323" stroke="#0369a1" stroke-width="3"/>
+<text x="684" y="327" font-size="8" text-anchor="start" fill="#374151">22.5 m/s midpoint, minimum noise (retired)</text>
+<line x1="655" y1="337" x2="677" y2="337" stroke="#9333ea" stroke-width="3"/>
+<text x="684" y="341" font-size="8" text-anchor="start" fill="#374151">minimum noise + 2x horizontal shaping (passed midpoint)</text>
+<line x1="655" y1="351" x2="677" y2="351" stroke="#7e22ce" stroke-width="3"/>
+<text x="684" y="355" font-size="8" text-anchor="start" fill="#374151">2x horizontal shaping at original boundary (retired)</text>
+<line x1="655" y1="365" x2="677" y2="365" stroke="#a21caf" stroke-width="3"/>
+<text x="684" y="369" font-size="8" text-anchor="start" fill="#374151">40% intermediate gate at stage 169 (retired)</text>
+<line x1="655" y1="379" x2="677" y2="379" stroke="#db2777" stroke-width="3"/>
+<text x="684" y="383" font-size="8" text-anchor="start" fill="#374151">healthy-critic transplant at stage 169 (live)</text>
 <text x="72" y="590" font-size="20" text-anchor="start" fill="#374151">Protected braking-policy plasticity comparisons</text>
 <line x1="72" y1="850.0" x2="814" y2="850.0" stroke="#e5e7eb"/>
 <text x="62" y="854.0" font-size="13" text-anchor="end" fill="#374151">0</text>
@@ -251,8 +254,11 @@
 <polyline points="72.0,843.0 76.5,732.2 80.9,723.4 85.4,723.4 89.9,723.4 94.3,721.7 98.8,721.7 103.3,725.2 107.8,721.7 112.2,721.7 116.7,723.4 121.2,723.4 125.6,723.4 130.1,723.4 134.6,723.4 139.0,723.4 143.5,723.4 148.0,723.4 152.5,723.4 156.9,725.2 161.4,723.4 165.9,723.4 170.3,721.7 174.8,723.4 179.3,723.4 183.7,723.4 188.2,723.4 192.7,723.4 197.2,723.4 201.6,723.4 206.1,723.4 210.6,723.4 215.0,721.7 219.5,723.4 224.0,721.7 228.4,723.4 232.9,725.2 237.4,723.4 241.9,723.4 246.3,723.4 250.8,721.7 255.3,723.4 259.7,723.4 264.2,721.7 268.7,723.4 273.1,721.7 277.6,725.2 282.1,723.4 286.6,725.2 291.0,723.4 295.5,723.4" fill="none" stroke="#0369a1" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/>
 <polyline points="72.0,843.0 76.5,770.9 80.9,774.4 85.4,772.7 89.9,769.1 94.3,770.9 98.8,769.1 103.3,769.1 107.8,770.9 112.2,770.9 116.7,770.9 121.2,770.9 125.6,770.9 130.1,769.1 134.6,770.9 139.0,769.1 143.5,770.9 148.0,769.1 152.5,770.9 156.9,769.1 161.4,769.1 165.9,770.9 170.3,769.1 174.8,769.1 179.3,770.9 183.7,769.1 188.2,769.1 192.7,769.1 197.2,769.1 201.6,769.1 206.1,770.9 210.6,770.9 215.0,769.1 219.5,770.9 224.0,769.1 228.4,769.1 232.9,770.9 237.4,769.1 241.9,769.1 246.3,769.1 250.8,769.1 255.3,769.1 259.7,769.1 264.2,769.1 268.7,769.1 273.1,769.1 277.6,769.1 282.1,767.4 286.6,769.1 291.0,769.1 295.5,769.1" fill="none" stroke="#0284c7" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/>
 <polyline points="72.0,837.7 76.5,755.1 80.9,816.6 85.4,835.9 89.9,841.2 94.3,844.7 98.8,846.5 103.3,846.5 107.8,844.7 112.2,844.7 116.7,841.2 121.2,841.2 125.6,841.2 130.1,843.0 134.6,839.5 139.0,841.2 143.5,843.0 148.0,841.2 152.5,841.2 156.9,841.2 161.4,841.2 165.9,841.2 170.3,841.2 174.8,841.2 179.3,841.2 183.7,841.2" fill="none" stroke="#9333ea" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/>
-<polyline points="72.0,835.9 76.5,742.8 80.9,734.0 85.4,744.5" fill="none" stroke="#a21caf" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/>
-<rect x="445" y="598" width="420" height="340" fill="white"/>
+<polyline points="72.0,835.9 76.5,742.8 80.9,734.0 85.4,744.5 89.9,772.7 94.3,793.8" fill="none" stroke="#a21caf" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="72.0,846.5 76.5,811.3 80.9,827.1 85.4,832.4 89.9,832.4 94.3,837.7" fill="none" stroke="#c026d3" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="72.0,843.0 76.5,734.0 80.9,721.7 85.4,723.4 89.9,725.2 94.3,723.4 98.8,723.4 103.3,721.7 107.8,721.7 112.2,723.4 116.7,721.7 121.2,723.4 125.6,723.4 130.1,723.4 134.6,725.2 139.0,723.4 143.5,723.4 148.0,723.4 152.5,725.2 156.9,725.2 161.4,725.2 165.9,723.4 170.3,723.4 174.8,723.4" fill="none" stroke="#e11d48" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="72.0,843.0 76.5,774.4 80.9,774.4 85.4,776.2 89.9,774.4 94.3,776.2 98.8,774.4 103.3,772.7 107.8,774.4 112.2,774.4 116.7,774.4 121.2,774.4 125.6,774.4 130.1,774.4 134.6,774.4 139.0,776.2 143.5,776.2 148.0,774.4 152.5,776.2 156.9,774.4 161.4,774.4 165.9,774.4 170.3,774.4 174.8,774.4" fill="none" stroke="#db2777" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/>
+<rect x="445" y="598" width="420" height="355" fill="white"/>
 <line x1="455" y1="615" x2="477" y2="615" stroke="#2563eb" stroke-width="3"/>
 <text x="484" y="619" font-size="8" text-anchor="start" fill="#374151">control actor rank</text>
 <line x1="455" y1="630" x2="477" y2="630" stroke="#7c3aed" stroke-width="3"/>
@@ -297,47 +303,53 @@
 <text x="484" y="919" font-size="8" text-anchor="start" fill="#374151">vertical-only + 1 m/s² fast critic rank</text>
 <line x1="455" y1="930" x2="477" y2="930" stroke="#15803d" stroke-width="3"/>
 <text x="484" y="934" font-size="8" text-anchor="start" fill="#374151">vertical-only + 2x pad critic rank</text>
-<line x1="660" y1="615" x2="682" y2="615" stroke="#166534" stroke-width="3"/>
-<text x="689" y="619" font-size="8" text-anchor="start" fill="#374151">vertical-only + 4x pad critic rank</text>
-<line x1="660" y1="630" x2="682" y2="630" stroke="#1d4ed8" stroke-width="3"/>
-<text x="689" y="634" font-size="8" text-anchor="start" fill="#374151">500 m pad-gate critic rank</text>
-<line x1="660" y1="645" x2="682" y2="645" stroke="#7c3aed" stroke-width="3"/>
-<text x="689" y="649" font-size="8" text-anchor="start" fill="#374151">500 m + 2x centering critic rank</text>
-<line x1="660" y1="660" x2="682" y2="660" stroke="#dc2626" stroke-width="3"/>
-<text x="689" y="664" font-size="8" text-anchor="start" fill="#374151">altitude-gated count critic rank</text>
-<line x1="660" y1="675" x2="682" y2="675" stroke="#ea580c" stroke-width="3"/>
-<text x="689" y="679" font-size="8" text-anchor="start" fill="#374151">altitude-gated 4k critic rank</text>
-<line x1="660" y1="690" x2="682" y2="690" stroke="#9333ea" stroke-width="3"/>
-<text x="689" y="694" font-size="8" text-anchor="start" fill="#374151">altitude-gated 90 m/s critic rank</text>
-<line x1="660" y1="705" x2="682" y2="705" stroke="#c026d3" stroke-width="3"/>
-<text x="689" y="709" font-size="8" text-anchor="start" fill="#374151">altitude-gated 90 m/s 4k critic rank</text>
-<line x1="660" y1="720" x2="682" y2="720" stroke="#4f46e5" stroke-width="3"/>
-<text x="689" y="724" font-size="8" text-anchor="start" fill="#374151">90 m/s + 5x horizontal critic rank</text>
-<line x1="660" y1="735" x2="682" y2="735" stroke="#0e7490" stroke-width="3"/>
-<text x="689" y="739" font-size="8" text-anchor="start" fill="#374151">vertical-only + 1,000 m critic rank</text>
-<line x1="660" y1="750" x2="682" y2="750" stroke="#16a34a" stroke-width="3"/>
-<text x="689" y="754" font-size="8" text-anchor="start" fill="#374151">protected 1e-6 recovery actor rank</text>
-<line x1="660" y1="765" x2="682" y2="765" stroke="#65a30d" stroke-width="3"/>
-<text x="689" y="769" font-size="8" text-anchor="start" fill="#374151">protected 1e-6 recovery critic rank</text>
-<line x1="660" y1="780" x2="682" y2="780" stroke="#0d9488" stroke-width="3"/>
-<text x="689" y="784" font-size="8" text-anchor="start" fill="#374151">actor-reset 5e-7 actor rank</text>
-<line x1="660" y1="795" x2="682" y2="795" stroke="#14b8a6" stroke-width="3"/>
-<text x="689" y="799" font-size="8" text-anchor="start" fill="#374151">actor-reset 5e-7 critic rank</text>
-<line x1="660" y1="810" x2="682" y2="810" stroke="#0f766e" stroke-width="3"/>
-<text x="689" y="814" font-size="8" text-anchor="start" fill="#374151">22.5 m/s midpoint actor rank</text>
-<line x1="660" y1="825" x2="682" y2="825" stroke="#115e59" stroke-width="3"/>
-<text x="689" y="829" font-size="8" text-anchor="start" fill="#374151">22.5 m/s midpoint critic rank</text>
-<line x1="660" y1="840" x2="682" y2="840" stroke="#0891b2" stroke-width="3"/>
-<text x="689" y="844" font-size="8" text-anchor="start" fill="#374151">low-noise midpoint actor rank</text>
-<line x1="660" y1="855" x2="682" y2="855" stroke="#06b6d4" stroke-width="3"/>
-<text x="689" y="859" font-size="8" text-anchor="start" fill="#374151">low-noise midpoint critic rank</text>
-<line x1="660" y1="870" x2="682" y2="870" stroke="#0369a1" stroke-width="3"/>
-<text x="689" y="874" font-size="8" text-anchor="start" fill="#374151">minimum-noise midpoint actor rank</text>
-<line x1="660" y1="885" x2="682" y2="885" stroke="#0284c7" stroke-width="3"/>
-<text x="689" y="889" font-size="8" text-anchor="start" fill="#374151">minimum-noise midpoint critic rank</text>
-<line x1="660" y1="900" x2="682" y2="900" stroke="#9333ea" stroke-width="3"/>
-<text x="689" y="904" font-size="8" text-anchor="start" fill="#374151">2x horizontal A/B critic rank</text>
-<line x1="660" y1="915" x2="682" y2="915" stroke="#a21caf" stroke-width="3"/>
-<text x="689" y="919" font-size="8" text-anchor="start" fill="#374151">stage-169 gentler critic warmup rank</text>
+<line x1="455" y1="945" x2="477" y2="945" stroke="#166534" stroke-width="3"/>
+<text x="484" y="949" font-size="8" text-anchor="start" fill="#374151">vertical-only + 4x pad critic rank</text>
+<line x1="660" y1="615" x2="682" y2="615" stroke="#1d4ed8" stroke-width="3"/>
+<text x="689" y="619" font-size="8" text-anchor="start" fill="#374151">500 m pad-gate critic rank</text>
+<line x1="660" y1="630" x2="682" y2="630" stroke="#7c3aed" stroke-width="3"/>
+<text x="689" y="634" font-size="8" text-anchor="start" fill="#374151">500 m + 2x centering critic rank</text>
+<line x1="660" y1="645" x2="682" y2="645" stroke="#dc2626" stroke-width="3"/>
+<text x="689" y="649" font-size="8" text-anchor="start" fill="#374151">altitude-gated count critic rank</text>
+<line x1="660" y1="660" x2="682" y2="660" stroke="#ea580c" stroke-width="3"/>
+<text x="689" y="664" font-size="8" text-anchor="start" fill="#374151">altitude-gated 4k critic rank</text>
+<line x1="660" y1="675" x2="682" y2="675" stroke="#9333ea" stroke-width="3"/>
+<text x="689" y="679" font-size="8" text-anchor="start" fill="#374151">altitude-gated 90 m/s critic rank</text>
+<line x1="660" y1="690" x2="682" y2="690" stroke="#c026d3" stroke-width="3"/>
+<text x="689" y="694" font-size="8" text-anchor="start" fill="#374151">altitude-gated 90 m/s 4k critic rank</text>
+<line x1="660" y1="705" x2="682" y2="705" stroke="#4f46e5" stroke-width="3"/>
+<text x="689" y="709" font-size="8" text-anchor="start" fill="#374151">90 m/s + 5x horizontal critic rank</text>
+<line x1="660" y1="720" x2="682" y2="720" stroke="#0e7490" stroke-width="3"/>
+<text x="689" y="724" font-size="8" text-anchor="start" fill="#374151">vertical-only + 1,000 m critic rank</text>
+<line x1="660" y1="735" x2="682" y2="735" stroke="#16a34a" stroke-width="3"/>
+<text x="689" y="739" font-size="8" text-anchor="start" fill="#374151">protected 1e-6 recovery actor rank</text>
+<line x1="660" y1="750" x2="682" y2="750" stroke="#65a30d" stroke-width="3"/>
+<text x="689" y="754" font-size="8" text-anchor="start" fill="#374151">protected 1e-6 recovery critic rank</text>
+<line x1="660" y1="765" x2="682" y2="765" stroke="#0d9488" stroke-width="3"/>
+<text x="689" y="769" font-size="8" text-anchor="start" fill="#374151">actor-reset 5e-7 actor rank</text>
+<line x1="660" y1="780" x2="682" y2="780" stroke="#14b8a6" stroke-width="3"/>
+<text x="689" y="784" font-size="8" text-anchor="start" fill="#374151">actor-reset 5e-7 critic rank</text>
+<line x1="660" y1="795" x2="682" y2="795" stroke="#0f766e" stroke-width="3"/>
+<text x="689" y="799" font-size="8" text-anchor="start" fill="#374151">22.5 m/s midpoint actor rank</text>
+<line x1="660" y1="810" x2="682" y2="810" stroke="#115e59" stroke-width="3"/>
+<text x="689" y="814" font-size="8" text-anchor="start" fill="#374151">22.5 m/s midpoint critic rank</text>
+<line x1="660" y1="825" x2="682" y2="825" stroke="#0891b2" stroke-width="3"/>
+<text x="689" y="829" font-size="8" text-anchor="start" fill="#374151">low-noise midpoint actor rank</text>
+<line x1="660" y1="840" x2="682" y2="840" stroke="#06b6d4" stroke-width="3"/>
+<text x="689" y="844" font-size="8" text-anchor="start" fill="#374151">low-noise midpoint critic rank</text>
+<line x1="660" y1="855" x2="682" y2="855" stroke="#0369a1" stroke-width="3"/>
+<text x="689" y="859" font-size="8" text-anchor="start" fill="#374151">minimum-noise midpoint actor rank</text>
+<line x1="660" y1="870" x2="682" y2="870" stroke="#0284c7" stroke-width="3"/>
+<text x="689" y="874" font-size="8" text-anchor="start" fill="#374151">minimum-noise midpoint critic rank</text>
+<line x1="660" y1="885" x2="682" y2="885" stroke="#9333ea" stroke-width="3"/>
+<text x="689" y="889" font-size="8" text-anchor="start" fill="#374151">2x horizontal A/B critic rank</text>
+<line x1="660" y1="900" x2="682" y2="900" stroke="#a21caf" stroke-width="3"/>
+<text x="689" y="904" font-size="8" text-anchor="start" fill="#374151">stage-169 gentler critic warmup rank</text>
+<line x1="660" y1="915" x2="682" y2="915" stroke="#c026d3" stroke-width="3"/>
+<text x="689" y="919" font-size="8" text-anchor="start" fill="#374151">stage-169 extended fresh critic rank</text>
+<line x1="660" y1="930" x2="682" y2="930" stroke="#e11d48" stroke-width="3"/>
+<text x="689" y="934" font-size="8" text-anchor="start" fill="#374151">stage-169 transplant actor rank</text>
+<line x1="660" y1="945" x2="682" y2="945" stroke="#db2777" stroke-width="3"/>
+<text x="689" y="949" font-size="8" text-anchor="start" fill="#374151">stage-169 transplant critic rank</text>
 </g>
 </svg>

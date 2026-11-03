@@ -89,9 +89,22 @@ stage-167 seeds and 38.7% on stage 168, versus 40.2% and 37.1% for the earlier b
 crashes are 65% horizontal-limit, 50% pad-miss and 17% vertical-limit failures. The live actor then
 declines to 24--36% as the fresh critic compresses to rank 4--5/128 despite about 0.71 explained
 variance, so the 1,024-environment process is retired after about 150 actor updates with its better
-checkpoint protected. The 4,096-environment slot now resumes from that stage-168 best with a gentler
-1e-5 fresh-critic warmup and a 40% intermediate promotion gate. It passes stage 168 on startup and
-begins stage 169 before any actor update. The final broad strict-target acceptance remains unchanged.
+checkpoint protected. The 4,096-environment slot resumed from that stage-168 best with a gentler
+1e-5 fresh-critic warmup and a 40% intermediate promotion gate. It passed stage 168 on startup and
+began stage 169 before any actor update. Its fresh critic initially retained rank 44--66/128, but
+explained variance was only about 0.05 after 50 updates. Extending the warmup to roughly 100 total
+updates raised explained variance to 0.19 while compressing rank to 10/128, so that critic was
+retired before it could train the actor. A verified transplant now combines all 35 actor tensors
+from the promoted stage-169 checkpoint with all 14 critic tensors and the critic optimizer from the
+healthy fixed-noise control; only stale actor optimizer moments are cleared. Its 100-update 1e-6
+critic warmup retains rank 42--44/128 and reaches about 0.95 explained variance. After switching to
+the 5e-7 touchdown-adapter rate, actor and critic rank are 73/128 and 43/128 respectively and the
+adapter has nonzero updates. Its first 100 actor updates average 33.5% deterministic evaluation
+landing with no rollback; a 1,024-episode probe is statistically flat at 32.8% versus 33.4% for the
+source actor. Horizontal-limit crash failures improve from 62% to 55%, while vertical-limit and pad
+miss failures move from 24% and 49% to 30% and 52%. This healthy but inconclusive trade remains the
+live long-horizon continuation. The 40% gate is only for intermediate traversal; final broad
+strict-target acceptance remains unchanged.
 The protected midpoint best's new
 [40-second chase recording](assets/salto-stage167-midpoint-live.mp4) and
 [nine-frame sequence](assets/salto-stage167-midpoint-live-sequence.jpg) show seed 3 completing one

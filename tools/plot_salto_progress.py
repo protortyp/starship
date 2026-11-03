@@ -51,6 +51,10 @@ STAGE167_MIDPOINT_LOWSTD_EXPERIMENT = ROOT / "logs" / "salto_stage167_midpoint_l
 STAGE167_MIDPOINT_MINSTD_EXPERIMENT = ROOT / "logs" / "salto_stage167_midpoint_minstd_v1"
 STAGE167_MIDPOINT_HSPEED2_EXPERIMENT = ROOT / "logs" / "salto_stage167_midpoint_minstd_hspeed2_v1"
 STAGE168_GATE40_EXPERIMENT = ROOT / "logs" / "salto_stage168_hspeed2_gate40_4k_v1"
+STAGE169_CRITIC300_EXPERIMENT = ROOT / "logs" / "salto_stage169_hspeed2_gate40_critic300_v1"
+STAGE169_CRITIC_TRANSPLANT_EXPERIMENT = (
+    ROOT / "logs" / "salto_stage169_hspeed2_gate40_critic_transplant_v1"
+)
 STAGE99_VERTICAL_TOUCHDOWN1000_EXPERIMENT = (
     ROOT / "logs" / "salto_stage99_vertical_touchdown1000_v1"
 )
@@ -466,10 +470,16 @@ TRACES = (
         1,
     ),
     Trace(
-        "40% intermediate gate at stage 169 (live)",
+        "40% intermediate gate at stage 169 (retired)",
         ROOT / "out/salto-stage168-hspeed2-gate40-4k-v1.log",
         169,
         "#a21caf",
+    ),
+    Trace(
+        "healthy-critic transplant at stage 169 (live)",
+        ROOT / "out/salto-stage169-hspeed2-gate40-critic-transplant-v1.log",
+        169,
+        "#db2777",
     ),
 )
 
@@ -670,6 +680,12 @@ def rank_panel() -> list[str]:
         str(latest_event_file(STAGE167_MIDPOINT_HSPEED2_EXPERIMENT))
     ).Reload()
     stage168_gate40 = EventAccumulator(str(latest_event_file(STAGE168_GATE40_EXPERIMENT))).Reload()
+    stage169_critic300 = EventAccumulator(
+        str(latest_event_file(STAGE169_CRITIC300_EXPERIMENT))
+    ).Reload()
+    stage169_critic_transplant = EventAccumulator(
+        str(latest_event_file(STAGE169_CRITIC_TRANSPLANT_EXPERIMENT))
+    ).Reload()
     tags = (
         (control, "plasticity/actor/features/effective_rank", "control actor rank", "#2563eb"),
         (control, "plasticity/critic/features/effective_rank", "control critic rank", "#7c3aed"),
@@ -919,6 +935,24 @@ def rank_panel() -> list[str]:
             "stage-169 gentler critic warmup rank",
             "#a21caf",
         ),
+        (
+            stage169_critic300,
+            "plasticity/critic/features/effective_rank",
+            "stage-169 extended fresh critic rank",
+            "#c026d3",
+        ),
+        (
+            stage169_critic_transplant,
+            "plasticity/actor/features/effective_rank",
+            "stage-169 transplant actor rank",
+            "#e11d48",
+        ),
+        (
+            stage169_critic_transplant,
+            "plasticity/critic/features/effective_rank",
+            "stage-169 transplant critic rank",
+            "#db2777",
+        ),
     )
     series = [
         (label, color, [event.value for event in accumulator.Scalars(tag)])
@@ -976,8 +1010,8 @@ def rank_panel() -> list[str]:
 def main() -> None:
     OUTPUT.parent.mkdir(parents=True, exist_ok=True)
     elements = [
-        '<svg xmlns="http://www.w3.org/2000/svg" width="880" height="930" viewBox="0 0 880 930">',
-        '<rect width="880" height="930" fill="white"/>',
+        '<svg xmlns="http://www.w3.org/2000/svg" width="880" height="970" viewBox="0 0 880 970">',
+        '<rect width="880" height="970" fill="white"/>',
         '<g font-family="ui-sans-serif, system-ui, sans-serif">',
         *landing_panel(),
         *rank_panel(),
