@@ -18,6 +18,9 @@ WARMSTART_EXPERIMENT = ROOT / "logs" / "salto_stage94_throttle_warmstart_v1"
 RESTART_EXPERIMENT = ROOT / "logs" / "salto_stage97_best_restart_v1"
 MIDPOINT_EXPERIMENT = ROOT / "logs" / "salto_stage97_midpoint_v1"
 STAGE99_MIDPOINT_EXPERIMENT = ROOT / "logs" / "salto_stage99_midpoint_v1"
+STAGE99_SPLIT_EXPERIMENT = ROOT / "logs" / "salto_stage99_split_v2"
+STAGE99_TOUCHDOWN_EXPERIMENT = ROOT / "logs" / "salto_stage99_touchdown_v1"
+STAGE99_SPEED20_EXPERIMENT = ROOT / "logs" / "salto_stage99_speed20_v1"
 LINE = re.compile(r"eval landed\s+(?P<landed>\d+\.\d+).*stage\s+(?P<stage>\d+)")
 PROMOTED_DENSE = "promoted dense tail (58.75 to 42.5 m/s)"
 COUNT_COHERENT = "count-coherent promotions (stages 92-93)"
@@ -199,14 +202,14 @@ TRACES = (
         1,
     ),
     Trace(
-        "long control: stage 94 pass + stage 95 (retired)",
+        "long control: stages 94-95 (retired)",
         ROOT / "out/salto-stage92-count-hold-v1.log",
         94,
         "#0f766e",
         1,
     ),
     Trace(
-        "long control: stage 94 pass + stage 95 (retired)",
+        "long control: stages 94-95 (retired)",
         ROOT / "out/salto-stage92-count-hold-v1.log",
         95,
         "#0f766e",
@@ -249,7 +252,7 @@ TRACES = (
         "#0284c7",
     ),
     Trace(
-        "original 35 m/s boundary after bridge (passed)",
+        "original 35 m/s boundary (passed)",
         ROOT / "out/salto-stage97-midpoint-v1.log",
         98,
         "#0369a1",
@@ -265,6 +268,24 @@ TRACES = (
         ROOT / "out/salto-stage99-midpoint-v1.log",
         99,
         "#7c2d12",
+    ),
+    Trace(
+        "vertical-only bridge, fresh critic (live)",
+        ROOT / "out/salto-stage99-split-v2.log",
+        99,
+        "#7e22ce",
+    ),
+    Trace(
+        "near-ground touchdown specialist (live)",
+        ROOT / "out/salto-stage99-touchdown-v1.log",
+        99,
+        "#be123c",
+    ),
+    Trace(
+        "2x vertical-speed shaping (live)",
+        ROOT / "out/salto-stage99-speed20-v1.log",
+        99,
+        "#4d7c0f",
     ),
 )
 
@@ -364,15 +385,15 @@ def landing_panel() -> list[str]:
     legend = list(dict.fromkeys((trace.label, trace.color) for trace in TRACES))
     legend_x = 535
     lines.append(
-        f'<rect x="500" y="30" width="325" height="{10 + 17 * len(legend)}" fill="white"/>'
+        f'<rect x="500" y="30" width="325" height="{10 + 16 * len(legend)}" fill="white"/>'
     )
     for index, (label, color) in enumerate(legend):
-        y = 43 + 17 * index
+        y = 43 + 16 * index
         lines.append(
             f'<line x1="{legend_x}" y1="{y}" x2="{legend_x + 22}" y2="{y}" '
             f'stroke="{color}" stroke-width="3"/>'
         )
-        lines.append(text(legend_x + 29, y + 4, label, size=11))
+        lines.append(text(legend_x + 29, y + 4, label, size=10))
     return lines
 
 
@@ -382,7 +403,7 @@ def latest_event_file(experiment: Path) -> Path:
 
 
 def rank_panel() -> list[str]:
-    left, top, width, height = 72, 465, 742, 225
+    left, top, width, height = 72, 505, 742, 225
     control = EventAccumulator(str(latest_event_file(RANK_EXPERIMENT))).Reload()
     safe_decel = EventAccumulator(str(latest_event_file(SAFE_DECEL_EXPERIMENT))).Reload()
     critic_extension = EventAccumulator(
@@ -394,6 +415,11 @@ def rank_panel() -> list[str]:
     stage99_midpoint = EventAccumulator(
         str(latest_event_file(STAGE99_MIDPOINT_EXPERIMENT))
     ).Reload()
+    stage99_split = EventAccumulator(str(latest_event_file(STAGE99_SPLIT_EXPERIMENT))).Reload()
+    stage99_touchdown = EventAccumulator(
+        str(latest_event_file(STAGE99_TOUCHDOWN_EXPERIMENT))
+    ).Reload()
+    stage99_speed20 = EventAccumulator(str(latest_event_file(STAGE99_SPEED20_EXPERIMENT))).Reload()
     tags = (
         (control, "plasticity/actor/features/effective_rank", "control actor rank", "#2563eb"),
         (control, "plasticity/critic/features/effective_rank", "control critic rank", "#7c3aed"),
@@ -457,6 +483,24 @@ def rank_panel() -> list[str]:
             "stage-99 midpoint critic rank",
             "#a16207",
         ),
+        (
+            stage99_split,
+            "plasticity/critic/features/effective_rank",
+            "vertical-only fresh critic rank",
+            "#7e22ce",
+        ),
+        (
+            stage99_touchdown,
+            "plasticity/critic/features/effective_rank",
+            "touchdown-specialist critic rank",
+            "#be123c",
+        ),
+        (
+            stage99_speed20,
+            "plasticity/critic/features/effective_rank",
+            "2x-speed-shaping critic rank",
+            "#4d7c0f",
+        ),
     )
     series = [
         (label, color, [event.value for event in accumulator.Scalars(tag)])
@@ -466,7 +510,7 @@ def rank_panel() -> list[str]:
     # updates rather than one. Keep the axis in actual training updates and inside the viewport.
     diagnostics_interval = 10
     x_max = max(500, (max(len(values) for _, _, values in series) - 1) * diagnostics_interval)
-    lines = [text(left, 430, "Protected braking-policy plasticity comparisons", size=20)]
+    lines = [text(left, 470, "Protected braking-policy plasticity comparisons", size=20)]
     for tick in (0, 32, 64, 96, 128):
         y = top + (128 - tick) / 128 * height
         lines.append(
@@ -478,7 +522,7 @@ def rank_panel() -> list[str]:
         x = left + tick / max(x_max, 1) * width
         lines.append(text(x, top + height + 23, str(tick), anchor="middle"))
     lines.append(text(left + width / 2, top + height + 48, "training update", anchor="middle"))
-    legend_x, legend_top = 620, 455
+    legend_x, legend_top = 620, 495
     for _, color, values in series:
         lines.append(
             polyline(
@@ -496,23 +540,23 @@ def rank_panel() -> list[str]:
         )
     lines.append(
         f'<rect x="{legend_x - 10}" y="{legend_top - 17}" width="255" '
-        f'height="{10 + 20 * len(series)}" fill="white"/>'
+        f'height="{10 + 16 * len(series)}" fill="white"/>'
     )
     for index, (label, color, _) in enumerate(series):
-        legend_y = legend_top + index * 20
+        legend_y = legend_top + index * 16
         lines.append(
             f'<line x1="{legend_x}" y1="{legend_y}" x2="{legend_x + 22}" '
             f'y2="{legend_y}" stroke="{color}" stroke-width="3"/>'
         )
-        lines.append(text(legend_x + 29, legend_y + 4, label, size=12))
+        lines.append(text(legend_x + 29, legend_y + 4, label, size=10))
     return lines
 
 
 def main() -> None:
     OUTPUT.parent.mkdir(parents=True, exist_ok=True)
     elements = [
-        '<svg xmlns="http://www.w3.org/2000/svg" width="880" height="760" viewBox="0 0 880 760">',
-        '<rect width="880" height="760" fill="white"/>',
+        '<svg xmlns="http://www.w3.org/2000/svg" width="880" height="810" viewBox="0 0 880 810">',
+        '<rect width="880" height="810" fill="white"/>',
         '<g font-family="ui-sans-serif, system-ui, sans-serif">',
         *landing_panel(),
         *rank_panel(),
