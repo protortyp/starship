@@ -3,6 +3,7 @@ snapshots, all logged to TensorBoard."""
 
 import copy
 import json
+import math
 import time
 from pathlib import Path
 
@@ -278,6 +279,30 @@ class StarshipRunner(OnPolicyRunner):
         """Discard stale actor Adam moments without changing policy weights or recurrent state."""
         for parameter in self.alg.actor.parameters():
             self.alg.optimizer.state.pop(parameter, None)
+
+    def offset_post_loop_throttle(self, delta: float) -> None:
+        """Warm-start the trainable landing residual toward a measured throttle correction."""
+        if not math.isfinite(delta):
+            raise ValueError("post-loop throttle bias delta must be finite")
+        adapter = getattr(self.alg.actor, "post_loop_adapter", None)
+        if adapter is None:
+            raise ValueError("post-loop throttle bias needs an actor with a post-loop adapter")
+        output = next(
+            (
+                module
+                for module in reversed(list(adapter.modules()))
+                if isinstance(module, torch.nn.Linear)
+            ),
+            None,
+        )
+        if output is None or output.bias is None or output.bias.numel() <= 3:
+            raise ValueError("post-loop adapter has no throttle output bias")
+        with torch.no_grad():
+            output.bias[3] += delta
+        # Adam moments from before the measured shift would immediately pull it toward the old
+        # mean. Only this parameter changed, so preserve every other actor and critic moment.
+        self.alg.optimizer.state.pop(output.bias, None)
+        self.alg.actor.reset()
 
     def save(self, path: str, infos: dict | None = None) -> None:
         infos = {**(infos or {}), "best_eval": self.best_eval}

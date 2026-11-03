@@ -37,6 +37,9 @@ class TrainConfig:
     # Keep actor weights but discard Adam moments when changing the action distribution or other
     # policy semantics; stale moments can move a good policy in the old objective's direction.
     reset_actor_optimizer: bool = False
+    # One-time delta applied to the existing trainable post-loop throttle residual after loading a
+    # checkpoint. The shifted parameter is saved normally and its stale optimizer moments cleared.
+    post_loop_throttle_bias_delta: float = 0.0
     sim: SimConfig = field(default_factory=SimConfig)
     obs: ObsConfig = field(default_factory=ObsConfig)
     reward: RewardConfig = field(default_factory=RewardConfig)

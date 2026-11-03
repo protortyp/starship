@@ -53,6 +53,8 @@ def main(cfg: DictConfig) -> None:
     )
     if cfg.checkpoint:
         runner.load(cfg.checkpoint)
+        if cfg.post_loop_throttle_bias_delta:
+            runner.offset_post_loop_throttle(cfg.post_loop_throttle_bias_delta)
         if cfg.reset_actor_optimizer:
             runner.reset_actor_optimizer()
         if cfg.reset_critic:
@@ -67,6 +69,8 @@ def main(cfg: DictConfig) -> None:
             for key, value in metrics.items():
                 runner.writer.add_scalar(key, value, runner.total_env_steps)
         print(f"continuing from {cfg.checkpoint}")
+    elif cfg.post_loop_throttle_bias_delta:
+        raise ValueError("post_loop_throttle_bias_delta requires a checkpoint")
     runner.learn(cfg.iterations)
     print(f"policy exported to {out_dir}/policy.pt")
 
