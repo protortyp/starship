@@ -206,7 +206,14 @@ landed 51.6% on the 256 curriculum scenarios and 46.9% over 1,024 episodes, with
 speed down to 44.22--44.47 m/s. Restarting its matching model, critic, and optimizer under corrected
 semantics passed stage 92 after six updates. Stage 93, the final 40 m/s boundary, inherited 44--49%
 landing and passed after another 86 updates without rollback or KL stop. Stage 94 starts the 35 m/s
-ladder with 31--39% deterministic landing instead of a zero-signal curriculum cliff.
+ladder with 31--44% deterministic landing instead of a zero-signal curriculum cliff. Its protected
+best first crossed the 45% gate at update 118 (47.7%), but the following evaluation fell below the
+gate, so the unchanged control remains in the promised long training window. A 512-episode probe
+landed 37.5% and found that 82.8% of crashes exceeded only the vertical-speed limit. At the observed
+landing mass, one engine supplies about 3.0 m/s² net deceleration at full throttle while the dense
+speed reward assumes the general landing policy's three-engine 10 m/s² envelope. A matched
+post-salto throttle-logit sweep raised landing from 37.9% to 45.3--48.1%; a protected parallel run is
+therefore testing a 2 m/s² speed profile after a fresh-critic warmup without interrupting the control.
 
 ## Findings
 
