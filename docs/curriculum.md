@@ -264,8 +264,13 @@ isolation despite actor rank remaining healthy. Following the earlier general-la
 stage 99 now isolates the vertical-speed half-step while retaining the solved 450 m pad and 22 m/s
 horizontal limit; stage 100 then tightens the pad and horizontal speed before the original boundary.
 The coupled run remains an untouched control while matched fresh-critic runs compare the split. A
-checkpoint-safe post-loop
-engine-logit warm start then tested whether the fixed one-engine landing schedule lacked braking
+fresh critic on the vertical-only stage restores feature rank from 15/128 to 67/128 while keeping
+the protected actor bit-identical for its first 100 updates. A second zero-initialized touchdown
+adapter now provides a direct-observation residual only after the salto and below 500 m. It preserves
+the stunt, recovery and high-altitude descent exactly at initialization, then lets the remaining
+strict stages learn near-ground braking and pad corrections without moving those solved behaviors.
+A checkpoint-safe post-loop engine-logit warm start then tested whether the fixed one-engine landing
+schedule lacked braking
 authority. On matched 256-scenario evaluations, logit shifts through +0.60 retain one engine and
 45.3% landing; the first state-dependent two-engine mixtures at +0.62, +0.64, +0.66 and +0.68 fall
 to 37.9%, 23.4%, 10.5% and 0.8%, respectively, while +0.70 and above land 0%. More thrust is therefore

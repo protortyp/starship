@@ -22,7 +22,14 @@ def migrate_checkpoint(checkpoint: dict, actor: nn.Module, critic: nn.Module, op
     added_adapter = False
     for key, value in actor_target.items():
         if (
-            key.startswith(("continuous_adapter.", "engine_adapter.", "post_loop_adapter."))
+            key.startswith(
+                (
+                    "continuous_adapter.",
+                    "engine_adapter.",
+                    "post_loop_adapter.",
+                    "touchdown_adapter.",
+                )
+            )
             and key not in actor_state
         ):
             actor_state[key] = value.detach().clone()

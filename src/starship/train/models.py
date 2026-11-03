@@ -20,7 +20,9 @@ class ContinuousAdapterRNNModel(RNNModel):
     The inherited MLP remains checkpoint-compatible and continues to produce every engine logit.
     The continuous adapter adds richer state-dependent corrections to throttle, gimbal, flaps, and
     RCS. An optional engine adapter can adjust the three engine logits when a later curriculum stage
-    requires a different engine count; both see the frozen recurrent latent.
+    requires a different engine count; both see the frozen recurrent latent. Direct-observation
+    post-loop and near-ground adapters can specialize recovery and touchdown without changing the
+    learned stunt.
     """
 
     def __init__(
@@ -29,8 +31,11 @@ class ContinuousAdapterRNNModel(RNNModel):
         continuous_adapter_hidden_dim: int = 64,
         engine_adapter_hidden_dim: int = 0,
         post_loop_adapter_hidden_dim: int = 0,
+        touchdown_adapter_hidden_dim: int = 0,
         post_loop_progress_index: int = 27,
         post_loop_progress_threshold: float = 0.999999,
+        touchdown_altitude_index: int = 12,
+        touchdown_altitude_threshold: float = 1.0 / 6.0,
         resample_engine_count_post_loop: bool = False,
         **kwargs,
     ) -> None:
@@ -40,13 +45,21 @@ class ContinuousAdapterRNNModel(RNNModel):
             raise ValueError("engine_adapter_hidden_dim must be nonnegative")
         if post_loop_adapter_hidden_dim < 0:
             raise ValueError("post_loop_adapter_hidden_dim must be nonnegative")
+        if touchdown_adapter_hidden_dim < 0:
+            raise ValueError("touchdown_adapter_hidden_dim must be nonnegative")
         super().__init__(*args, **kwargs)
         if not 0 <= post_loop_progress_index < self.obs_dim:
             raise ValueError("post_loop_progress_index must address an actor observation")
         if not 0.0 <= post_loop_progress_threshold <= 1.0:
             raise ValueError("post_loop_progress_threshold must be between zero and one")
+        if not 0 <= touchdown_altitude_index < self.obs_dim:
+            raise ValueError("touchdown_altitude_index must address an actor observation")
+        if not touchdown_altitude_threshold >= 0.0:
+            raise ValueError("touchdown_altitude_threshold must be nonnegative")
         self.post_loop_progress_index = post_loop_progress_index
         self.post_loop_progress_threshold = post_loop_progress_threshold
+        self.touchdown_altitude_index = touchdown_altitude_index
+        self.touchdown_altitude_threshold = touchdown_altitude_threshold
         self.resample_engine_count_post_loop = resample_engine_count_post_loop
         self._post_loop_count_sampled: torch.Tensor | None = None
         self._deterministic_post_loop_count: torch.Tensor | None = None
@@ -96,6 +109,24 @@ class ContinuousAdapterRNNModel(RNNModel):
             )
             nn.init.zeros_(post_loop_output.weight)
             nn.init.zeros_(post_loop_output.bias)
+        self.touchdown_adapter = None
+        if touchdown_adapter_hidden_dim:
+            # Fine touchdown corrections should not perturb either the learned stunt or the
+            # high-altitude landing trajectory. This residual sees the same direct Markov state as
+            # the post-loop controller, but is additionally gated to the final 500 m by default.
+            self.touchdown_adapter = MLP(
+                self.obs_dim,
+                ACTION_DIM,
+                [touchdown_adapter_hidden_dim, touchdown_adapter_hidden_dim],
+                kwargs.get("activation", "elu"),
+            )
+            touchdown_output = next(
+                module
+                for module in reversed(list(self.touchdown_adapter.modules()))
+                if isinstance(module, nn.Linear)
+            )
+            nn.init.zeros_(touchdown_output.weight)
+            nn.init.zeros_(touchdown_output.bias)
 
     def forward(
         self,
@@ -124,6 +155,22 @@ class ContinuousAdapterRNNModel(RNNModel):
                 progress = unpad_trajectories(progress.unsqueeze(-1), masks).squeeze(-1)
             gate = (progress >= progress_threshold).to(output.dtype).unsqueeze(-1)
             output = output + gate * post_loop_adapter(adapter_obs)
+        touchdown_adapter = getattr(self, "touchdown_adapter", None)
+        if touchdown_adapter is not None:
+            adapter_obs = unpad_trajectories(normalized, masks) if masks is not None else normalized
+            progress_index = getattr(self, "post_loop_progress_index", 27)
+            progress_threshold = getattr(self, "post_loop_progress_threshold", 0.999999)
+            altitude_index = getattr(self, "touchdown_altitude_index", 12)
+            altitude_threshold = getattr(self, "touchdown_altitude_threshold", 1.0 / 6.0)
+            progress = raw[..., progress_index]
+            altitude = raw[..., altitude_index]
+            if masks is not None:
+                progress = unpad_trajectories(progress.unsqueeze(-1), masks).squeeze(-1)
+                altitude = unpad_trajectories(altitude.unsqueeze(-1), masks).squeeze(-1)
+            gate = ((progress >= progress_threshold) & (altitude <= altitude_threshold)).to(
+                output.dtype
+            )
+            output = output + gate.unsqueeze(-1) * touchdown_adapter(adapter_obs)
         if self.distribution is not None:
             if stochastic_output:
                 self.distribution.update(output)
@@ -234,8 +281,16 @@ class _TorchLSTMContinuousAdapter(nn.Module):
         self.post_loop_adapter = (
             copy.deepcopy(post_loop_adapter) if post_loop_adapter else _ZeroPostLoopAdapter()
         )
+        touchdown_adapter = getattr(model, "touchdown_adapter", None)
+        self.touchdown_adapter = (
+            copy.deepcopy(touchdown_adapter) if touchdown_adapter else _ZeroPostLoopAdapter()
+        )
         self.post_loop_progress_index = getattr(model, "post_loop_progress_index", 27)
         self.post_loop_progress_threshold = getattr(model, "post_loop_progress_threshold", 0.999999)
+        self.touchdown_altitude_index = getattr(model, "touchdown_altitude_index", 12)
+        self.touchdown_altitude_threshold = getattr(
+            model, "touchdown_altitude_threshold", 1.0 / 6.0
+        )
         self.resample_engine_count_post_loop = getattr(
             model, "resample_engine_count_post_loop", False
         )
@@ -265,6 +320,11 @@ class _TorchLSTMContinuousAdapter(nn.Module):
         progress = raw[..., self.post_loop_progress_index]
         gate = (progress >= self.post_loop_progress_threshold).to(output.dtype).unsqueeze(-1)
         output = output + gate * self.post_loop_adapter(x)
+        altitude = raw[..., self.touchdown_altitude_index]
+        touchdown_gate = (progress >= self.post_loop_progress_threshold) & (
+            altitude <= self.touchdown_altitude_threshold
+        )
+        output = output + touchdown_gate.to(output.dtype).unsqueeze(-1) * self.touchdown_adapter(x)
         actions = self.deterministic_output(output)
         if self.resample_engine_count_post_loop:
             complete = progress >= self.post_loop_progress_threshold
