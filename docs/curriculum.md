@@ -183,8 +183,9 @@ long horizon again. Stages 83--85 subsequently passed in 149, 147, and 178 updat
 rolled back or hit a KL stop. The exact protected stage-85 actor landed seed 3 in 32.0 s; its
 [chase-camera recording](assets/salto-stage85-50ms.mp4) and
 [nine-frame sequence](assets/salto-stage85-50ms-sequence.jpg) show the full single salto, recovery,
-and deliberately still-loose 50 m/s curriculum touchdown. Stage 87 (47.5 m/s) inherits 36--39%
-deterministic landing. The run has a 20,000-update horizon for the complete dense tail.
+and deliberately still-loose 50 m/s curriculum touchdown. Stage 87 (47.5 m/s) inherited 36--39%
+deterministic landing and passed after 81 updates; stage 88 (46.25 m/s) inherits 34--38%. The run has
+a 20,000-update horizon for the complete dense tail.
 
 ## Findings
 

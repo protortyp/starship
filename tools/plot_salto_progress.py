@@ -13,6 +13,7 @@ ROOT = Path(__file__).resolve().parents[1]
 OUTPUT = ROOT / "docs" / "assets" / "salto-training-progress.svg"
 RANK_EXPERIMENT = ROOT / "logs" / "salto_stage78_dense_tail_v1"
 LINE = re.compile(r"eval landed\s+(?P<landed>\d+\.\d+).*stage\s+(?P<stage>\d+)")
+PROMOTED_DENSE = "promoted dense tail (58.75 to 47.5 m/s)"
 
 
 @dataclass(frozen=True)
@@ -62,71 +63,78 @@ TRACES = (
         1,
     ),
     Trace(
-        "promoted dense tail (58.75 to 48.75 m/s)",
+        PROMOTED_DENSE,
         ROOT / "out/salto-stage78-dense-tail-v1.log",
         78,
         "#92400e",
     ),
     Trace(
-        "promoted dense tail (58.75 to 48.75 m/s)",
+        PROMOTED_DENSE,
         ROOT / "out/salto-stage78-dense-tail-v1.log",
         79,
         "#92400e",
         1,
     ),
     Trace(
-        "promoted dense tail (58.75 to 48.75 m/s)",
+        PROMOTED_DENSE,
         ROOT / "out/salto-stage78-dense-tail-v1.log",
         80,
         "#92400e",
         1,
     ),
     Trace(
-        "promoted dense tail (58.75 to 48.75 m/s)",
+        PROMOTED_DENSE,
         ROOT / "out/salto-stage78-dense-tail-v1.log",
         81,
         "#92400e",
         1,
     ),
     Trace(
-        "promoted dense tail (58.75 to 48.75 m/s)",
+        PROMOTED_DENSE,
         ROOT / "out/salto-stage78-dense-tail-v1.log",
         82,
         "#92400e",
         1,
     ),
     Trace(
-        "promoted dense tail (58.75 to 48.75 m/s)",
+        PROMOTED_DENSE,
         ROOT / "out/salto-stage78-dense-tail-v1.log",
         83,
         "#92400e",
         1,
     ),
     Trace(
-        "promoted dense tail (58.75 to 48.75 m/s)",
+        PROMOTED_DENSE,
         ROOT / "out/salto-stage78-dense-tail-v1.log",
         84,
         "#92400e",
         1,
     ),
     Trace(
-        "promoted dense tail (58.75 to 48.75 m/s)",
+        PROMOTED_DENSE,
         ROOT / "out/salto-stage78-dense-tail-v1.log",
         85,
         "#92400e",
         1,
     ),
     Trace(
-        "promoted dense tail (58.75 to 48.75 m/s)",
+        PROMOTED_DENSE,
         ROOT / "out/salto-stage78-dense-tail-v1.log",
         86,
         "#92400e",
         1,
     ),
     Trace(
-        "47.5 m/s dense tail (live)",
+        PROMOTED_DENSE,
         ROOT / "out/salto-stage78-dense-tail-v1.log",
         87,
+        "#92400e",
+        1,
+    ),
+    Trace(
+        "46.25 m/s dense tail (live)",
+        ROOT / "out/salto-stage78-dense-tail-v1.log",
+        88,
         "#0f766e",
         1,
     ),
