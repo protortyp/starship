@@ -14,6 +14,7 @@ OUTPUT = ROOT / "docs" / "assets" / "salto-training-progress.svg"
 RANK_EXPERIMENT = ROOT / "logs" / "salto_stage92_count_hold_v1"
 LINE = re.compile(r"eval landed\s+(?P<landed>\d+\.\d+).*stage\s+(?P<stage>\d+)")
 PROMOTED_DENSE = "promoted dense tail (58.75 to 42.5 m/s)"
+COUNT_COHERENT = "count-coherent promotions (stages 92-93)"
 
 
 @dataclass(frozen=True)
@@ -179,15 +180,22 @@ TRACES = (
         "#0f766e",
     ),
     Trace(
-        "stage 92, held deployment count",
+        COUNT_COHERENT,
         ROOT / "out/salto-stage92-count-hold-v1.log",
         92,
         "#059669",
     ),
     Trace(
-        "stage 93, held deployment count (live)",
+        COUNT_COHERENT,
         ROOT / "out/salto-stage92-count-hold-v1.log",
         93,
+        "#059669",
+        1,
+    ),
+    Trace(
+        "stage 94, held deployment count (live)",
+        ROOT / "out/salto-stage92-count-hold-v1.log",
+        94,
         "#0f766e",
         1,
     ),
@@ -322,7 +330,7 @@ def rank_panel() -> list[str]:
     # updates rather than one. Keep the axis in actual training updates and inside the viewport.
     diagnostics_interval = 10
     x_max = max(500, (max(len(values) for _, _, values in series) - 1) * diagnostics_interval)
-    lines = [text(left, 430, "Policy plasticity during the live stage-93 run", size=20)]
+    lines = [text(left, 430, "Policy plasticity during the live stage-94 run", size=20)]
     for tick in (0, 32, 64, 96, 128):
         y = top + (128 - tick) / 128 * height
         lines.append(

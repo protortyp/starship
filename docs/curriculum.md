@@ -205,7 +205,8 @@ its saved actors with the corrected decoder instead improved monotonically; the 
 landed 51.6% on the 256 curriculum scenarios and 46.9% over 1,024 episodes, with mean crash vertical
 speed down to 44.22--44.47 m/s. Restarting its matching model, critic, and optimizer under corrected
 semantics passed stage 92 after six updates. Stage 93, the final 40 m/s boundary, inherited 44--49%
-landing and protected a 46.9% best in its first evaluations.
+landing and passed after another 86 updates without rollback or KL stop. Stage 94 starts the 35 m/s
+ladder with 31--39% deterministic landing instead of a zero-signal curriculum cliff.
 
 ## Findings
 
