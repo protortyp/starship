@@ -214,6 +214,10 @@ landing mass, one engine supplies about 3.0 m/s² net deceleration at full throt
 speed reward assumes the general landing policy's three-engine 10 m/s² envelope. A matched
 post-salto throttle-logit sweep raised landing from 37.9% to 45.3--48.1%; a protected parallel run is
 therefore testing a 2 m/s² speed profile after a fresh-critic warmup without interrupting the control.
+The shared 0.03 continuous exploration cap also made the measured +0.3 throttle improvement a
+ten-sigma event. Exploration ranges can now be overridden by actuator without changing old
+checkpoints: widening only throttle to 0.10 reduced a matched 512-episode exploratory rollout by
+0.6 percentage points, versus 6.1 points when gimbal, flaps and roll control were widened as well.
 
 ## Findings
 

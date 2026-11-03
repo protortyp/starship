@@ -12,6 +12,7 @@ from tensorboard.backend.event_processing.event_accumulator import EventAccumula
 ROOT = Path(__file__).resolve().parents[1]
 OUTPUT = ROOT / "docs" / "assets" / "salto-training-progress.svg"
 RANK_EXPERIMENT = ROOT / "logs" / "salto_stage92_count_hold_v1"
+SAFE_DECEL_EXPERIMENT = ROOT / "logs" / "salto_stage94_safe_decel_v1"
 LINE = re.compile(r"eval landed\s+(?P<landed>\d+\.\d+).*stage\s+(?P<stage>\d+)")
 PROMOTED_DENSE = "promoted dense tail (58.75 to 42.5 m/s)"
 COUNT_COHERENT = "count-coherent promotions (stages 92-93)"
@@ -199,6 +200,13 @@ TRACES = (
         "#0f766e",
         1,
     ),
+    Trace(
+        "2 m/s² one-engine braking A/B",
+        ROOT / "out/salto-stage94-safe-decel-v1.log",
+        94,
+        "#7c3aed",
+        1,
+    ),
 )
 
 
@@ -310,27 +318,34 @@ def landing_panel() -> list[str]:
     return lines
 
 
-def latest_event_file() -> Path:
-    candidates = list(RANK_EXPERIMENT.glob("*/*tfevents*"))
+def latest_event_file(experiment: Path) -> Path:
+    candidates = list(experiment.glob("*/*tfevents*"))
     return max(candidates, key=lambda path: path.stat().st_mtime)
 
 
 def rank_panel() -> list[str]:
     left, top, width, height = 72, 465, 742, 225
-    accumulator = EventAccumulator(str(latest_event_file())).Reload()
+    control = EventAccumulator(str(latest_event_file(RANK_EXPERIMENT))).Reload()
+    safe_decel = EventAccumulator(str(latest_event_file(SAFE_DECEL_EXPERIMENT))).Reload()
     tags = (
-        ("plasticity/actor/features/effective_rank", "actor rank", "#2563eb"),
-        ("plasticity/critic/features/effective_rank", "critic rank", "#7c3aed"),
+        (control, "plasticity/actor/features/effective_rank", "control actor rank", "#2563eb"),
+        (control, "plasticity/critic/features/effective_rank", "control critic rank", "#7c3aed"),
+        (
+            safe_decel,
+            "plasticity/critic/features/effective_rank",
+            "2 m/s² A/B critic rank",
+            "#db2777",
+        ),
     )
     series = [
         (label, color, [event.value for event in accumulator.Scalars(tag)])
-        for tag, label, color in tags
+        for accumulator, tag, label, color in tags
     ]
     # Plasticity diagnostics are emitted every ten actor updates, so each scalar sample spans ten
     # updates rather than one. Keep the axis in actual training updates and inside the viewport.
     diagnostics_interval = 10
     x_max = max(500, (max(len(values) for _, _, values in series) - 1) * diagnostics_interval)
-    lines = [text(left, 430, "Policy plasticity during the live stage-94 run", size=20)]
+    lines = [text(left, 430, "Policy plasticity during the live stage-94 comparisons", size=20)]
     for tick in (0, 32, 64, 96, 128):
         y = top + (128 - tick) / 128 * height
         lines.append(
