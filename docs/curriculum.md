@@ -108,8 +108,15 @@ landing averages 32.5% and latest-100 landing declines to 30.4%. The fixed-seed 
 return to 62%. The healthy run remains an untouched 1,500-update control, but its actor is not the
 selected policy. The curriculum now inserts only fraction 11/18 between the preserved 5/9 and 2/3
 boundaries, making stages 0--168 bit-identical and moving the original blocked boundary unchanged to
-stage 170. The 40% gate is only for intermediate traversal; final broad strict-target acceptance
-remains unchanged.
+stage 170. The unchanged source actor passes that midpoint during critic-only adaptation on
+consecutive 41% evaluations. Its 512-environment critic then falls to rank 26/128 after 44 warmup
+updates, so the branch is retired before any actor update. A second verified restart combines the
+source actor with the long control's healthy, original-boundary-adapted critic and optimizer. It
+keeps feature ranks at 59/128 actor and 39/128 critic through 100 direct actor updates, but broad
+landing rises only from 33.4% to 34.2% at update 50 and falls to 33.0% at update 100; a critic output
+update-ratio warning retires it. The midpoint pass is retained, neither small-branch actor replaces
+the protected source, and full GPU throughput returns to the 1,500-update control. The 40% gate is
+only for intermediate traversal; final broad strict-target acceptance remains unchanged.
 The protected midpoint best's new
 [40-second chase recording](assets/salto-stage167-midpoint-live.mp4) and
 [nine-frame sequence](assets/salto-stage167-midpoint-live-sequence.jpg) show seed 3 completing one

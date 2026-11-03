@@ -55,6 +55,12 @@ STAGE169_CRITIC300_EXPERIMENT = ROOT / "logs" / "salto_stage169_hspeed2_gate40_c
 STAGE169_CRITIC_TRANSPLANT_EXPERIMENT = (
     ROOT / "logs" / "salto_stage169_hspeed2_gate40_critic_transplant_v1"
 )
+STAGE169_MIDPOINT2_CRITIC_EXPERIMENT = (
+    ROOT / "logs" / "salto_stage169_midpoint2_critic_transplant_512_v1"
+)
+STAGE170_BOUNDARY_CRITIC_EXPERIMENT = (
+    ROOT / "logs" / "salto_stage170_source_actor_boundary_critic_512_v1"
+)
 STAGE99_VERTICAL_TOUCHDOWN1000_EXPERIMENT = (
     ROOT / "logs" / "salto_stage99_vertical_touchdown1000_v1"
 )
@@ -481,6 +487,18 @@ TRACES = (
         169,
         "#db2777",
     ),
+    Trace(
+        "second measured midpoint (passed)",
+        ROOT / "out/salto-stage169-midpoint2-critic-transplant-512-v1.log",
+        169,
+        "#f97316",
+    ),
+    Trace(
+        "source actor + boundary critic (retired)",
+        ROOT / "out/salto-stage170-source-actor-boundary-critic-512-v1.log",
+        170,
+        "#ef4444",
+    ),
 )
 
 
@@ -685,6 +703,12 @@ def rank_panel() -> list[str]:
     ).Reload()
     stage169_critic_transplant = EventAccumulator(
         str(latest_event_file(STAGE169_CRITIC_TRANSPLANT_EXPERIMENT))
+    ).Reload()
+    stage169_midpoint2_critic = EventAccumulator(
+        str(latest_event_file(STAGE169_MIDPOINT2_CRITIC_EXPERIMENT))
+    ).Reload()
+    stage170_boundary_critic = EventAccumulator(
+        str(latest_event_file(STAGE170_BOUNDARY_CRITIC_EXPERIMENT))
     ).Reload()
     tags = (
         (control, "plasticity/actor/features/effective_rank", "control actor rank", "#2563eb"),
@@ -953,6 +977,24 @@ def rank_panel() -> list[str]:
             "stage-169 transplant critic rank",
             "#db2777",
         ),
+        (
+            stage169_midpoint2_critic,
+            "plasticity/critic/features/effective_rank",
+            "second-midpoint critic rank",
+            "#f97316",
+        ),
+        (
+            stage170_boundary_critic,
+            "plasticity/actor/features/effective_rank",
+            "boundary-critic restart actor rank",
+            "#dc2626",
+        ),
+        (
+            stage170_boundary_critic,
+            "plasticity/critic/features/effective_rank",
+            "boundary-critic restart critic rank",
+            "#ef4444",
+        ),
     )
     series = [
         (label, color, [event.value for event in accumulator.Scalars(tag)])
@@ -1010,8 +1052,8 @@ def rank_panel() -> list[str]:
 def main() -> None:
     OUTPUT.parent.mkdir(parents=True, exist_ok=True)
     elements = [
-        '<svg xmlns="http://www.w3.org/2000/svg" width="880" height="970" viewBox="0 0 880 970">',
-        '<rect width="880" height="970" fill="white"/>',
+        '<svg xmlns="http://www.w3.org/2000/svg" width="880" height="1000" viewBox="0 0 880 1000">',
+        '<rect width="880" height="1000" fill="white"/>',
         '<g font-family="ui-sans-serif, system-ui, sans-serif">',
         *landing_panel(),
         *rank_panel(),
