@@ -556,10 +556,15 @@ stages:
   # A coupled half-step then averaged 37.25% over 100 evaluations and declined to 35.4% over its
   # latest 20. Isolate its two measured failure modes: learn the smaller vertical-speed limit while
   # keeping the solved pad/horizontal limits, then apply the lateral half-step before preserving the
-  # original waypoint and remaining spacing.
+  # original waypoint and remaining spacing. The legacy dense speed potential uses total 3-D speed,
+  # which duplicated horizontal shaping and made stronger braking trade vertical speed for pad miss.
+  # From this boundary onward, align it with the vertical touchdown gate while retaining the
+  # dedicated horizontal-speed term.
   - name: bridge vertical speed toward 34.583 m/s
     overrides:
       - sim.landing.max_vertical_speed=34.58333333333333
+      - reward.speed_weight=0
+      - reward.vertical_speed_weight=10
   - name: bridge pad and horizontal speed toward 34.583 m/s
     overrides:
       - sim.landing.pad_radius=445.8333333333333

@@ -282,9 +282,14 @@ offsets of -0.1 and -0.2 likewise regress to 37.5% and 35.2%.
 Doubling vertical-speed shaping to 20 also fails as a standalone intervention: after 105 actor
 updates its update-102 mean is 38.82%, latest-20 mean is 37.65%, and its 90-update checkpoint lands
 38.5% broadly. Although mean crash speed falls to 40.5 m/s and vertical-limit failures fall from 87%
-to 84%, pad-miss failures rise from 52% to 58%, so that branch is retired. Matched 1.0 and 0.5 m/s²
-safe-deceleration profiles now test whether moving the dense braking target earlier improves both
-timing and pad retention without simply increasing its weight.
+to 84%, pad-miss failures rise from 52% to 58%, so that branch is retired. Inspection then exposed
+the objective mismatch behind that trade: the dense `speed_weight` potential penalizes total 3-D
+speed even though the hard gate is vertical speed and `horizontal_speed_weight` already shapes the
+lateral component. A backward-compatible `vertical_speed_weight` now targets descent speed only;
+stage 99 switches from total-speed weight 10 to vertical-only weight 10 while all solved stages
+remain unchanged. The 1.0 m/s² profile continues as the long timing control, and the 0.5 m/s² run is
+superseded after 61 critic-only updates by a direct vertical-only-objective A/B at the original
+2 m/s² profile.
 A checkpoint-safe post-loop engine-logit warm start then tested whether the fixed one-engine landing
 schedule lacked braking
 authority. On matched 256-scenario evaluations, logit shifts through +0.60 retain one engine and

@@ -24,6 +24,7 @@ STAGE99_TOUCHDOWN1000_EXPERIMENT = ROOT / "logs" / "salto_stage99_touchdown1000_
 STAGE99_SPEED20_EXPERIMENT = ROOT / "logs" / "salto_stage99_speed20_v1"
 STAGE99_SAFE1_EXPERIMENT = ROOT / "logs" / "salto_stage99_safe1_v1"
 STAGE99_SAFE05_EXPERIMENT = ROOT / "logs" / "salto_stage99_safe05_v1"
+STAGE99_VERTICAL_REWARD_EXPERIMENT = ROOT / "logs" / "salto_stage99_vertical_reward_v1"
 LINE = re.compile(r"eval landed\s+(?P<landed>\d+\.\d+).*stage\s+(?P<stage>\d+)")
 PROMOTED_DENSE = "promoted dense tail (58.75 to 42.5 m/s)"
 COUNT_COHERENT = "count-coherent promotions (stages 92-93)"
@@ -303,10 +304,16 @@ TRACES = (
         "#6d28d9",
     ),
     Trace(
-        "0.5 m/s² earlier braking (live)",
+        "0.5 m/s² critic warmup (superseded)",
         ROOT / "out/salto-stage99-safe05-v1.log",
         99,
         "#0f766e",
+    ),
+    Trace(
+        "vertical-only braking objective (live)",
+        ROOT / "out/salto-stage99-vertical-reward-v1.log",
+        99,
+        "#0891b2",
     ),
 )
 
@@ -424,7 +431,7 @@ def latest_event_file(experiment: Path) -> Path:
 
 
 def rank_panel() -> list[str]:
-    left, top, width, height = 72, 545, 742, 225
+    left, top, width, height = 72, 565, 742, 225
     control = EventAccumulator(str(latest_event_file(RANK_EXPERIMENT))).Reload()
     safe_decel = EventAccumulator(str(latest_event_file(SAFE_DECEL_EXPERIMENT))).Reload()
     critic_extension = EventAccumulator(
@@ -446,6 +453,9 @@ def rank_panel() -> list[str]:
     stage99_speed20 = EventAccumulator(str(latest_event_file(STAGE99_SPEED20_EXPERIMENT))).Reload()
     stage99_safe1 = EventAccumulator(str(latest_event_file(STAGE99_SAFE1_EXPERIMENT))).Reload()
     stage99_safe05 = EventAccumulator(str(latest_event_file(STAGE99_SAFE05_EXPERIMENT))).Reload()
+    stage99_vertical_reward = EventAccumulator(
+        str(latest_event_file(STAGE99_VERTICAL_REWARD_EXPERIMENT))
+    ).Reload()
     tags = (
         (control, "plasticity/actor/features/effective_rank", "control actor rank", "#2563eb"),
         (control, "plasticity/critic/features/effective_rank", "control critic rank", "#7c3aed"),
@@ -545,6 +555,12 @@ def rank_panel() -> list[str]:
             "0.5 m/s² braking critic rank",
             "#0f766e",
         ),
+        (
+            stage99_vertical_reward,
+            "plasticity/critic/features/effective_rank",
+            "vertical-only reward critic rank",
+            "#0891b2",
+        ),
     )
     series = [
         (label, color, [event.value for event in accumulator.Scalars(tag)])
@@ -554,7 +570,7 @@ def rank_panel() -> list[str]:
     # updates rather than one. Keep the axis in actual training updates and inside the viewport.
     diagnostics_interval = 10
     x_max = max(500, (max(len(values) for _, _, values in series) - 1) * diagnostics_interval)
-    lines = [text(left, 510, "Protected braking-policy plasticity comparisons", size=20)]
+    lines = [text(left, 530, "Protected braking-policy plasticity comparisons", size=20)]
     for tick in (0, 32, 64, 96, 128):
         y = top + (128 - tick) / 128 * height
         lines.append(
@@ -566,7 +582,7 @@ def rank_panel() -> list[str]:
         x = left + tick / max(x_max, 1) * width
         lines.append(text(x, top + height + 23, str(tick), anchor="middle"))
     lines.append(text(left + width / 2, top + height + 48, "training update", anchor="middle"))
-    legend_x, legend_top = 620, 535
+    legend_x, legend_top = 620, 555
     for _, color, values in series:
         lines.append(
             polyline(
@@ -584,10 +600,10 @@ def rank_panel() -> list[str]:
         )
     lines.append(
         f'<rect x="{legend_x - 10}" y="{legend_top - 17}" width="255" '
-        f'height="{10 + 14 * len(series)}" fill="white"/>'
+        f'height="{10 + 13 * len(series)}" fill="white"/>'
     )
     for index, (label, color, _) in enumerate(series):
-        legend_y = legend_top + index * 14
+        legend_y = legend_top + index * 13
         lines.append(
             f'<line x1="{legend_x}" y1="{legend_y}" x2="{legend_x + 22}" '
             f'y2="{legend_y}" stroke="{color}" stroke-width="3"/>'
@@ -599,8 +615,8 @@ def rank_panel() -> list[str]:
 def main() -> None:
     OUTPUT.parent.mkdir(parents=True, exist_ok=True)
     elements = [
-        '<svg xmlns="http://www.w3.org/2000/svg" width="880" height="850" viewBox="0 0 880 850">',
-        '<rect width="880" height="850" fill="white"/>',
+        '<svg xmlns="http://www.w3.org/2000/svg" width="880" height="870" viewBox="0 0 880 870">',
+        '<rect width="880" height="870" fill="white"/>',
         '<g font-family="ui-sans-serif, system-ui, sans-serif">',
         *landing_panel(),
         *rank_panel(),

@@ -231,6 +231,30 @@ def test_horizontal_distance_shaping_centers_near_ground_and_fades_at_altitude(d
     assert centered == pytest.approx(0, abs=1e-6)
 
 
+def test_vertical_speed_shaping_does_not_penalize_horizontal_motion(device):
+    reward = RewardConfig(
+        distance_weight=0,
+        speed_weight=0,
+        vertical_speed_weight=1,
+        horizontal_speed_weight=0,
+        tilt_weight=0,
+        safe_deceleration=0,
+    )
+
+    def initial_speed_potential(vertical_speed, horizontal_speed):
+        env = RocketEnv(
+            1,
+            config(vertical_speed=vertical_speed, horizontal_speed=horizontal_speed),
+            reward_config=reward,
+            device=device,
+        )
+        env.step(actions(1))
+        return env._potential_before.numpy()[0, 1]
+
+    assert initial_speed_potential(0, 100) == pytest.approx(0, abs=1e-6)
+    assert initial_speed_potential(-100, 0) < 0
+
+
 @pytest.mark.parametrize("status", [LANDED, CRASHED, TUMBLED, OUT_OF_BOUNDS, TIMEOUT])
 def test_terminal_rewards_and_final_observations(device, status):
     cfg = config()

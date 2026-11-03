@@ -40,7 +40,10 @@ class RewardConfig:
     # the ground, where horizontal position determines whether contact is on the pad.
     horizontal_distance_weight: float = 0.0  # per horizontal m
     horizontal_distance_height: float = 500.0  # m
-    speed_weight: float = 1.0  # per m/s above the safe profile
+    speed_weight: float = 1.0  # per m/s of total speed above the safe profile (legacy)
+    # Vertical-only counterpart for landing curricula whose hard vertical and horizontal limits are
+    # already shaped separately. Keeping this additive preserves every existing checkpoint/config.
+    vertical_speed_weight: float = 0.0  # per m/s of descent above the safe profile
     # Horizontal speed is nearly free under the descent profile alone; without this term policies
     # tip over and fly away sideways (2D needed the same lateral shaping, docs/curriculum.md).
     horizontal_speed_weight: float = 0.5  # per m/s, part of the speed term
@@ -90,6 +93,7 @@ class RewardParams:
     horizontal_distance_weight: float
     horizontal_distance_height: float
     speed_weight: float
+    vertical_speed_weight: float
     horizontal_speed_weight: float
     tilt_weight: float
     safe_deceleration: float
@@ -143,6 +147,7 @@ def potential(p: Params, r: RewardParams, b: Body, tanks: wp.vec4) -> wp.vec3:
     height = wp.max(lowest_point(p, b, com), 0.0)
     safe_speed = wp.sqrt(2.0 * r.safe_deceleration * height) + p.max_vertical_speed
     excess_speed = wp.max(wp.length(b.vel) - safe_speed, 0.0)
+    excess_vertical_speed = wp.max(-b.vel[2] - safe_speed, 0.0)
     axis_z = wp.quat_rotate(b.rot, wp.vec3(1.0, 0.0, 0.0))[2]
     tilt = wp.acos(wp.clamp(axis_z, -1.0, 1.0))
     fade = wp.clamp(1.0 - height / r.tilt_height, 0.0, 1.0)
@@ -155,6 +160,7 @@ def potential(p: Params, r: RewardParams, b: Body, tanks: wp.vec4) -> wp.vec3:
         -r.distance_weight * distance
         - r.horizontal_distance_weight * horizontal_distance * horizontal_distance_fade,
         -r.speed_weight * excess_speed
+        - r.vertical_speed_weight * excess_vertical_speed
         - r.horizontal_speed_weight * wp.length(wp.vec2(b.vel[0], b.vel[1])),
         -r.tilt_weight * tilt * fade,
     )
