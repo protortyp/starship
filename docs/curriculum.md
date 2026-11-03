@@ -276,6 +276,10 @@ The 500 m specialist completed 100 live actor updates after its fresh-critic war
 episodes. Mean crash speed moved only from 41.1 to 40.9 m/s; 87% of crashes still violated vertical
 speed and 52% missed the pad. It was therefore retired in favor of a matched 1,000 m-gated specialist
 that has more altitude to alter the braking trajectory while keeping the completed salto protected.
+That wider gate also finishes at the inherited 39--40% training rate: its 40- and 90-update
+checkpoints both land 38.7% broadly, while pad-miss failures rise to 63--65%. It is retired after
+101 actor updates; the adapter remains under test only in combination with the corrected
+vertical-only objective.
 A matched 256-episode sweep also rejects a constant post-loop throttle warm start at this boundary:
 the unshifted actor lands 39.1%, offsets from +0.1 through +0.8 fall from 37.5% to 21.1%, and negative
 offsets of -0.1 and -0.2 likewise regress to 37.5% and 35.2%.
