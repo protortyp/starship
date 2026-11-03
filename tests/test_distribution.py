@@ -38,6 +38,12 @@ def test_rejects_other_action_dims():
         HybridDistribution(ACTION_DIM, ranked_count_temperature=0)
     with pytest.raises(ValueError, match="ranked_count_hold_steps"):
         HybridDistribution(ACTION_DIM, ranked_count_hold_steps=0)
+    with pytest.raises(ValueError, match="std_range"):
+        HybridDistribution(ACTION_DIM, std_range=(0.0, 0.1))
+    with pytest.raises(ValueError, match="unknown continuous"):
+        HybridDistribution(ACTION_DIM, std_range_overrides={"nozzle": (0.1, 0.2)})
+    with pytest.raises(ValueError, match=r"std_range_overrides\.throttle"):
+        HybridDistribution(ACTION_DIM, std_range_overrides={"throttle": (0.2, 0.1)})
 
 
 @pytest.mark.parametrize("batch", [(5,), (3, 4)])
@@ -71,6 +77,22 @@ def test_initial_std_and_clamp():
     std = dist.params[2][0]
     assert torch.allclose(std[:4], torch.full((4,), 2.0))
     assert torch.allclose(std[4:], torch.full((CONTINUOUS_HEADS - 4,), 0.05))
+
+
+def test_per_actuator_std_range_override():
+    dist = HybridDistribution(
+        ACTION_DIM,
+        std_range=(0.005, 0.03),
+        std_range_overrides={"throttle": (0.005, 0.1)},
+    )
+    dist.update(torch.zeros(2, ACTION_DIM))
+    assert torch.allclose(dist.params[2][:, 0], torch.full((2,), 0.1))
+    assert torch.allclose(dist.params[2][:, 1:], torch.full((2, CONTINUOUS_HEADS - 1), 0.03))
+
+    # Exported policies created before per-actuator ranges existed still use the shared clamp.
+    del dist.log_std_ranges
+    dist.update(torch.zeros(2, ACTION_DIM))
+    assert torch.allclose(dist.params[2], torch.full((2, CONTINUOUS_HEADS), 0.03))
 
 
 def test_log_prob_matches_torch_reference():

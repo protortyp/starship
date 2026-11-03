@@ -10,7 +10,7 @@ from torch import nn
 from torch.distributions import Bernoulli, Categorical, Normal
 from torch.nn import functional as F
 
-from starship.train.actions import ACTION_DIM, CONTINUOUS_HEADS, ENGINE_HEADS
+from starship.train.actions import ACTION_DIM, CONTINUOUS, CONTINUOUS_HEADS, ENGINE_HEADS
 
 
 class _Heads(NamedTuple):
@@ -31,6 +31,7 @@ class HybridDistribution(Distribution):
         output_dim: int = ACTION_DIM,
         init_std: float = 0.5,
         std_range: tuple[float, float] = (0.05, 2.0),
+        std_range_overrides: dict[str, tuple[float, float]] | None = None,
         deterministic_engine_selection: str = "threshold",
         stochastic_engine_selection: str = "independent",
         ranked_count_temperature: float = 0.75,
@@ -48,6 +49,11 @@ class HybridDistribution(Distribution):
             raise ValueError("ranked_count_temperature must be positive")
         if ranked_count_hold_steps < 1:
             raise ValueError("ranked_count_hold_steps must be positive")
+        self._validate_std_range("std_range", std_range)
+        continuous_names = [name for name, _, _ in CONTINUOUS]
+        unknown = set(std_range_overrides or {}) - set(continuous_names)
+        if unknown:
+            raise ValueError(f"unknown continuous std range override(s): {sorted(unknown)}")
         super().__init__(output_dim)
         self.deterministic_engine_selection = deterministic_engine_selection
         self.stochastic_engine_selection = stochastic_engine_selection
@@ -62,6 +68,14 @@ class HybridDistribution(Distribution):
         # from saturating every actuator (std >> 1), where log_prob gradients become useless.
         self.log_std = nn.Parameter(torch.full((CONTINUOUS_HEADS,), math.log(init_std)))
         self.log_std_range = (math.log(std_range[0]), math.log(std_range[1]))
+        ranges = []
+        for name in continuous_names:
+            bounds = (std_range_overrides or {}).get(name, std_range)
+            self._validate_std_range(f"std_range_overrides.{name}", bounds)
+            ranges.append((math.log(bounds[0]), math.log(bounds[1])))
+        # A tuple, rather than state-dict buffers, keeps old actor checkpoints strict-loadable.
+        # getattr() in _clamped_log_std also keeps already-exported pickled policies compatible.
+        self.log_std_ranges = tuple(ranges) if std_range_overrides else None
         # Kept under this name because runner.standalone_copy drops `_distribution` before deep
         # copying the actor; the last heads may hold autograd-graph tensors.
         self._distribution: _Heads | None = None
@@ -69,12 +83,26 @@ class HybridDistribution(Distribution):
         Normal.set_default_validate_args(False)
 
     @staticmethod
+    def _validate_std_range(name: str, bounds: tuple[float, float]) -> None:
+        if len(bounds) != 2 or bounds[0] <= 0 or bounds[1] < bounds[0]:
+            raise ValueError(f"{name} must contain positive [min, max] with max >= min")
+
+    def _clamped_log_std(self) -> torch.Tensor:
+        ranges = getattr(self, "log_std_ranges", None)
+        if ranges is None:
+            return self.log_std.clamp(*self.log_std_range)
+        lower, upper = zip(*ranges, strict=True)
+        lower_tensor = self.log_std.new_tensor(lower)
+        upper_tensor = self.log_std.new_tensor(upper)
+        return torch.maximum(torch.minimum(self.log_std, upper_tensor), lower_tensor)
+
+    @staticmethod
     def _split(x: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
         return x[..., :ENGINE_HEADS], x[..., ENGINE_HEADS:]
 
     def update(self, mlp_output: torch.Tensor) -> None:
         logits, mean = self._split(mlp_output)
-        std = torch.exp(self.log_std.clamp(*self.log_std_range)).expand_as(mean)
+        std = torch.exp(self._clamped_log_std()).expand_as(mean)
         rank = None
         deterministic_count = None
         engine_logits = logits
