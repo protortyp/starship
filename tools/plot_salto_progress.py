@@ -33,6 +33,7 @@ STAGE99_VERTICAL_SAFE1_PAD500_EXPERIMENT = ROOT / "logs" / "salto_stage99_vertic
 STAGE99_VERTICAL_SAFE1_PAD500_CENTER01_EXPERIMENT = (
     ROOT / "logs" / "salto_stage99_vertical_safe1_pad500_center01_v1"
 )
+STAGE99_TOUCHDOWN_COUNT_EXPERIMENT = ROOT / "logs" / "salto_stage99_touchdown_count_v1"
 STAGE99_VERTICAL_TOUCHDOWN1000_EXPERIMENT = (
     ROOT / "logs" / "salto_stage99_vertical_touchdown1000_v1"
 )
@@ -357,16 +358,22 @@ TRACES = (
         "#166534",
     ),
     Trace(
-        "500 m pad gate + baseline centering (live)",
+        "500 m gate to pad re-tightening (live)",
         ROOT / "out/salto-stage99-vertical-safe1-pad500-v1.log",
         99,
         "#1d4ed8",
     ),
     Trace(
-        "500 m pad gate + 2x centering (live)",
+        "500 m gate + 2x centering to re-tightening (live)",
         ROOT / "out/salto-stage99-vertical-safe1-pad500-center01-v1.log",
         99,
         "#7c3aed",
+    ),
+    Trace(
+        "altitude-gated engine-count bridge (live)",
+        ROOT / "out/salto-stage99-touchdown-count-v1.log",
+        99,
+        "#dc2626",
     ),
 )
 
@@ -530,6 +537,9 @@ def rank_panel() -> list[str]:
     stage99_vertical_safe1_pad500_center01 = EventAccumulator(
         str(latest_event_file(STAGE99_VERTICAL_SAFE1_PAD500_CENTER01_EXPERIMENT))
     ).Reload()
+    stage99_touchdown_count = EventAccumulator(
+        str(latest_event_file(STAGE99_TOUCHDOWN_COUNT_EXPERIMENT))
+    ).Reload()
     stage99_vertical_touchdown1000 = EventAccumulator(
         str(latest_event_file(STAGE99_VERTICAL_TOUCHDOWN1000_EXPERIMENT))
     ).Reload()
@@ -673,6 +683,12 @@ def rank_panel() -> list[str]:
             "plasticity/critic/features/effective_rank",
             "500 m + 2x centering critic rank",
             "#7c3aed",
+        ),
+        (
+            stage99_touchdown_count,
+            "plasticity/critic/features/effective_rank",
+            "altitude-gated count critic rank",
+            "#dc2626",
         ),
         (
             stage99_vertical_touchdown1000,

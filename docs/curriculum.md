@@ -315,15 +315,30 @@ vertical-speed violations simultaneously drifts outside the 450 m pad, two long-
 separate those objectives more cleanly with a temporary 500 m stage-99 pad gate. Both preserve the
 same protected actor, vertical-only 1.0 m/s² objective, fresh-critic warmup and 5e-7 actor rate; the
 4,096-environment run keeps the baseline 0.05 centering weight and the matched 1,024-environment run
-uses 0.10. Their resolved 153-stage configurations were checked before actor training. The easier
-gate is an experiment only: any successful braking policy must subsequently re-tighten the pad before
-advancing toward the strict 15 m target.
+uses 0.10. Their resolved 153-stage configurations were checked before actor training. Both passed
+the relaxed pad gate during critic-only warmup and now test the unchanged stage-100 re-tightening;
+neither result is counted as new braking behavior.
+A trajectory audit then identified a physical limit hidden by the aggregate crash metrics: the
+one-engine controller is already at essentially full throttle from 1,000 m to touchdown. Failed
+episodes cross 500 m at 62--69 m/s and still contact at 36--48 m/s, so reward tuning cannot create
+the missing braking authority. A whole-descent two-engine warm start found a learnable loose gate but
+was superseded during critic-only warmup by a more localized controller. The existing touchdown
+adapter can now reselect and persist a new engine count exactly when its altitude gate activates,
+with matching training, deterministic deployment and TorchScript semantics. A measured 1,000 m
+handoff uses a +1.24 engine-logit and -3.0 throttle residual while leaving the salto and high-altitude
+one-engine descent bit-exact. On a 700 m pad, 95 m/s vertical and 60 m/s horizontal bridge it lands
+34.4% over 256 fixed-seed episodes and uses 1.18 engines on average; the remaining crashes are 57%
+vertical-limit, 40% horizontal-limit and only 10% pad-miss failures. A fresh critic now warms up on
+that bridge before the altitude-gated adapter begins actor updates. Any successful two-engine policy
+must subsequently traverse a dense braking ladder and re-tighten the pad before the strict 15 m
+target.
 A checkpoint-safe post-loop engine-logit warm start then tested whether the fixed one-engine landing
 schedule lacked braking
 authority. On matched 256-scenario evaluations, logit shifts through +0.60 retain one engine and
 45.3% landing; the first state-dependent two-engine mixtures at +0.62, +0.64, +0.66 and +0.68 fall
-to 37.9%, 23.4%, 10.5% and 0.8%, respectively, while +0.70 and above land 0%. More thrust is therefore
-not the stage-97 remedy; keep the learned one-engine schedule while improving its timing and control. A
+to 37.9%, 23.4%, 10.5% and 0.8%, respectively, while +0.70 and above land 0%. A static whole-descent
+count shift is therefore rejected; the altitude-gated bridge above instead adds authority only for
+the landing burn and jointly adapts throttle, gimbal and count. A
 [39.8-second stage-97 chase recording](assets/salto-stage97-35ms.mp4) and
 [nine-frame sequence](assets/salto-stage97-35ms-sequence.jpg) show a landed 35 m/s curriculum
 episode. They are an interim stricter-boundary artifact, not the final 15 m safe-pad claim.
