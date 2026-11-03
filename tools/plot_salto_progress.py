@@ -452,10 +452,17 @@ TRACES = (
         "#0369a1",
     ),
     Trace(
-        "minimum noise + 2x horizontal shaping (critic warmup)",
+        "minimum noise + 2x horizontal shaping (passed midpoint)",
         ROOT / "out/salto-stage167-midpoint-minstd-hspeed2-v1.log",
         167,
         "#9333ea",
+    ),
+    Trace(
+        "2x horizontal shaping at original boundary (live)",
+        ROOT / "out/salto-stage167-midpoint-minstd-hspeed2-v1.log",
+        168,
+        "#7e22ce",
+        1,
     ),
 )
 

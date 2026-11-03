@@ -80,10 +80,14 @@ has no rollback, although it has not yet produced consecutive gate crossings. It
 best lands 38.9% over a fresh 1,024-episode probe. Among crashes, 56% exceed horizontal speed, 51%
 miss the pad and 27% exceed vertical speed: compared with the initial midpoint policy, pad-miss
 failures improve from 59% to 51% while horizontal-limit failures worsen from 49% to 56%. A protected
-parallel branch therefore doubles only horizontal-speed shaping, trains a fresh critic for 100
-updates, and then uses the same 5e-7 touchdown-adapter rate and 0.005 exploration. The 4,096-environment
-control continues untouched during that bounded A/B. This is a balanced terminal-control problem,
-not another critic-collapse or single-limit failure. The historical path to that boundary starts with
+parallel branch therefore doubles only horizontal-speed shaping and trains a fresh critic for 100
+updates before using the same 5e-7 touchdown-adapter rate and 0.005 exploration. It passes the
+inserted midpoint at iteration 16,097 after about 24 actor updates on consecutive 45% evaluations
+and is now training the original 5/9 boundary at stage 168. Actor rank is healthy at 67/128; the
+fresh critic remains low-rank at 5/128 despite reaching about 0.71 explained variance, so a broad
+fixed-seed probe must still distinguish a policy gain from gate noise. The 4,096-environment control
+continues untouched during that bounded A/B. This is a balanced terminal-control problem, not
+another critic-collapse or single-limit failure. The historical path to that boundary starts with
 `salto_stage60_lateral_pad_v1`: its
 0.625 m/s braking ladder reached and solved the 80 m/s boundary (stage 34) after about 1,000 stage
 updates. Tightening all five landing constraints
