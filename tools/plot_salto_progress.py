@@ -62,6 +62,9 @@ STAGE170_BOUNDARY_CRITIC_EXPERIMENT = (
     ROOT / "logs" / "salto_stage170_source_actor_boundary_critic_512_v1"
 )
 STAGE170_POST_LOOP_EXPERIMENT = ROOT / "logs" / "salto_stage170_post_loop_boundary_4k_v1"
+STAGE170_POST_LOOP_LATERAL_EXPERIMENT = (
+    ROOT / "logs" / "salto_stage170_post_loop_lateral_head_4k_v1"
+)
 STAGE99_VERTICAL_TOUCHDOWN1000_EXPERIMENT = (
     ROOT / "logs" / "salto_stage99_vertical_touchdown1000_v1"
 )
@@ -501,10 +504,16 @@ TRACES = (
         "#ef4444",
     ),
     Trace(
-        "post-loop boundary controller (live)",
+        "full post-loop adapter (retired at 500)",
         ROOT / "out/salto-stage170-post-loop-boundary-4k-v1.log",
         170,
         "#16a34a",
+    ),
+    Trace(
+        "post-loop lateral output head (live)",
+        ROOT / "out/salto-stage170-post-loop-lateral-head-4k-v1.log",
+        170,
+        "#65a30d",
     ),
 )
 
@@ -719,6 +728,9 @@ def rank_panel() -> list[str]:
     ).Reload()
     stage170_post_loop = EventAccumulator(
         str(latest_event_file(STAGE170_POST_LOOP_EXPERIMENT))
+    ).Reload()
+    stage170_post_loop_lateral = EventAccumulator(
+        str(latest_event_file(STAGE170_POST_LOOP_LATERAL_EXPERIMENT))
     ).Reload()
     tags = (
         (control, "plasticity/actor/features/effective_rank", "control actor rank", "#2563eb"),
@@ -1017,6 +1029,18 @@ def rank_panel() -> list[str]:
             "post-loop boundary critic rank",
             "#16a34a",
         ),
+        (
+            stage170_post_loop_lateral,
+            "plasticity/actor/features/effective_rank",
+            "lateral-head actor rank",
+            "#4d7c0f",
+        ),
+        (
+            stage170_post_loop_lateral,
+            "plasticity/critic/features/effective_rank",
+            "lateral-head critic rank",
+            "#65a30d",
+        ),
     )
     series = [
         (label, color, [event.value for event in accumulator.Scalars(tag)])
@@ -1074,8 +1098,8 @@ def rank_panel() -> list[str]:
 def main() -> None:
     OUTPUT.parent.mkdir(parents=True, exist_ok=True)
     elements = [
-        '<svg xmlns="http://www.w3.org/2000/svg" width="880" height="1000" viewBox="0 0 880 1000">',
-        '<rect width="880" height="1000" fill="white"/>',
+        '<svg xmlns="http://www.w3.org/2000/svg" width="880" height="1025" viewBox="0 0 880 1025">',
+        '<rect width="880" height="1025" fill="white"/>',
         '<g font-family="ui-sans-serif, system-ui, sans-serif">',
         *landing_panel(),
         *rank_panel(),

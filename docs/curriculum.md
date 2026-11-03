@@ -130,9 +130,20 @@ than a useful earlier correction. The selected intervention keeps that gate unch
 35 actor tensors from the protected source, and combines them with all 14 critic tensors plus the
 critic optimizer from the completed long control. At the unchanged stage-170 boundary it trains only
 the already phase-gated post-loop residual, which can correct the descent earlier while remaining
-exactly off throughout the learned salto. The verified 4,096-environment run opens at 36% landing
-with the untouched source behavior. The 40% gate is only for intermediate traversal; final broad
-strict-target acceptance remains unchanged.
+exactly off throughout the learned salto. A checkpoint audit at update 100 confirms that only its six
+parameter tensors change; every other actor tensor remains bit-identical. The fixed broad probes land
+33.6% at update 100 and 29.8% at update 250, then fall to 22.3% by update 500. Its deterministic mean
+declines from 29.9% over the full 500-update window to 27.5%, 25.1% and 25.2% over the latest 250, 100
+and 20 evaluations. By update 500, vertical-limit crash failures worsen to 49%, horizontal failures
+are 54% and pad misses are 41%; a critic output-layer update-ratio warning joins the negative broad
+trend even though actor/critic ranks remain 71/128 and 43/128. The full residual is therefore retired
+at the planned checkpoint rather than allowed to trade away the protected engine/throttle braking
+schedule. A new `post_loop_lateral_head` update scope freezes the adapter's feature layers and masks
+the final layer's three engine-logit and throttle rows. Only the two gimbals, four flaps and roll RCS
+can change after the salto; a regression test verifies the protected rows and all shared features are
+bit-identical after an optimizer step. The verified 4,096-environment successor opens at 37% landing
+from the source actor and healthy boundary critic. The 40% gate is only for intermediate traversal;
+final broad strict-target acceptance remains unchanged.
 The protected midpoint best's new
 [40-second chase recording](assets/salto-stage167-midpoint-live.mp4) and
 [nine-frame sequence](assets/salto-stage167-midpoint-live-sequence.jpg) show seed 3 completing one
