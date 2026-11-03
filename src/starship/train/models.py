@@ -31,6 +31,7 @@ class ContinuousAdapterRNNModel(RNNModel):
         continuous_adapter_hidden_dim: int = 64,
         engine_adapter_hidden_dim: int = 0,
         post_loop_adapter_hidden_dim: int = 0,
+        post_loop_lateral_adapter_hidden_dim: int = 0,
         touchdown_adapter_hidden_dim: int = 0,
         post_loop_progress_index: int = 27,
         post_loop_progress_threshold: float = 0.999999,
@@ -46,6 +47,8 @@ class ContinuousAdapterRNNModel(RNNModel):
             raise ValueError("engine_adapter_hidden_dim must be nonnegative")
         if post_loop_adapter_hidden_dim < 0:
             raise ValueError("post_loop_adapter_hidden_dim must be nonnegative")
+        if post_loop_lateral_adapter_hidden_dim < 0:
+            raise ValueError("post_loop_lateral_adapter_hidden_dim must be nonnegative")
         if touchdown_adapter_hidden_dim < 0:
             raise ValueError("touchdown_adapter_hidden_dim must be nonnegative")
         super().__init__(*args, **kwargs)
@@ -112,6 +115,26 @@ class ContinuousAdapterRNNModel(RNNModel):
             )
             nn.init.zeros_(post_loop_output.weight)
             nn.init.zeros_(post_loop_output.bias)
+        self.post_loop_lateral_adapter = None
+        if post_loop_lateral_adapter_hidden_dim:
+            # Give steering a private feature path so it can gain capacity without changing the
+            # protected engine-count logits or throttle through shared hidden activations.
+            self.post_loop_lateral_adapter = MLP(
+                self.obs_dim,
+                ACTION_DIM - ENGINE_HEADS - 1,
+                [
+                    post_loop_lateral_adapter_hidden_dim,
+                    post_loop_lateral_adapter_hidden_dim,
+                ],
+                kwargs.get("activation", "elu"),
+            )
+            lateral_output = next(
+                module
+                for module in reversed(list(self.post_loop_lateral_adapter.modules()))
+                if isinstance(module, nn.Linear)
+            )
+            nn.init.zeros_(lateral_output.weight)
+            nn.init.zeros_(lateral_output.bias)
         self.touchdown_adapter = None
         if touchdown_adapter_hidden_dim:
             # Fine touchdown corrections should not perturb either the learned stunt or the
@@ -158,6 +181,19 @@ class ContinuousAdapterRNNModel(RNNModel):
                 progress = unpad_trajectories(progress.unsqueeze(-1), masks).squeeze(-1)
             gate = (progress >= progress_threshold).to(output.dtype).unsqueeze(-1)
             output = output + gate * post_loop_adapter(adapter_obs)
+        post_loop_lateral_adapter = getattr(self, "post_loop_lateral_adapter", None)
+        if post_loop_lateral_adapter is not None:
+            adapter_obs = unpad_trajectories(normalized, masks) if masks is not None else normalized
+            progress_index = getattr(self, "post_loop_progress_index", 27)
+            progress_threshold = getattr(self, "post_loop_progress_threshold", 0.999999)
+            progress = raw[..., progress_index]
+            if masks is not None:
+                progress = unpad_trajectories(progress.unsqueeze(-1), masks).squeeze(-1)
+            gate = (progress >= progress_threshold).to(output.dtype).unsqueeze(-1)
+            lateral = output[..., ENGINE_HEADS + 1 :] + gate * post_loop_lateral_adapter(
+                adapter_obs
+            )
+            output = torch.cat((output[..., : ENGINE_HEADS + 1], lateral), dim=-1)
         touchdown_adapter = getattr(self, "touchdown_adapter", None)
         if touchdown_adapter is not None:
             adapter_obs = unpad_trajectories(normalized, masks) if masks is not None else normalized
@@ -317,6 +353,12 @@ class _TorchLSTMContinuousAdapter(nn.Module):
         self.post_loop_adapter = (
             copy.deepcopy(post_loop_adapter) if post_loop_adapter else _ZeroPostLoopAdapter()
         )
+        post_loop_lateral_adapter = getattr(model, "post_loop_lateral_adapter", None)
+        self.post_loop_lateral_adapter = (
+            copy.deepcopy(post_loop_lateral_adapter)
+            if post_loop_lateral_adapter
+            else _ZeroPostLoopLateralAdapter()
+        )
         touchdown_adapter = getattr(model, "touchdown_adapter", None)
         self.touchdown_adapter = (
             copy.deepcopy(touchdown_adapter) if touchdown_adapter else _ZeroPostLoopAdapter()
@@ -360,6 +402,8 @@ class _TorchLSTMContinuousAdapter(nn.Module):
         progress = raw[..., self.post_loop_progress_index]
         gate = (progress >= self.post_loop_progress_threshold).to(output.dtype).unsqueeze(-1)
         output = output + gate * self.post_loop_adapter(x)
+        lateral = output[..., 4:] + gate * self.post_loop_lateral_adapter(x)
+        output = torch.cat((output[..., :4], lateral), dim=-1)
         altitude = raw[..., self.touchdown_altitude_index]
         touchdown_gate = (progress >= self.post_loop_progress_threshold) & (
             altitude <= self.touchdown_altitude_threshold
@@ -402,6 +446,17 @@ class _ZeroPostLoopAdapter(nn.Module):
     def __init__(self) -> None:
         super().__init__()
         self.output_dim = ACTION_DIM
+
+    def forward(self, obs: torch.Tensor) -> torch.Tensor:
+        return torch.zeros_like(obs[..., : self.output_dim])
+
+
+class _ZeroPostLoopLateralAdapter(nn.Module):
+    """Keep the exported wrapper uniform when the private steering residual is disabled."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.output_dim = ACTION_DIM - ENGINE_HEADS - 1
 
     def forward(self, obs: torch.Tensor) -> torch.Tensor:
         return torch.zeros_like(obs[..., : self.output_dim])

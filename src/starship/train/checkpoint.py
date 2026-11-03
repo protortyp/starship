@@ -27,6 +27,7 @@ def migrate_checkpoint(checkpoint: dict, actor: nn.Module, critic: nn.Module, op
                     "continuous_adapter.",
                     "engine_adapter.",
                     "post_loop_adapter.",
+                    "post_loop_lateral_adapter.",
                     "touchdown_adapter.",
                 )
             )

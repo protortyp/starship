@@ -691,6 +691,65 @@ def test_post_loop_lateral_head_preserves_engine_throttle_and_shared_features(tm
             assert torch.equal(value, after[name]), name
 
 
+def test_private_post_loop_lateral_adapter_loads_exactly_and_preserves_protected_actions(
+    tmp_path,
+):
+    base_cfg = compose_cfg(
+        "num_envs=8",
+        "runner.actor.class_name=starship.train.models:ContinuousAdapterRNNModel",
+        "+runner.actor.continuous_adapter_hidden_dim=16",
+        "+runner.actor.engine_adapter_hidden_dim=8",
+        "+runner.actor.post_loop_adapter_hidden_dim=16",
+        "+runner.actor.post_loop_progress_threshold=0.0",
+    )
+    base = make_runner(base_cfg, tmp_path / "base")
+    checkpoint = tmp_path / "base" / "model.pt"
+    base.save(str(checkpoint))
+    obs = base.env.get_observations()
+    base.alg.actor.reset()
+    expected = base.alg.actor(obs, stochastic_output=False).detach()
+
+    cfg = compose_cfg(
+        "num_envs=8",
+        "runner.actor.class_name=starship.train.models:ContinuousAdapterRNNModel",
+        "+runner.actor.continuous_adapter_hidden_dim=16",
+        "+runner.actor.engine_adapter_hidden_dim=8",
+        "+runner.actor.post_loop_adapter_hidden_dim=16",
+        "+runner.actor.post_loop_lateral_adapter_hidden_dim=16",
+        "+runner.actor.post_loop_progress_threshold=0.0",
+        "+runner.algorithm.actor_update_scope=post_loop_lateral_adapter",
+    )
+    runner = make_runner(cfg, tmp_path / "lateral")
+    runner.load(str(checkpoint))
+    actor = runner.alg.actor
+    actor.reset()
+    actual = actor(obs, stochastic_output=False).detach()
+    assert torch.equal(expected, actual)
+
+    before = {name: parameter.detach().clone() for name, parameter in actor.named_parameters()}
+    collect(runner)
+    runner.alg.update()
+    after = dict(actor.named_parameters())
+    changed = []
+    for name, value in before.items():
+        if name.startswith("post_loop_lateral_adapter."):
+            changed.append(not torch.equal(value, after[name]))
+        else:
+            assert torch.equal(value, after[name]), name
+    assert any(changed)
+
+    actor.reset()
+    updated = actor(obs, stochastic_output=False).detach()
+    assert torch.equal(expected[..., : ENGINE_HEADS + 1], updated[..., : ENGINE_HEADS + 1])
+    assert not torch.equal(expected[..., ENGINE_HEADS + 1 :], updated[..., ENGINE_HEADS + 1 :])
+    actor.reset()
+    expected_export = actor(obs[:1], stochastic_output=False)
+    actor.reset()
+    with pytest.warns(FutureWarning, match="torch.jit.script"):
+        exported = torch.jit.script(actor.as_jit().eval())
+    torch.testing.assert_close(exported(obs["policy"][:1]), expected_export)
+
+
 def test_post_loop_adapter_is_gated_and_jit_matches_policy(tmp_path):
     cfg = compose_cfg(
         "num_envs=1",

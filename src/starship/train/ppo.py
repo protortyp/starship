@@ -70,12 +70,13 @@ class InstrumentedPPO(PPO):
             "hybrid_adapter",
             "post_loop_adapter",
             "post_loop_lateral_head",
+            "post_loop_lateral_adapter",
             "touchdown_adapter",
         ):
             raise ValueError(
                 "actor_update_scope must be 'all', 'continuous_head', 'continuous_adapter', "
-                "'hybrid_adapter', 'post_loop_adapter', 'post_loop_lateral_head', or "
-                "'touchdown_adapter'"
+                "'hybrid_adapter', 'post_loop_adapter', 'post_loop_lateral_head', "
+                "'post_loop_lateral_adapter', or 'touchdown_adapter'"
             )
         super().__init__(*args, **kwargs)
         self.max_kl = max_kl
@@ -92,6 +93,8 @@ class InstrumentedPPO(PPO):
             self._freeze_actor_except_post_loop_adapter()
         elif actor_update_scope == "post_loop_lateral_head":
             self._freeze_actor_except_post_loop_lateral_head()
+        elif actor_update_scope == "post_loop_lateral_adapter":
+            self._freeze_actor_except_post_loop_lateral_adapter()
         elif actor_update_scope == "touchdown_adapter":
             self._freeze_actor_except_touchdown_adapter()
         # Every `diagnostics_interval` updates, log network health under plasticity/* (0 = off).
@@ -201,6 +204,19 @@ class InstrumentedPPO(PPO):
         bias_mask[: ENGINE_HEADS + 1] = 0
         output.weight.register_hook(lambda grad: grad * weight_mask)
         output.bias.register_hook(lambda grad: grad * bias_mask)
+
+    def _freeze_actor_except_post_loop_lateral_adapter(self) -> None:
+        """Train a private steering residual while preserving engine count and throttle exactly."""
+        adapter = getattr(self.actor, "post_loop_lateral_adapter", None)
+        if adapter is None:
+            raise ValueError(
+                "actor_update_scope='post_loop_lateral_adapter' requires an actor with "
+                "post_loop_lateral_adapter"
+            )
+        for parameter in self.actor.parameters():
+            parameter.requires_grad_(False)
+        for parameter in adapter.parameters():
+            parameter.requires_grad_(True)
 
     def _freeze_actor_except_touchdown_adapter(self) -> None:
         """Train only the near-ground residual while preserving stunt and descent behavior."""
