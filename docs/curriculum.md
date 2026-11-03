@@ -201,8 +201,12 @@ deterministic evaluations are 34%, 31% and 30%. Fixed 1,024-seed checkpoints nea
 horizontal speed and 47% miss the pad, while actor/critic rank remains healthy at 73/44. Through
 514 live evaluations the midpoint averages 31.9% overall and over its latest 500, 31.8% latest-250,
 31.2% latest-100 and 31.7% latest-20 without promotion or rollback. This is a healthy but broadly
-flat opening, so the same uninterrupted run continues toward 1,000/1,500 updates. Final broad
-strict-target acceptance remains unchanged.
+flat opening. The fixed checkpoint near update 1,000 likewise lands 30.3%; 35% of crashes exceed
+vertical speed, 62% exceed horizontal speed and 48% miss the pad, with actor/critic rank still
+healthy at 73/44. Through 1,013 live evaluations the midpoint averages 31.9% overall and over its
+latest 1,000, 32.0% latest-500, 32.5% latest-250, 32.3% latest-100 and 32.4% latest-20. The live
+window is slightly stronger but the broad fixed result remains flat, so the same uninterrupted run
+continues to 1,500 updates. Final broad strict-target acceptance remains unchanged.
 A checkpoint-safe private post-loop steering adapter was then tested as a matched capacity A/B. It
 keeps engine logits and throttle exact while learning its own gimbal, flap and RCS features, but the
 live result falls to 26% over its latest 20 evaluations by update 129. Its fixed update-124 probe
