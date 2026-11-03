@@ -38,15 +38,15 @@
 
 The `salto_land` curriculum first learns one powered end-over-end rotation and recovery, then keeps
 the same recurrent policy alive while tightening touchdown speed, pad radius, attitude and angular
-rate. It expands to 153 stages and has a 2,000-update default budget; promotion requires at least 45%
+rate. It expands to 205 stages and has a 2,000-update default budget; promotion requires at least 45%
 of 256 deterministic evaluation episodes twice in succession. Compact numeric interpolation blocks
 keep the long braking tail reviewable while limiting each post-60 transition to 1.25 m/s vertical
 speed, 0.75 m/s horizontal speed, 12.5 m pad radius, 5° tilt, and 10°/s angular rate. The final stage
 additionally requires exactly one inverted-to-upright recovery with no re-flip and penalizes axial
 roll and rotation beyond 360°.
 
-Current campaign: stages 0--98 are solved and the protected stage-99 vertical-speed bridge is
-active. The historical path to that boundary starts with `salto_stage60_lateral_pad_v1`: its
+Current campaign: stages 0--98 are solved and the protected stage-99 altitude-gated engine-count
+bridge is active. The historical path to that boundary starts with `salto_stage60_lateral_pad_v1`: its
 0.625 m/s braking ladder reached and solved the 80 m/s boundary (stage 34) after about 1,000 stage
 updates. Tightening all five landing constraints
 directly from 80 to 70 m/s then dropped deterministic landings to zero. Interpolating that transition
@@ -263,8 +263,8 @@ original stage while preserving all solved and downstream waypoints exactly. Its
 lands 38.0% over 1,024 episodes versus 36.0% at the original step, but the coupled midpoint averaged
 37.25% over 100 evaluations, declined to 35.4% over its latest 20, and crossed the 45% gate only in
 isolation despite actor rank remaining healthy. Following the earlier general-landing breakthrough,
-stage 99 now isolates the vertical-speed half-step while retaining the solved 450 m pad and 22 m/s
-horizontal limit; stage 100 then tightens the pad and horizontal speed before the original boundary.
+the first stage-99 intervention isolated the vertical-speed half-step while retaining the solved
+450 m pad and 22 m/s horizontal limit; a lateral half-step then preceded the original boundary.
 The coupled run remains an untouched control while matched fresh-critic runs compare the split. A
 fresh critic on the vertical-only stage restores feature rank from 15/128 to 67/128 while keeping
 the protected actor bit-identical for its first 100 updates. A second zero-initialized touchdown

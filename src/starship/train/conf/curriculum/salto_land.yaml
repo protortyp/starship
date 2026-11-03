@@ -562,20 +562,36 @@ stages:
         - sim.landing.pad_radius=450
         - sim.landing.max_vertical_speed=35
         - sim.landing.max_horizontal_speed=22
+  # The one-engine controller is physically saturated below 1 km: failed episodes cross 500 m at
+  # 62--69 m/s with the selected engine already at full throttle. Introduce the measured
+  # altitude-gated count handoff on a learnable envelope, then use the same maximum increments that
+  # solved the earlier dense braking ladder. Stages 0--98 remain exact for checkpoint compatibility.
+  - name: altitude-gated two-engine landing-burn bridge
+    overrides:
+      - sim.landing.pad_radius=700
+      - sim.landing.max_vertical_speed=95
+      - sim.landing.max_horizontal_speed=60
+      - reward.speed_weight=0
+      - reward.vertical_speed_weight=10
+      - reward.horizontal_distance_weight=0.1
+      - reward.safe_deceleration=1
+  # Fifty-one cumulative steps cap each transition at 4.91 m of pad radius, 1.18 m/s vertical speed
+  # and 0.75 m/s horizontal speed while the touchdown adapter learns coordinated two-engine
+  # throttle and gimbal control. The final interpolation stage exactly restores the solved 35 m/s
+  # limits before the previously measured blocked boundary resumes.
+  - name: two-engine braking toward 35 m/s
+    interpolate:
+      steps: 51
+      overrides:
+        - sim.landing.pad_radius=450
+        - sim.landing.max_vertical_speed=35
+        - sim.landing.max_horizontal_speed=22
   # The first 35 -> 30 m/s interpolation step stayed at a 39.5% protected best for its first 80
   # evaluations. Its broad probe attributed 89% of crashes to vertical speed and 59% to the pad.
-  # A coupled half-step then averaged 37.25% over 100 evaluations and declined to 35.4% over its
-  # latest 20. Isolate its two measured failure modes: learn the smaller vertical-speed limit while
-  # keeping the solved pad/horizontal limits, then apply the lateral half-step before preserving the
-  # original waypoint and remaining spacing. The legacy dense speed potential uses total 3-D speed,
-  # which duplicated horizontal shaping and made stronger braking trade vertical speed for pad miss.
-  # From this boundary onward, align it with the vertical touchdown gate while retaining the
-  # dedicated horizontal-speed term.
+  # Preserve the measured vertical-only half-step, lateral half-step and original downstream point.
   - name: bridge vertical speed toward 34.583 m/s
     overrides:
       - sim.landing.max_vertical_speed=34.58333333333333
-      - reward.speed_weight=0
-      - reward.vertical_speed_weight=10
   - name: bridge pad and horizontal speed toward 34.583 m/s
     overrides:
       - sim.landing.pad_radius=445.8333333333333

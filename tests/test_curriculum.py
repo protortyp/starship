@@ -154,7 +154,7 @@ def test_salto_landing_curriculum_finishes_with_a_strict_single_loop():
         cfg = compose("salto_land")
     assert cfg.iterations == 2000
     curriculum = Curriculum(cfg, cfg.curriculum)
-    assert len(curriculum.stages) == 153
+    assert len(curriculum.stages) == 205
     horizontal, horizontal_reward = curriculum.configs(56)
     assert horizontal.landing.pad_radius == pytest.approx(718.75)
     assert horizontal.landing.max_vertical_speed == pytest.approx(73.75)
@@ -202,19 +202,35 @@ def test_salto_landing_curriculum_finishes_with_a_strict_single_loop():
     assert original_boundary.landing.max_horizontal_speed == pytest.approx(22)
     assert original_reward.speed_weight == pytest.approx(10)
     assert original_reward.vertical_speed_weight == 0
-    next_vertical, next_vertical_reward = curriculum.configs(99)
+    count_bridge, count_bridge_reward = curriculum.configs(99)
+    assert count_bridge.landing.pad_radius == pytest.approx(700)
+    assert count_bridge.landing.max_vertical_speed == pytest.approx(95)
+    assert count_bridge.landing.max_horizontal_speed == pytest.approx(60)
+    assert count_bridge_reward.speed_weight == 0
+    assert count_bridge_reward.vertical_speed_weight == pytest.approx(10)
+    assert count_bridge_reward.horizontal_distance_weight == pytest.approx(0.1)
+    assert count_bridge_reward.safe_deceleration == pytest.approx(1)
+    first_count_step, _ = curriculum.configs(100)
+    assert first_count_step.landing.pad_radius == pytest.approx(700 + (450 - 700) / 51)
+    assert first_count_step.landing.max_vertical_speed == pytest.approx(95 + (35 - 95) / 51)
+    assert first_count_step.landing.max_horizontal_speed == pytest.approx(60 + (22 - 60) / 51)
+    restored_boundary, _ = curriculum.configs(150)
+    assert restored_boundary.landing.pad_radius == pytest.approx(450)
+    assert restored_boundary.landing.max_vertical_speed == pytest.approx(35)
+    assert restored_boundary.landing.max_horizontal_speed == pytest.approx(22)
+    next_vertical, next_vertical_reward = curriculum.configs(151)
     assert next_vertical.landing.pad_radius == pytest.approx(450)
     assert next_vertical.landing.max_vertical_speed == pytest.approx(34.58333333333333)
     assert next_vertical.landing.max_horizontal_speed == pytest.approx(22)
     assert next_vertical_reward.speed_weight == 0
     assert next_vertical_reward.vertical_speed_weight == pytest.approx(10)
-    next_lateral, next_lateral_reward = curriculum.configs(100)
+    next_lateral, next_lateral_reward = curriculum.configs(152)
     assert next_lateral.landing.pad_radius == pytest.approx(445.8333333333333)
     assert next_lateral.landing.max_vertical_speed == pytest.approx(34.58333333333333)
     assert next_lateral.landing.max_horizontal_speed == pytest.approx(21.666666666666664)
     assert next_lateral_reward.speed_weight == 0
     assert next_lateral_reward.vertical_speed_weight == pytest.approx(10)
-    original_next, _ = curriculum.configs(101)
+    original_next, _ = curriculum.configs(153)
     assert original_next.landing.pad_radius == pytest.approx(441.6666666666667)
     assert original_next.landing.max_vertical_speed == pytest.approx(34.166666666666664)
     assert original_next.landing.max_horizontal_speed == pytest.approx(21.333333333333332)
