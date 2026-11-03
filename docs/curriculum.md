@@ -331,8 +331,15 @@ one-engine descent bit-exact. On a 700 m pad, 95 m/s vertical and 60 m/s horizon
 34.4% over 256 fixed-seed episodes and uses 1.18 engines on average; the remaining crashes are 57%
 vertical-limit, 40% horizontal-limit and only 10% pad-miss failures. A fresh critic now warms up on
 that bridge before the altitude-gated adapter begins actor updates; a matched seed-1 run uses 4,096
-environments and a 2x adapter rate to test the same handoff with higher-throughput experience. Any
-successful two-engine policy
+environments and a 2x adapter rate to test the same handoff with higher-throughput experience. A
+probe bug briefly overstated both policies because its confidence-only stochastic forward cleared
+the deterministic touchdown-count latch before every action; confidence now runs through a separate
+policy copy. Corrected 1,024-seed probes at actor updates 40 and 90 are 32.8%/33.9% for the
+conservative branch and 35.2%/39.4% for the high-throughput branch, against a 34.8% baseline. The
+conservative branch is retired after 149 actor updates. The improving branch continues long-horizon,
+but its mean engine count falls from 1.18 to 1.08 and 88% of update-90 crashes still break the loose
+vertical-speed bound; a stricter 90 m/s branch therefore tests whether the 95 m/s success gate is
+rewarding a retreat to the inherited one-engine schedule. Any successful two-engine policy
 must subsequently traverse a dense braking ladder and re-tighten the pad before the strict 15 m
 target.
 A checkpoint-safe post-loop engine-logit warm start then tested whether the fixed one-engine landing
