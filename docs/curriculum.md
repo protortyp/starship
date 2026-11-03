@@ -38,7 +38,7 @@
 
 The `salto_land` curriculum first learns one powered end-over-end rotation and recovery, then keeps
 the same recurrent policy alive while tightening touchdown speed, pad radius, attitude and angular
-rate. It expands to 151 stages and has a 2,000-update default budget; promotion requires at least 45%
+rate. It expands to 152 stages and has a 2,000-update default budget; promotion requires at least 45%
 of 256 deterministic evaluation episodes twice in succession. Compact numeric interpolation blocks
 keep the long braking tail reviewable while limiting each post-60 transition to 1.25 m/s vertical
 speed, 0.75 m/s horizontal speed, 12.5 m pad radius, 5° tilt, and 10°/s angular rate. The final stage
@@ -254,7 +254,10 @@ original 35 m/s boundary moves to stage 98 and remains unchanged. A protected pa
 this curriculum bridge while the long stage-97 optimizer continues untouched. Its early protected
 best lands 41.7% over 1,024 episodes; the midpoint passed after 101 updates on consecutive 48%
 evaluations, and the original unchanged 35 m/s boundary inherited a 46% first evaluation and passed
-after another 26 updates. Stage 99, the first 30 m/s interpolation step, starts at 32--37%. A checkpoint-safe post-loop
+after another 26 updates. The original first 30 m/s interpolation step plateaued at a 39.5%
+protected best over its first 80 evaluations; a 1,024-episode probe lands 36.0%, with 89% of crashes
+breaking vertical speed and 59% missing the pad. A protected 34.583 m/s midpoint now precedes that
+original stage while preserving all solved and downstream waypoints exactly. A checkpoint-safe post-loop
 engine-logit warm start then tested whether the fixed one-engine landing schedule lacked braking
 authority. On matched 256-scenario evaluations, logit shifts through +0.60 retain one engine and
 45.3% landing; the first state-dependent two-engine mixtures at +0.62, +0.64, +0.66 and +0.68 fall
