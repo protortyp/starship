@@ -60,7 +60,10 @@ bootstrap rate. That resume bug is now regression-tested and fixed. Recovery fro
 stage-166 checkpoint runs at a TensorBoard-confirmed 1e-6, recovered live rollout landing from zero
 to 31% in four iterations, and passed the boundary after 16 iterations on consecutive 47% and 50%
 evaluations. Stage 167, step five of nine toward 20 m/s, is active. The historical path to that
-boundary starts with
+boundary starts from a protected 512-episode landing rate of 37.1%; among its crashes, 58% miss the
+pad, 47% exceed horizontal speed and 33% exceed vertical speed. The tighter step is therefore a
+balanced terminal-control problem rather than another critic-collapse or single-limit failure. The
+historical path to that boundary starts with
 `salto_stage60_lateral_pad_v1`: its
 0.625 m/s braking ladder reached and solved the 80 m/s boundary (stage 34) after about 1,000 stage
 updates. Tightening all five landing constraints
