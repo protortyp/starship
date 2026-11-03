@@ -175,11 +175,11 @@ preceding measured half-steps. Fraction 13/18 now inserts only its midpoint at 3
 original stage-171 boundary moves unchanged to stage 172. A verified restart carries the exact solved
 stage-170 actor, critic and optimizer into that midpoint. It opens at 35% deterministic landing and
 its first diagnostic is warning-free at 67/128 actor and 42/128 critic rank. Fixed checkpoints near
-updates 124 and 224 land 32.7% and 33.2% over 1,024 seeds. At update 224, 28% of crashes exceed
-vertical speed, 58% exceed horizontal speed and 53% miss the pad, while actor/critic rank remains
-72/43. Landed episodes complete exactly one inverted-to-upright recovery at this still-loose midpoint,
-although the later strict cleanup stages must still remove the subsequent re-flip. Final broad
-strict-target acceptance remains unchanged.
+updates 124, 224 and 424 land 32.7%, 33.2% and 34.8% over 1,024 seeds. At update 424, 28% of
+crashes exceed vertical speed, 60% exceed horizontal speed and 52% miss the pad, while actor/critic
+rank remains healthy at 73/42. Landed episodes complete exactly one inverted-to-upright recovery at
+this still-loose midpoint, although the later strict cleanup stages must still remove the subsequent
+re-flip. Final broad strict-target acceptance remains unchanged.
 A checkpoint-safe private post-loop steering adapter was then tested as a matched capacity A/B. It
 keeps engine logits and throttle exact while learning its own gimbal, flap and RCS features, but the
 live result falls to 26% over its latest 20 evaluations by update 129. Its fixed update-124 probe
