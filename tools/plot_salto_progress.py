@@ -28,6 +28,7 @@ STAGE99_VERTICAL_REWARD_EXPERIMENT = ROOT / "logs" / "salto_stage99_vertical_rew
 STAGE99_VERTICAL_SAFE1_EXPERIMENT = ROOT / "logs" / "salto_stage99_vertical_safe1_v1"
 STAGE99_VERTICAL_SAFE1_FAST_EXPERIMENT = ROOT / "logs" / "salto_stage99_vertical_safe1_fast_v1"
 STAGE99_VERTICAL_SAFE1_PAD01_EXPERIMENT = ROOT / "logs" / "salto_stage99_vertical_safe1_pad01_v1"
+STAGE99_VERTICAL_SAFE1_PAD02_EXPERIMENT = ROOT / "logs" / "salto_stage99_vertical_safe1_pad02_v1"
 STAGE99_VERTICAL_TOUCHDOWN1000_EXPERIMENT = (
     ROOT / "logs" / "salto_stage99_vertical_touchdown1000_v1"
 )
@@ -328,7 +329,7 @@ TRACES = (
         "#047857",
     ),
     Trace(
-        "vertical-only + 1,000 m specialist (live)",
+        "vertical-only + 1,000 m specialist (retired)",
         ROOT / "out/salto-stage99-vertical-touchdown1000-v1.log",
         99,
         "#0e7490",
@@ -344,6 +345,12 @@ TRACES = (
         ROOT / "out/salto-stage99-vertical-safe1-pad01-v1.log",
         99,
         "#15803d",
+    ),
+    Trace(
+        "vertical-only + 1 m/s² + 4x pad shaping (live)",
+        ROOT / "out/salto-stage99-vertical-safe1-pad02-v1.log",
+        99,
+        "#166534",
     ),
 )
 
@@ -495,6 +502,9 @@ def rank_panel() -> list[str]:
     stage99_vertical_safe1_pad01 = EventAccumulator(
         str(latest_event_file(STAGE99_VERTICAL_SAFE1_PAD01_EXPERIMENT))
     ).Reload()
+    stage99_vertical_safe1_pad02 = EventAccumulator(
+        str(latest_event_file(STAGE99_VERTICAL_SAFE1_PAD02_EXPERIMENT))
+    ).Reload()
     stage99_vertical_touchdown1000 = EventAccumulator(
         str(latest_event_file(STAGE99_VERTICAL_TOUCHDOWN1000_EXPERIMENT))
     ).Reload()
@@ -620,6 +630,12 @@ def rank_panel() -> list[str]:
             "plasticity/critic/features/effective_rank",
             "vertical-only + 2x pad critic rank",
             "#15803d",
+        ),
+        (
+            stage99_vertical_safe1_pad02,
+            "plasticity/critic/features/effective_rank",
+            "vertical-only + 4x pad critic rank",
+            "#166534",
         ),
         (
             stage99_vertical_touchdown1000,

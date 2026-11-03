@@ -304,6 +304,10 @@ as pad misses reach 70% despite vertical failures improving to 74%. That control
 actor updates. A matched 2e-6 actor-rate run now tests faster adaptation, while a new
 4,096-environment run doubles near-ground pad-centering weight from 0.05 to 0.10 under the same
 vertical-only 1.0 m/s² objective.
+The combined vertical-only/1,000 m touchdown adapter is steadier in its training window but likewise
+fails to improve broadly: its 40- and 90-update checkpoints land 38.9% and 38.7%, with 63% and 61%
+pad-miss failures. It is retired after 102 actor updates. A matched 0.20 pad-centering branch now
+brackets the 0.10 intervention while both actors retain the same 5e-7 learning rate.
 A checkpoint-safe post-loop engine-logit warm start then tested whether the fixed one-engine landing
 schedule lacked braking
 authority. On matched 256-scenario evaluations, logit shifts through +0.60 retain one engine and
