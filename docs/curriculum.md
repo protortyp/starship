@@ -142,7 +142,15 @@ schedule. A new `post_loop_lateral_head` update scope freezes the adapter's feat
 the final layer's three engine-logit and throttle rows. Only the two gimbals, four flaps and roll RCS
 can change after the salto; a regression test verifies the protected rows and all shared features are
 bit-identical after an optimizer step. The verified 4,096-environment successor opens at 37% landing
-from the source actor and healthy boundary critic. The 40% gate is only for intermediate traversal;
+from the source actor and healthy boundary critic. Its first 100 evaluations average 33.7%, latest-20
+landing is 34.1%, and its fixed 1,024-seed probe lands 34.1% versus 33.4% for the source. Horizontal-
+limit failures improve from 62% to 57% while vertical failures stay near baseline at 27%. A tensor
+audit confirms that only the final post-loop weight and bias change and that their engine/throttle
+rows remain exact. The run then produces the required consecutive 40% evaluations and passes the
+formerly blocked stage 170 after about 126 actor updates. The next-stage distribution briefly reads
+31/128 critic feature rank, but explained variance remains 0.93--0.97 and the following diagnostic
+recovers to 40/128. Training resumes from the protected stage-171 best; its fresh diagnostic is
+warning-free at 67/128 actor and 43/128 critic rank. The 40% gate is only for intermediate traversal;
 final broad strict-target acceptance remains unchanged.
 The protected midpoint best's new
 [40-second chase recording](assets/salto-stage167-midpoint-live.mp4) and

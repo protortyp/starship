@@ -65,6 +65,9 @@ STAGE170_POST_LOOP_EXPERIMENT = ROOT / "logs" / "salto_stage170_post_loop_bounda
 STAGE170_POST_LOOP_LATERAL_EXPERIMENT = (
     ROOT / "logs" / "salto_stage170_post_loop_lateral_head_4k_v1"
 )
+STAGE171_POST_LOOP_LATERAL_EXPERIMENT = (
+    ROOT / "logs" / "salto_stage171_post_loop_lateral_head_4k_v1"
+)
 STAGE99_VERTICAL_TOUCHDOWN1000_EXPERIMENT = (
     ROOT / "logs" / "salto_stage99_vertical_touchdown1000_v1"
 )
@@ -515,6 +518,12 @@ TRACES = (
         170,
         "#65a30d",
     ),
+    Trace(
+        "protected lateral head at stage 171 (live)",
+        ROOT / "out/salto-stage171-post-loop-lateral-head-4k-v1.log",
+        171,
+        "#3f6212",
+    ),
 )
 
 
@@ -731,6 +740,9 @@ def rank_panel() -> list[str]:
     ).Reload()
     stage170_post_loop_lateral = EventAccumulator(
         str(latest_event_file(STAGE170_POST_LOOP_LATERAL_EXPERIMENT))
+    ).Reload()
+    stage171_post_loop_lateral = EventAccumulator(
+        str(latest_event_file(STAGE171_POST_LOOP_LATERAL_EXPERIMENT))
     ).Reload()
     tags = (
         (control, "plasticity/actor/features/effective_rank", "control actor rank", "#2563eb"),
@@ -1040,6 +1052,18 @@ def rank_panel() -> list[str]:
             "plasticity/critic/features/effective_rank",
             "lateral-head critic rank",
             "#65a30d",
+        ),
+        (
+            stage171_post_loop_lateral,
+            "plasticity/actor/features/effective_rank",
+            "stage-171 lateral actor rank",
+            "#365314",
+        ),
+        (
+            stage171_post_loop_lateral,
+            "plasticity/critic/features/effective_rank",
+            "stage-171 lateral critic rank",
+            "#3f6212",
         ),
     )
     series = [
