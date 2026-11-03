@@ -535,10 +535,16 @@ TRACES = (
         "#84cc16",
     ),
     Trace(
-        "original stage-172 boundary (live)",
+        "original stage-172 boundary, 1,500 updates (retired)",
         ROOT / "out/salto-stage171-midpoint-lateral-head-4k-v1.log",
         172,
         "#65a30d",
+    ),
+    Trace(
+        "measured stage-172 midpoint (live)",
+        ROOT / "out/salto-stage172-midpoint-lateral-head-4k-v1.log",
+        172,
+        "#4d7c0f",
     ),
     Trace(
         "private lateral adapter, 129 updates (retired)",

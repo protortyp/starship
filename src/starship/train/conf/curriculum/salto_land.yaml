@@ -623,9 +623,10 @@ stages:
       # original 5/9 boundary still lands 37.1%, but three healthy training trajectories move
       # away from it. The next original 2/3 boundary likewise regresses from 33.4% to 29.1% broad
       # landing over 500 healthy actor updates. The protected lateral-only controller solves that
-      # 2/3 boundary, but then remains flat for 1,500 healthy updates at the next original 7/9
-      # boundary. Insert only the measured half-steps at those three blocked transitions, then
-      # preserve every original downstream fraction exactly.
+      # 2/3 boundary and its first 13/18 midpoint, but then remains flat for 1,500 healthy updates
+      # at the next original 7/9 boundary. Insert only the measured half-steps at those blocked
+      # transitions, including the 3/4 midpoint now measured between 13/18 and 7/9, then preserve
+      # every original downstream fraction exactly.
       fractions:
         - 0.1111111111111111
         - 0.2222222222222222
@@ -636,6 +637,7 @@ stages:
         - 0.6111111111111112
         - 0.6666666666666666
         - 0.7222222222222222
+        - 0.75
         - 0.7777777777777778
         - 0.8888888888888888
         - 1

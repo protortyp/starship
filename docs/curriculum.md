@@ -188,8 +188,16 @@ exceed horizontal speed and 51% miss the pad, while actor/critic rank remains he
 same fixed probe near update 1,013 lands 29.1%; crash failures shift to 48% vertical speed, 50%
 horizontal speed and 48% pad miss, while actor/critic rank remains healthy at 72/44. Landed episodes
 still average one re-flip and 944 degrees of roll travel, as expected before the strict cleanup
-stages. This is a mild regression rather than collapse, so the same uninterrupted run continues to
-the requested 1,500-update horizon. Final broad strict-target acceptance remains unchanged.
+stages. The full 1,500-update run never promotes or rolls back: deterministic landing averages
+30.9% overall and 30.6%, 30.0%, 30.1%, 30.3% and 29.9% over its latest 1,000, 500, 250, 100 and
+20 evaluations. Its fixed checkpoint near update 1,513 lands 29.8%; 41% of crashes exceed vertical
+speed, 56% exceed horizontal speed and 48% miss the pad, with actor/critic rank still healthy at
+72/44. This is another measured healthy plateau. Fraction 3/4 now inserts only the midpoint at
+312.5 m pad radius, 21.25 m/s vertical speed and 12.75 m/s horizontal speed; stages 0--171 remain
+config-identical and the unchanged original 7/9 boundary moves to stage 173. A verified restart
+carries the exact update-1,513 actor, critic and optimizer into that midpoint. Its first three
+deterministic evaluations are 34%, 31% and 30%. Final broad strict-target acceptance remains
+unchanged.
 A checkpoint-safe private post-loop steering adapter was then tested as a matched capacity A/B. It
 keeps engine logits and throttle exact while learning its own gimbal, flap and RCS features, but the
 live result falls to 26% over its latest 20 evaluations by update 129. Its fixed update-124 probe
