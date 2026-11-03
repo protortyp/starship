@@ -158,8 +158,13 @@ unrestricted controller's collapse. The latest broad crash failures are 37% vert
 horizontal speed and 49% pad miss. Actor/critic ranks remain 72/128 and 43/128 with 0.963 recent
 explained variance. A critic output gradient warning compares the stable current norm with an
 exceptionally large first-update spike; representation and value fit remain healthy, so the run
-continues toward the requested 1,500-update horizon. The 40% gate is only for intermediate traversal;
-final broad strict-target acceptance remains unchanged.
+continues toward the requested 1,500-update horizon. At update 1,000, full-window landing is 30.3%
+and latest-500, 250, 100 and 20 landing are 30.2%, 30.6%, 30.6% and 31.1%. The fixed checkpoint near
+update 1,016 remains at 29.8% broadly, matching update 516; vertical-limit failures improve from 37%
+to 29%, horizontal-limit failures worsen from 60% to 64%, and pad misses remain 49%. Actor/critic
+ranks are still 72/128 and 43/128 with no rollback or actionable diagnostic warning. This is a flat
+healthy long control rather than a collapse, so it continues through 1,500. The 40% gate is only for
+intermediate traversal; final broad strict-target acceptance remains unchanged.
 The protected midpoint best's new
 [40-second chase recording](assets/salto-stage167-midpoint-live.mp4) and
 [nine-frame sequence](assets/salto-stage167-midpoint-live-sequence.jpg) show seed 3 completing one
