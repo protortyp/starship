@@ -49,6 +49,7 @@ class ContinuousAdapterRNNModel(RNNModel):
         self.post_loop_progress_threshold = post_loop_progress_threshold
         self.resample_engine_count_post_loop = resample_engine_count_post_loop
         self._post_loop_count_sampled: torch.Tensor | None = None
+        self._deterministic_post_loop_count: torch.Tensor | None = None
         self.continuous_adapter = MLP(
             self.latent_dim,
             CONTINUOUS_HEADS,
@@ -128,8 +129,38 @@ class ContinuousAdapterRNNModel(RNNModel):
                 self.distribution.update(output)
                 self._resample_count_at_post_loop_handoff(raw, masks)
                 return self.distribution.sample()
-            return self.distribution.deterministic_output(output)
+            actions = self.distribution.deterministic_output(output)
+            return self._hold_deterministic_count_after_post_loop(actions, output, raw, masks)
         return output
+
+    def _hold_deterministic_count_after_post_loop(
+        self,
+        actions: torch.Tensor,
+        output: torch.Tensor,
+        raw: torch.Tensor,
+        masks: torch.Tensor | None,
+    ) -> torch.Tensor:
+        """Keep deployment's handoff count coherent with the persistent training decision."""
+        if (
+            not getattr(self, "resample_engine_count_post_loop", False)
+            or masks is not None
+            or raw.ndim != 2
+        ):
+            return actions
+        progress_index = getattr(self, "post_loop_progress_index", 27)
+        progress_threshold = getattr(self, "post_loop_progress_threshold", 0.999999)
+        complete = raw[:, progress_index] >= progress_threshold
+        held = getattr(self, "_deterministic_post_loop_count", None)
+        if held is None or held.shape != complete.shape or held.device != complete.device:
+            held = torch.full_like(complete, -1, dtype=torch.long)
+        handoff = complete & (held < 0)
+        current_count = actions[:, :ENGINE_HEADS].sum(dim=-1).to(torch.long)
+        held[handoff] = current_count[handoff]
+        rank = output[:, :ENGINE_HEADS].argsort(dim=-1, descending=True).argsort(dim=-1)
+        held_on = (rank < held.clamp_min(0).unsqueeze(-1)).to(actions.dtype)
+        engine = torch.where(complete.unsqueeze(-1), held_on, actions[:, :ENGINE_HEADS])
+        self._deterministic_post_loop_count = held
+        return torch.cat((engine, actions[:, ENGINE_HEADS:]), dim=-1)
 
     def _resample_count_at_post_loop_handoff(
         self, raw: torch.Tensor, masks: torch.Tensor | None
@@ -179,6 +210,11 @@ class ContinuousAdapterRNNModel(RNNModel):
             self._post_loop_count_sampled = None
         elif dones.shape == sampled.shape:
             sampled[dones.bool()] = False
+        held = getattr(self, "_deterministic_post_loop_count", None)
+        if held is None or (dones is None and hidden_state is None):
+            self._deterministic_post_loop_count = None
+        elif dones is not None and dones.shape == held.shape:
+            held[dones.bool()] = -1
 
 
 class _TorchLSTMContinuousAdapter(nn.Module):
@@ -200,6 +236,9 @@ class _TorchLSTMContinuousAdapter(nn.Module):
         )
         self.post_loop_progress_index = getattr(model, "post_loop_progress_index", 27)
         self.post_loop_progress_threshold = getattr(model, "post_loop_progress_threshold", 0.999999)
+        self.resample_engine_count_post_loop = getattr(
+            model, "resample_engine_count_post_loop", False
+        )
         if model.distribution is not None:
             self.deterministic_output = model.distribution.as_deterministic_output_module()
         else:
@@ -210,6 +249,7 @@ class _TorchLSTMContinuousAdapter(nn.Module):
         self.register_buffer(
             "cell_state", torch.zeros(self.rnn.num_layers, 1, self.rnn.hidden_size)
         )
+        self.register_buffer("held_engine_count", torch.full((1,), -1, dtype=torch.long))
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         raw = x
@@ -225,12 +265,23 @@ class _TorchLSTMContinuousAdapter(nn.Module):
         progress = raw[..., self.post_loop_progress_index]
         gate = (progress >= self.post_loop_progress_threshold).to(output.dtype).unsqueeze(-1)
         output = output + gate * self.post_loop_adapter(x)
-        return self.deterministic_output(output)
+        actions = self.deterministic_output(output)
+        if self.resample_engine_count_post_loop:
+            complete = progress >= self.post_loop_progress_threshold
+            handoff = complete & (self.held_engine_count < 0)
+            current_count = actions[..., :3].sum(dim=-1).to(torch.long)
+            self.held_engine_count[:] = torch.where(handoff, current_count, self.held_engine_count)
+            rank = output[..., :3].argsort(dim=-1, descending=True).argsort(dim=-1)
+            held_on = (rank < self.held_engine_count.clamp_min(0).unsqueeze(-1)).to(actions.dtype)
+            engine = torch.where(complete.unsqueeze(-1), held_on, actions[..., :3])
+            actions = torch.cat((engine, actions[..., 3:]), dim=-1)
+        return actions
 
     @torch.jit.export
     def reset(self) -> None:
         self.hidden_state[:] = 0.0
         self.cell_state[:] = 0.0
+        self.held_engine_count[:] = -1
 
 
 class _ZeroEngineAdapter(nn.Module):

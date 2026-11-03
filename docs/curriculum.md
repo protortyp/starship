@@ -192,11 +192,15 @@ near 30%. Reducing the actor rate fivefold only delayed the same collapse. A mat
 exploration sweep improved expected landing from 28.5% at std 0.10 to 32.4% at std 0.03. The current
 protected restart therefore combines the untouched actor with its adapted critic, clears the actor's
 Adam moments, caps continuous std at 0.03, and uses a 5e-7 post-loop-adapter rate. It improved from a
-27.6% first-20 evaluation mean to 34.7% over the latest 20 and set a 39.1% protected best in its first
-125 updates, with critic explained variance near 0.93 and no rollback or KL stop. A 512-episode probe
+27.6% first-20 evaluation mean to 34.7% over the latest 20 and set a 42.2% protected best by update
+134, with critic explained variance near 0.93 and no rollback or KL stop. A 512-episode probe
 attributes about 89% of remaining crashes to the 41.25 m/s vertical-speed limit; attitude and angular
-rate are non-binding. The run will continue through a long 500--1,500-update evidence window before
-that measured vertical-braking mode triggers a curriculum or reward intervention.
+rate are non-binding. A second matched probe found that deterministic decoding briefly dropped from
+one to zero engines after the recovery handoff in 35% of episodes, despite persistent-count training.
+Holding the deterministic handoff count through landing raised success from 35.9% to 40.4%, kept the
+mean count exactly one, reduced crash vertical speed from 45.64 to 45.26 m/s, and is now implemented
+for both evaluation and TorchScript export. The existing process will still receive its 500-update
+evidence window before the protected best restarts under the corrected deployment semantics.
 
 ## Findings
 

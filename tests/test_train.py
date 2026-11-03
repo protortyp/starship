@@ -632,6 +632,74 @@ def test_ranked_engine_count_resamples_once_at_post_loop_handoff(tmp_path):
         assert torch.equal(actor.distribution.params[3], torch.tensor([1.0, 0.0]))
 
 
+def test_ranked_engine_count_is_held_deterministically_after_post_loop_handoff(tmp_path):
+    cfg = compose_cfg(
+        "num_envs=2",
+        "runner.actor.class_name=starship.train.models:ContinuousAdapterRNNModel",
+        "+runner.actor.continuous_adapter_hidden_dim=16",
+        "+runner.actor.resample_engine_count_post_loop=true",
+        "+runner.actor.distribution_cfg.deterministic_engine_selection=floor_expected",
+        "+runner.actor.distribution_cfg.stochastic_engine_selection=ranked_count",
+    )
+    runner = make_runner(cfg, tmp_path)
+    actor = runner.alg.actor
+    output = next(
+        module
+        for module in reversed(list(actor.mlp.modules()))
+        if isinstance(module, torch.nn.Linear)
+    )
+    obs = runner.env.get_observations()
+    actor.reset()
+    with torch.no_grad():
+        output.weight[:3].zero_()
+        output.bias[:3].fill_(1.0)
+        obs["policy"][:, 27] = 1.0
+        at_handoff = actor(obs, stochastic_output=False)[:, :3].sum(-1)
+        assert torch.equal(at_handoff, torch.tensor([2.0, 2.0]))
+
+        # Deployment now preserves the handoff count just like the persistent rollout sampler.
+        output.bias[:3].fill_(-10.0)
+        hidden = actor.get_hidden_state()
+        actor.reset(hidden_state=hidden)
+        held = actor(obs, stochastic_output=False)[:, :3].sum(-1)
+        assert torch.equal(held, torch.tensor([2.0, 2.0]))
+
+        actor.reset(torch.tensor([True, False]))
+        after_done = actor(obs, stochastic_output=False)[:, :3].sum(-1)
+        assert torch.equal(after_done, torch.tensor([0.0, 2.0]))
+
+
+def test_ranked_engine_count_is_held_in_jit_export(tmp_path):
+    cfg = compose_cfg(
+        "num_envs=1",
+        "runner.actor.class_name=starship.train.models:ContinuousAdapterRNNModel",
+        "+runner.actor.continuous_adapter_hidden_dim=16",
+        "+runner.actor.resample_engine_count_post_loop=true",
+        "+runner.actor.distribution_cfg.deterministic_engine_selection=floor_expected",
+        "+runner.actor.distribution_cfg.stochastic_engine_selection=ranked_count",
+    )
+    runner = make_runner(cfg, tmp_path)
+    actor = runner.alg.actor.eval()
+    output = next(
+        module
+        for module in reversed(list(actor.mlp.modules()))
+        if isinstance(module, torch.nn.Linear)
+    )
+    obs = runner.env.get_observations()
+    obs["policy"][:, 27] = 1.0
+    with torch.no_grad():
+        output.weight[:3].zero_()
+        output.bias[:3].fill_(1.0)
+    with pytest.warns(FutureWarning, match="torch.jit.script"):
+        exported = torch.jit.script(actor.as_jit().eval())
+    with torch.no_grad():
+        assert exported(obs["policy"])[:, :3].sum() == 2
+        exported.mlp[-1].bias[:3].fill_(-10.0)
+        assert exported(obs["policy"])[:, :3].sum() == 2
+        exported.reset()
+        assert exported(obs["policy"])[:, :3].sum() == 0
+
+
 def test_resume_evaluates_before_learning(tmp_path, monkeypatch):
     from types import SimpleNamespace
 
