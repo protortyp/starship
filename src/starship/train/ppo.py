@@ -69,11 +69,13 @@ class InstrumentedPPO(PPO):
             "continuous_adapter",
             "hybrid_adapter",
             "post_loop_adapter",
+            "post_loop_lateral_head",
             "touchdown_adapter",
         ):
             raise ValueError(
                 "actor_update_scope must be 'all', 'continuous_head', 'continuous_adapter', "
-                "'hybrid_adapter', 'post_loop_adapter', or 'touchdown_adapter'"
+                "'hybrid_adapter', 'post_loop_adapter', 'post_loop_lateral_head', or "
+                "'touchdown_adapter'"
             )
         super().__init__(*args, **kwargs)
         self.max_kl = max_kl
@@ -88,6 +90,8 @@ class InstrumentedPPO(PPO):
             self._freeze_actor_except_hybrid_adapters()
         elif actor_update_scope == "post_loop_adapter":
             self._freeze_actor_except_post_loop_adapter()
+        elif actor_update_scope == "post_loop_lateral_head":
+            self._freeze_actor_except_post_loop_lateral_head()
         elif actor_update_scope == "touchdown_adapter":
             self._freeze_actor_except_touchdown_adapter()
         # Every `diagnostics_interval` updates, log network health under plasticity/* (0 = off).
@@ -160,6 +164,43 @@ class InstrumentedPPO(PPO):
             parameter.requires_grad_(False)
         for parameter in adapter.parameters():
             parameter.requires_grad_(True)
+
+    def _freeze_actor_except_post_loop_lateral_head(self) -> None:
+        """Tune post-loop steering surfaces without changing engine count or throttle.
+
+        Freezing the adapter's feature layers also prevents a shared-feature update from changing
+        its protected engine and throttle rows indirectly. Only the final gimbal, flap and roll-RCS
+        rows receive gradients.
+        """
+        adapter = getattr(self.actor, "post_loop_adapter", None)
+        if adapter is None:
+            raise ValueError(
+                "actor_update_scope='post_loop_lateral_head' requires an actor with "
+                "post_loop_adapter"
+            )
+        output = next(
+            (
+                module
+                for module in reversed(list(adapter.modules()))
+                if isinstance(module, nn.Linear)
+            ),
+            None,
+        )
+        if output is None or output.bias is None:
+            raise ValueError("post_loop_adapter has no trainable output layer")
+        for parameter in self.actor.parameters():
+            parameter.requires_grad_(False)
+        output.weight.requires_grad_(True)
+        output.bias.requires_grad_(True)
+
+        # Policy rows are three engine logits, throttle, then the two gimbals, four flaps and RCS.
+        # Preserve the first four exactly and train only steering/drag controls after the salto.
+        weight_mask = torch.ones_like(output.weight)
+        bias_mask = torch.ones_like(output.bias)
+        weight_mask[: ENGINE_HEADS + 1] = 0
+        bias_mask[: ENGINE_HEADS + 1] = 0
+        output.weight.register_hook(lambda grad: grad * weight_mask)
+        output.bias.register_hook(lambda grad: grad * bias_mask)
 
     def _freeze_actor_except_touchdown_adapter(self) -> None:
         """Train only the near-ground residual while preserving stunt and descent behavior."""
