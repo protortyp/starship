@@ -287,9 +287,11 @@ the objective mismatch behind that trade: the dense `speed_weight` potential pen
 speed even though the hard gate is vertical speed and `horizontal_speed_weight` already shapes the
 lateral component. A backward-compatible `vertical_speed_weight` now targets descent speed only;
 stage 99 switches from total-speed weight 10 to vertical-only weight 10 while all solved stages
-remain unchanged. The 1.0 m/s² profile continues as the long timing control, and the 0.5 m/s² run is
-superseded after 61 critic-only updates by a direct vertical-only-objective A/B at the original
-2 m/s² profile.
+remain unchanged. The legacy-objective 1.0 m/s² timing control completed 100 actor updates, declined
+to a 36.7% latest-20 mean, and its 90-update checkpoint lands 37.8% broadly while 64% of crashes miss
+the pad; it is therefore retired. The 0.5 m/s² run is likewise superseded after 61 critic-only
+updates. Matched vertical-only-objective runs now compare the original 2.0 m/s² profile with 1.0
+m/s² while preserving the same protected actor, fresh-critic warmup, and optimizer settings.
 A checkpoint-safe post-loop engine-logit warm start then tested whether the fixed one-engine landing
 schedule lacked braking
 authority. On matched 256-scenario evaluations, logit shifts through +0.60 retain one engine and
