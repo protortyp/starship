@@ -231,6 +231,15 @@ def failure_lines(stats: dict[str, float]) -> list[str]:
     return lines
 
 
+def _probe_policy_step(policy, confidence_policy, obs):
+    """Return deployment actions and engine marginals without mutating the deployed policy twice."""
+    from starship.train.actions import ENGINE_HEADS
+
+    confidence_policy(obs, stochastic_output=True)
+    engine_p = confidence_policy.distribution.mean[:, :ENGINE_HEADS]
+    return policy(obs, stochastic_output=False), engine_p
+
+
 def probe_section(
     run: Path,
     report: dict,
@@ -242,7 +251,6 @@ def probe_section(
     import torch
     from omegaconf import OmegaConf
 
-    from starship.train.actions import ENGINE_HEADS
     from starship.train.checkpoint import load_policy
     from starship.train.conf import load_run_config
     from starship.train.curriculum import Curriculum
@@ -250,6 +258,7 @@ def probe_section(
     from starship.train.env import RocketEnv
     from starship.train.metrics import EpisodeTracker
     from starship.train.rsl_env import RslRocketEnv
+    from starship.train.runner import standalone_copy
 
     cfg = load_run_config(run)
     sim, reward = OmegaConf.to_object(cfg.sim), OmegaConf.to_object(cfg.reward)
@@ -276,6 +285,13 @@ def probe_section(
     env = RslRocketEnv(RocketEnv(episodes, sim, obs_cfg, reward, device=device, seed=123))
     policy = load_policy(policy_path, env.device)
     policy.reset()
+    # Confidence instrumentation needs a stochastic forward to populate the distribution. Keep
+    # it on a separate policy: rewinding only the LSTM is insufficient for stateful phase/count
+    # selectors and can make a supposedly deterministic probe reselect its touchdown count every
+    # step. The copy sees the same observation stream, so its recurrent logits remain aligned
+    # without perturbing deployment actions.
+    confidence_policy = standalone_copy(policy).to(env.device).eval()
+    confidence_policy.reset()
     tracker = EpisodeTracker(env)
     obs = env.get_observations()
     pending = torch.ones(episodes, dtype=torch.bool, device=env.device)
@@ -287,27 +303,16 @@ def probe_section(
             if step % 10 == 0 and policy.rnn.hidden_state is not None:
                 h = tuple(x.clone() for x in policy.rnn.hidden_state)
                 samples.append((obs["policy"].clone(), h))
-            # Populate the distribution to report marginal engine confidence, then rewind the
-            # recurrent state and use the policy's configured deterministic decoder. Some policies
-            # deliberately use expected-count top-k selection instead of independent p > 0.5
-            # thresholds; reconstructing actions from the marginals would probe different behavior
-            # than evaluation and deployment.
-            hidden = policy.get_hidden_state()
-            if hidden is not None:
-                hidden = (
-                    tuple(x.clone() for x in hidden)
-                    if isinstance(hidden, tuple)
-                    else hidden.clone()
-                )
-            policy(obs, stochastic_output=True)
-            mean = policy.distribution.mean
-            engine_p = mean[:, :ENGINE_HEADS]
+            # Populate a separate distribution to report marginal engine confidence, then use the
+            # policy's configured deterministic decoder. Some policies deliberately use expected-
+            # count top-k selection instead of independent p > 0.5 thresholds; reconstructing
+            # actions from the marginals would probe different behavior than deployment.
+            actions, engine_p = _probe_policy_step(policy, confidence_policy, obs)
             undecided.append(((engine_p > 0.1) & (engine_p < 0.9))[pending].float().mean().item())
-            policy.reset(hidden_state=hidden)
-            actions = policy(obs, stochastic_output=False)
             obs, _, dones, _ = env.step(actions)
             tracker.step(dones, record=pending)
             policy.reset(dones)
+            confidence_policy.reset(dones)
             pending &= ~dones.bool()
             if not pending.any():
                 break

@@ -85,6 +85,72 @@ def test_model_diagnostics_on_the_lstm_policy(tmp_path):
     assert 0.0 <= d["lstm/forget_saturated"] <= 1.0
 
 
+def test_probe_confidence_does_not_reselect_deployment_touchdown_count(tmp_path):
+    from starship.train.diagnose import _probe_policy_step
+
+    cfg = compose_cfg(
+        "num_envs=1",
+        "runner.actor.class_name=starship.train.models:ContinuousAdapterRNNModel",
+        "+runner.actor.continuous_adapter_hidden_dim=16",
+        "+runner.actor.touchdown_adapter_hidden_dim=16",
+        "+runner.actor.touchdown_altitude_threshold=0.15",
+        "+runner.actor.resample_engine_count_post_loop=true",
+        "+runner.actor.resample_engine_count_touchdown=true",
+        "+runner.actor.distribution_cfg.deterministic_engine_selection=floor_expected",
+        "+runner.actor.distribution_cfg.stochastic_engine_selection=ranked_count",
+    )
+    runner = make_runner(cfg, tmp_path)
+    actor = runner.alg.actor.eval()
+    base_output = next(
+        module for module in reversed(list(actor.mlp.modules())) if isinstance(module, nn.Linear)
+    )
+    touchdown_output = next(
+        module
+        for module in reversed(list(actor.touchdown_adapter.modules()))
+        if isinstance(module, nn.Linear)
+    )
+    with torch.no_grad():
+        base_output.weight[:3].zero_()
+        base_output.bias[:3].zero_()
+        touchdown_output.weight.zero_()
+        touchdown_output.bias.zero_()
+        touchdown_output.bias[:3].fill_(1.0)
+
+    deployed = standalone_copy(actor).eval()
+    instrumented = standalone_copy(actor).eval()
+    confidence = standalone_copy(actor).eval()
+    for policy in (deployed, instrumented, confidence):
+        policy.reset()
+    obs = runner.env.get_observations()
+    obs["policy"][:, 27] = 1.0
+
+    with torch.inference_mode():
+        obs["policy"][:, 12] = 0.2
+        expected = deployed(obs, stochastic_output=False)
+        actual, _ = _probe_policy_step(instrumented, confidence, obs)
+        torch.testing.assert_close(actual, expected)
+        assert actual[:, :3].sum() == 1
+
+        obs["policy"][:, 12] = 0.1
+        expected = deployed(obs, stochastic_output=False)
+        actual, _ = _probe_policy_step(instrumented, confidence, obs)
+        torch.testing.assert_close(actual, expected)
+        assert actual[:, :3].sum() == 2
+
+        # Once selected at the gate, later logits must not change the held deployment count.
+        for policy in (deployed, instrumented, confidence):
+            output = next(
+                module
+                for module in reversed(list(policy.touchdown_adapter.modules()))
+                if isinstance(module, nn.Linear)
+            )
+            output.bias[:3].fill_(-10.0)
+        expected = deployed(obs, stochastic_output=False)
+        actual, _ = _probe_policy_step(instrumented, confidence, obs)
+        torch.testing.assert_close(actual, expected)
+        assert actual[:, :3].sum() == 2
+
+
 def test_diagnose_report_on_a_short_run(tmp_path):
     from omegaconf import OmegaConf
 
