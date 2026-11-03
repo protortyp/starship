@@ -301,13 +301,23 @@ mean crash speed to 39.9 m/s and vertical-limit failures to 81%, but broad landi
 pad-miss failures climb to 65%. The corrected 1.0 m/s² run initially avoids that trade at update 40,
 preserving the 39.1% broad baseline and 52% pad-miss rate, but by update 90 it falls to 33.6% landing
 as pad misses reach 70% despite vertical failures improving to 74%. That control is retired after 106
-actor updates. A matched 2e-6 actor-rate run now tests faster adaptation, while a new
-4,096-environment run doubles near-ground pad-centering weight from 0.05 to 0.10 under the same
-vertical-only 1.0 m/s² objective.
+actor updates. A matched 2e-6 actor-rate run also regresses to 34.0% broad landing by update 90,
+with 82% vertical-limit and 68% pad-miss failures, and is retired after 124 actor updates. Doubling
+near-ground pad-centering weight from 0.05 to 0.10 retains 37.1% broad landing at update 90 but still
+reaches the same 68% pad-miss rate, so that 4,096-environment branch is retired after 114 actor
+updates. The matched 0.20 branch is steadier but does not improve: its update-40 and update-90 broad
+probes land 38.5% and 38.8%, with pad-miss failures at 56–57% and vertical-limit failures fixed at
+84%. It is retired after completing 106 actor updates.
 The combined vertical-only/1,000 m touchdown adapter is steadier in its training window but likewise
 fails to improve broadly: its 40- and 90-update checkpoints land 38.9% and 38.7%, with 63% and 61%
-pad-miss failures. It is retired after 102 actor updates. A matched 0.20 pad-centering branch now
-brackets the 0.10 intervention while both actors retain the same 5e-7 learning rate.
+pad-miss failures. It is retired after 102 actor updates. Because every branch that begins to reduce
+vertical-speed violations simultaneously drifts outside the 450 m pad, two long-horizon runs now
+separate those objectives more cleanly with a temporary 500 m stage-99 pad gate. Both preserve the
+same protected actor, vertical-only 1.0 m/s² objective, fresh-critic warmup and 5e-7 actor rate; the
+4,096-environment run keeps the baseline 0.05 centering weight and the matched 1,024-environment run
+uses 0.10. Their resolved 153-stage configurations were checked before actor training. The easier
+gate is an experiment only: any successful braking policy must subsequently re-tighten the pad before
+advancing toward the strict 15 m target.
 A checkpoint-safe post-loop engine-logit warm start then tested whether the fixed one-engine landing
 schedule lacked braking
 authority. On matched 256-scenario evaluations, logit shifts through +0.60 retain one engine and

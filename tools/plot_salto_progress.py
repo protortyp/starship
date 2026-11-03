@@ -29,6 +29,10 @@ STAGE99_VERTICAL_SAFE1_EXPERIMENT = ROOT / "logs" / "salto_stage99_vertical_safe
 STAGE99_VERTICAL_SAFE1_FAST_EXPERIMENT = ROOT / "logs" / "salto_stage99_vertical_safe1_fast_v1"
 STAGE99_VERTICAL_SAFE1_PAD01_EXPERIMENT = ROOT / "logs" / "salto_stage99_vertical_safe1_pad01_v1"
 STAGE99_VERTICAL_SAFE1_PAD02_EXPERIMENT = ROOT / "logs" / "salto_stage99_vertical_safe1_pad02_v1"
+STAGE99_VERTICAL_SAFE1_PAD500_EXPERIMENT = ROOT / "logs" / "salto_stage99_vertical_safe1_pad500_v1"
+STAGE99_VERTICAL_SAFE1_PAD500_CENTER01_EXPERIMENT = (
+    ROOT / "logs" / "salto_stage99_vertical_safe1_pad500_center01_v1"
+)
 STAGE99_VERTICAL_TOUCHDOWN1000_EXPERIMENT = (
     ROOT / "logs" / "salto_stage99_vertical_touchdown1000_v1"
 )
@@ -335,22 +339,34 @@ TRACES = (
         "#0e7490",
     ),
     Trace(
-        "vertical-only + 1 m/s², 4x actor rate (live)",
+        "vertical-only + 1 m/s², 4x actor rate (retired)",
         ROOT / "out/salto-stage99-vertical-safe1-fast-v1.log",
         99,
         "#b45309",
     ),
     Trace(
-        "vertical-only + 1 m/s² + 2x pad shaping (live)",
+        "vertical-only + 1 m/s² + 2x pad shaping (retired)",
         ROOT / "out/salto-stage99-vertical-safe1-pad01-v1.log",
         99,
         "#15803d",
     ),
     Trace(
-        "vertical-only + 1 m/s² + 4x pad shaping (live)",
+        "vertical-only + 1 m/s² + 4x pad shaping (retired)",
         ROOT / "out/salto-stage99-vertical-safe1-pad02-v1.log",
         99,
         "#166534",
+    ),
+    Trace(
+        "500 m pad gate + baseline centering (live)",
+        ROOT / "out/salto-stage99-vertical-safe1-pad500-v1.log",
+        99,
+        "#1d4ed8",
+    ),
+    Trace(
+        "500 m pad gate + 2x centering (live)",
+        ROOT / "out/salto-stage99-vertical-safe1-pad500-center01-v1.log",
+        99,
+        "#7c3aed",
     ),
 )
 
@@ -448,17 +464,20 @@ def landing_panel() -> list[str]:
             )
         )
     legend = list(dict.fromkeys((trace.label, trace.color) for trace in TRACES))
-    legend_x = 535
+    legend_x, legend_top = 450, 43
+    legend_rows = (len(legend) + 1) // 2
     lines.append(
-        f'<rect x="500" y="30" width="325" height="{10 + 14 * len(legend)}" fill="white"/>'
+        f'<rect x="425" y="30" width="440" height="{10 + 14 * legend_rows}" fill="white"/>'
     )
     for index, (label, color) in enumerate(legend):
-        y = 43 + 14 * index
+        column, row = divmod(index, legend_rows)
+        legend_item_x = legend_x + column * 205
+        y = legend_top + 14 * row
         lines.append(
-            f'<line x1="{legend_x}" y1="{y}" x2="{legend_x + 22}" y2="{y}" '
+            f'<line x1="{legend_item_x}" y1="{y}" x2="{legend_item_x + 22}" y2="{y}" '
             f'stroke="{color}" stroke-width="3"/>'
         )
-        lines.append(text(legend_x + 29, y + 4, label, size=9))
+        lines.append(text(legend_item_x + 29, y + 4, label, size=8))
     return lines
 
 
@@ -504,6 +523,12 @@ def rank_panel() -> list[str]:
     ).Reload()
     stage99_vertical_safe1_pad02 = EventAccumulator(
         str(latest_event_file(STAGE99_VERTICAL_SAFE1_PAD02_EXPERIMENT))
+    ).Reload()
+    stage99_vertical_safe1_pad500 = EventAccumulator(
+        str(latest_event_file(STAGE99_VERTICAL_SAFE1_PAD500_EXPERIMENT))
+    ).Reload()
+    stage99_vertical_safe1_pad500_center01 = EventAccumulator(
+        str(latest_event_file(STAGE99_VERTICAL_SAFE1_PAD500_CENTER01_EXPERIMENT))
     ).Reload()
     stage99_vertical_touchdown1000 = EventAccumulator(
         str(latest_event_file(STAGE99_VERTICAL_TOUCHDOWN1000_EXPERIMENT))
@@ -636,6 +661,18 @@ def rank_panel() -> list[str]:
             "plasticity/critic/features/effective_rank",
             "vertical-only + 4x pad critic rank",
             "#166534",
+        ),
+        (
+            stage99_vertical_safe1_pad500,
+            "plasticity/critic/features/effective_rank",
+            "500 m pad-gate critic rank",
+            "#1d4ed8",
+        ),
+        (
+            stage99_vertical_safe1_pad500_center01,
+            "plasticity/critic/features/effective_rank",
+            "500 m + 2x centering critic rank",
+            "#7c3aed",
         ),
         (
             stage99_vertical_touchdown1000,
