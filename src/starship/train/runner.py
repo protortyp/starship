@@ -328,6 +328,50 @@ class StarshipRunner(OnPolicyRunner):
         self.alg.optimizer.state.pop(output.bias, None)
         self.alg.actor.reset()
 
+    def offset_touchdown_throttle(self, delta: float) -> None:
+        """Warm-start the altitude-gated landing-burn throttle residual."""
+        if not math.isfinite(delta):
+            raise ValueError("touchdown throttle bias delta must be finite")
+        adapter = getattr(self.alg.actor, "touchdown_adapter", None)
+        if adapter is None:
+            raise ValueError("touchdown throttle bias needs an actor with a touchdown adapter")
+        output = next(
+            (
+                module
+                for module in reversed(list(adapter.modules()))
+                if isinstance(module, torch.nn.Linear)
+            ),
+            None,
+        )
+        if output is None or output.bias is None or output.bias.numel() <= 3:
+            raise ValueError("touchdown adapter has no throttle output bias")
+        with torch.no_grad():
+            output.bias[3] += delta
+        self.alg.optimizer.state.pop(output.bias, None)
+        self.alg.actor.reset()
+
+    def offset_touchdown_engine_logits(self, delta: float) -> None:
+        """Warm-start a persistent engine-count change only inside the touchdown gate."""
+        if not math.isfinite(delta):
+            raise ValueError("touchdown engine logit bias delta must be finite")
+        adapter = getattr(self.alg.actor, "touchdown_adapter", None)
+        if adapter is None:
+            raise ValueError("touchdown engine logit bias needs an actor with a touchdown adapter")
+        output = next(
+            (
+                module
+                for module in reversed(list(adapter.modules()))
+                if isinstance(module, torch.nn.Linear)
+            ),
+            None,
+        )
+        if output is None or output.bias is None or output.bias.numel() < 3:
+            raise ValueError("touchdown adapter has no engine-logit output biases")
+        with torch.no_grad():
+            output.bias[:3] += delta
+        self.alg.optimizer.state.pop(output.bias, None)
+        self.alg.actor.reset()
+
     def save(self, path: str, infos: dict | None = None) -> None:
         infos = {**(infos or {}), "best_eval": self.best_eval}
         if self.curriculum is not None:

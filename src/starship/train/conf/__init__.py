@@ -43,6 +43,10 @@ class TrainConfig:
     # One-time equal logit delta for all post-loop engine heads. This changes only the expected
     # engine count while preserving their learned ranking and the complete pre-salto policy.
     post_loop_engine_logit_bias_delta: float = 0.0
+    # One-time warm starts for the altitude-gated touchdown residual. These can introduce a
+    # stronger landing-burn engine count without changing the salto or high-altitude descent.
+    touchdown_throttle_bias_delta: float = 0.0
+    touchdown_engine_logit_bias_delta: float = 0.0
     sim: SimConfig = field(default_factory=SimConfig)
     obs: ObsConfig = field(default_factory=ObsConfig)
     reward: RewardConfig = field(default_factory=RewardConfig)

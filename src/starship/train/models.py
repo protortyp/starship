@@ -37,6 +37,7 @@ class ContinuousAdapterRNNModel(RNNModel):
         touchdown_altitude_index: int = 12,
         touchdown_altitude_threshold: float = 1.0 / 6.0,
         resample_engine_count_post_loop: bool = False,
+        resample_engine_count_touchdown: bool = False,
         **kwargs,
     ) -> None:
         if continuous_adapter_hidden_dim <= 0:
@@ -61,7 +62,9 @@ class ContinuousAdapterRNNModel(RNNModel):
         self.touchdown_altitude_index = touchdown_altitude_index
         self.touchdown_altitude_threshold = touchdown_altitude_threshold
         self.resample_engine_count_post_loop = resample_engine_count_post_loop
+        self.resample_engine_count_touchdown = resample_engine_count_touchdown
         self._post_loop_count_sampled: torch.Tensor | None = None
+        self._touchdown_count_sampled: torch.Tensor | None = None
         self._deterministic_post_loop_count: torch.Tensor | None = None
         self.continuous_adapter = MLP(
             self.latent_dim,
@@ -201,12 +204,26 @@ class ContinuousAdapterRNNModel(RNNModel):
         if held is None or held.shape != complete.shape or held.device != complete.device:
             held = torch.full_like(complete, -1, dtype=torch.long)
         handoff = complete & (held < 0)
+        touchdown_sampled = getattr(self, "_touchdown_count_sampled", None)
+        if (
+            touchdown_sampled is None
+            or touchdown_sampled.shape != complete.shape
+            or touchdown_sampled.device != complete.device
+        ):
+            touchdown_sampled = torch.zeros_like(complete)
+        if getattr(self, "resample_engine_count_touchdown", False):
+            altitude_index = getattr(self, "touchdown_altitude_index", 12)
+            altitude_threshold = getattr(self, "touchdown_altitude_threshold", 1.0 / 6.0)
+            touchdown_ready = complete & (raw[:, altitude_index] <= altitude_threshold)
+            handoff = handoff | (touchdown_ready & ~touchdown_sampled)
+            touchdown_sampled = touchdown_sampled | touchdown_ready
         current_count = actions[:, :ENGINE_HEADS].sum(dim=-1).to(torch.long)
         held[handoff] = current_count[handoff]
         rank = output[:, :ENGINE_HEADS].argsort(dim=-1, descending=True).argsort(dim=-1)
         held_on = (rank < held.clamp_min(0).unsqueeze(-1)).to(actions.dtype)
         engine = torch.where(complete.unsqueeze(-1), held_on, actions[:, :ENGINE_HEADS])
         self._deterministic_post_loop_count = held
+        self._touchdown_count_sampled = touchdown_sampled
         return torch.cat((engine, actions[:, ENGINE_HEADS:]), dim=-1)
 
     def _resample_count_at_post_loop_handoff(
@@ -227,6 +244,19 @@ class ContinuousAdapterRNNModel(RNNModel):
         if sampled is None or sampled.shape != complete.shape or sampled.device != complete.device:
             sampled = torch.zeros_like(complete)
         handoff = complete & ~sampled
+        touchdown_sampled = getattr(self, "_touchdown_count_sampled", None)
+        if (
+            touchdown_sampled is None
+            or touchdown_sampled.shape != complete.shape
+            or touchdown_sampled.device != complete.device
+        ):
+            touchdown_sampled = torch.zeros_like(complete)
+        if getattr(self, "resample_engine_count_touchdown", False):
+            altitude_index = getattr(self, "touchdown_altitude_index", 12)
+            altitude_threshold = getattr(self, "touchdown_altitude_threshold", 1.0 / 6.0)
+            touchdown_ready = complete & (raw[:, altitude_index] <= altitude_threshold)
+            handoff = handoff | (touchdown_ready & ~touchdown_sampled)
+            touchdown_sampled = touchdown_sampled | touchdown_ready
         set_deterministic = getattr(self.distribution, "set_force_deterministic_engine_count", None)
         if set_deterministic is not None:
             set_deterministic(~complete)
@@ -238,6 +268,7 @@ class ContinuousAdapterRNNModel(RNNModel):
             if reset_distribution is not None:
                 reset_distribution(handoff)
         self._post_loop_count_sampled = sampled | complete
+        self._touchdown_count_sampled = touchdown_sampled
 
     def as_jit(self) -> nn.Module:
         if isinstance(self.rnn.rnn, nn.LSTM):
@@ -257,6 +288,11 @@ class ContinuousAdapterRNNModel(RNNModel):
             self._post_loop_count_sampled = None
         elif dones.shape == sampled.shape:
             sampled[dones.bool()] = False
+        touchdown_sampled = getattr(self, "_touchdown_count_sampled", None)
+        if dones is None or touchdown_sampled is None:
+            self._touchdown_count_sampled = None
+        elif dones.shape == touchdown_sampled.shape:
+            touchdown_sampled[dones.bool()] = False
         held = getattr(self, "_deterministic_post_loop_count", None)
         if held is None or (dones is None and hidden_state is None):
             self._deterministic_post_loop_count = None
@@ -294,6 +330,9 @@ class _TorchLSTMContinuousAdapter(nn.Module):
         self.resample_engine_count_post_loop = getattr(
             model, "resample_engine_count_post_loop", False
         )
+        self.resample_engine_count_touchdown = getattr(
+            model, "resample_engine_count_touchdown", False
+        )
         if model.distribution is not None:
             self.deterministic_output = model.distribution.as_deterministic_output_module()
         else:
@@ -305,6 +344,7 @@ class _TorchLSTMContinuousAdapter(nn.Module):
             "cell_state", torch.zeros(self.rnn.num_layers, 1, self.rnn.hidden_size)
         )
         self.register_buffer("held_engine_count", torch.full((1,), -1, dtype=torch.long))
+        self.register_buffer("touchdown_count_sampled", torch.zeros(1, dtype=torch.bool))
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         raw = x
@@ -329,6 +369,10 @@ class _TorchLSTMContinuousAdapter(nn.Module):
         if self.resample_engine_count_post_loop:
             complete = progress >= self.post_loop_progress_threshold
             handoff = complete & (self.held_engine_count < 0)
+            if self.resample_engine_count_touchdown:
+                touchdown_ready = complete & (altitude <= self.touchdown_altitude_threshold)
+                handoff = handoff | (touchdown_ready & ~self.touchdown_count_sampled)
+                self.touchdown_count_sampled[:] = self.touchdown_count_sampled | touchdown_ready
             current_count = actions[..., :3].sum(dim=-1).to(torch.long)
             self.held_engine_count[:] = torch.where(handoff, current_count, self.held_engine_count)
             rank = output[..., :3].argsort(dim=-1, descending=True).argsort(dim=-1)
@@ -342,6 +386,7 @@ class _TorchLSTMContinuousAdapter(nn.Module):
         self.hidden_state[:] = 0.0
         self.cell_state[:] = 0.0
         self.held_engine_count[:] = -1
+        self.touchdown_count_sampled[:] = False
 
 
 class _ZeroEngineAdapter(nn.Module):

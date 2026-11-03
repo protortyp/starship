@@ -304,6 +304,47 @@ def test_post_loop_engine_logit_bias_rejects_incompatible_actor(tmp_path):
         runner.offset_post_loop_engine_logits(float("nan"))
 
 
+def test_touchdown_action_bias_warm_start_changes_only_gated_residual(tmp_path):
+    cfg = compose_cfg(
+        *SHORT_EPISODES,
+        "runner.actor.class_name=starship.train.models:ContinuousAdapterRNNModel",
+        "+runner.actor.continuous_adapter_hidden_dim=16",
+        "+runner.actor.touchdown_adapter_hidden_dim=16",
+    )
+    runner = make_runner(cfg, tmp_path)
+    actor = runner.alg.actor
+    output = next(
+        module
+        for module in reversed(list(actor.touchdown_adapter.modules()))
+        if isinstance(module, torch.nn.Linear)
+    )
+    before = {name: parameter.detach().clone() for name, parameter in actor.named_parameters()}
+    runner.alg.optimizer.state[output.bias] = {"stale": torch.tensor(1.0)}
+
+    runner.offset_touchdown_engine_logits(0.64)
+    runner.offset_touchdown_throttle(-2.0)
+
+    for name, parameter in actor.named_parameters():
+        expected = before[name].clone()
+        if parameter is output.bias:
+            expected[:3] += 0.64
+            expected[3] -= 2.0
+        assert torch.equal(parameter, expected)
+    assert output.bias not in runner.alg.optimizer.state
+
+
+def test_touchdown_action_bias_rejects_incompatible_actor(tmp_path):
+    runner = make_runner(compose_cfg(), tmp_path)
+    with pytest.raises(ValueError, match="touchdown adapter"):
+        runner.offset_touchdown_engine_logits(0.5)
+    with pytest.raises(ValueError, match="touchdown adapter"):
+        runner.offset_touchdown_throttle(-1.0)
+    with pytest.raises(ValueError, match="finite"):
+        runner.offset_touchdown_engine_logits(float("nan"))
+    with pytest.raises(ValueError, match="finite"):
+        runner.offset_touchdown_throttle(float("nan"))
+
+
 class CoastingPolicy(torch.nn.Module):
     def reset(self, dones=None):
         pass
@@ -834,6 +875,62 @@ def test_ranked_engine_count_is_held_deterministically_after_post_loop_handoff(t
         actor.reset(torch.tensor([True, False]))
         after_done = actor(obs, stochastic_output=False)[:, :3].sum(-1)
         assert torch.equal(after_done, torch.tensor([0.0, 2.0]))
+
+
+def test_ranked_engine_count_reselects_once_at_touchdown_gate_and_jit_matches(tmp_path):
+    cfg = compose_cfg(
+        "num_envs=1",
+        "runner.actor.class_name=starship.train.models:ContinuousAdapterRNNModel",
+        "+runner.actor.continuous_adapter_hidden_dim=16",
+        "+runner.actor.touchdown_adapter_hidden_dim=16",
+        "+runner.actor.touchdown_altitude_threshold=0.15",
+        "+runner.actor.resample_engine_count_post_loop=true",
+        "+runner.actor.resample_engine_count_touchdown=true",
+        "+runner.actor.distribution_cfg.deterministic_engine_selection=floor_expected",
+        "+runner.actor.distribution_cfg.stochastic_engine_selection=ranked_count",
+    )
+    runner = make_runner(cfg, tmp_path)
+    actor = runner.alg.actor.eval()
+    base_output = next(
+        module
+        for module in reversed(list(actor.mlp.modules()))
+        if isinstance(module, torch.nn.Linear)
+    )
+    touchdown_output = next(
+        module
+        for module in reversed(list(actor.touchdown_adapter.modules()))
+        if isinstance(module, torch.nn.Linear)
+    )
+    obs = runner.env.get_observations()
+    obs["policy"][:, 27] = 1.0
+    obs["policy"][:, 12] = 0.2
+    with torch.no_grad():
+        base_output.weight[:3].zero_()
+        base_output.bias[:3].zero_()
+        touchdown_output.weight.zero_()
+        touchdown_output.bias.zero_()
+        touchdown_output.bias[:3].fill_(1.0)
+
+    actor.reset()
+    assert actor(obs, stochastic_output=False)[:, :3].sum() == 1
+    obs["policy"][:, 12] = 0.1
+    assert actor(obs, stochastic_output=False)[:, :3].sum() == 2
+    with torch.no_grad():
+        touchdown_output.bias[:3].fill_(-10.0)
+    assert actor(obs, stochastic_output=False)[:, :3].sum() == 2
+
+    with torch.no_grad():
+        touchdown_output.bias[:3].fill_(1.0)
+    actor.reset()
+    with pytest.warns(FutureWarning, match="torch.jit.script"):
+        exported = torch.jit.script(actor.as_jit().eval())
+    obs["policy"][:, 12] = 0.2
+    assert exported(obs["policy"])[:, :3].sum() == 1
+    obs["policy"][:, 12] = 0.1
+    assert exported(obs["policy"])[:, :3].sum() == 2
+    with torch.no_grad():
+        exported.touchdown_adapter[-1].bias[:3].fill_(-10.0)
+    assert exported(obs["policy"])[:, :3].sum() == 2
 
 
 def test_ranked_engine_count_is_held_in_jit_export(tmp_path):
