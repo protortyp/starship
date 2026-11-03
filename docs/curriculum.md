@@ -279,6 +279,12 @@ that has more altitude to alter the braking trajectory while keeping the complet
 A matched 256-episode sweep also rejects a constant post-loop throttle warm start at this boundary:
 the unshifted actor lands 39.1%, offsets from +0.1 through +0.8 fall from 37.5% to 21.1%, and negative
 offsets of -0.1 and -0.2 likewise regress to 37.5% and 35.2%.
+Doubling vertical-speed shaping to 20 also fails as a standalone intervention: after 105 actor
+updates its update-102 mean is 38.82%, latest-20 mean is 37.65%, and its 90-update checkpoint lands
+38.5% broadly. Although mean crash speed falls to 40.5 m/s and vertical-limit failures fall from 87%
+to 84%, pad-miss failures rise from 52% to 58%, so that branch is retired. Matched 1.0 and 0.5 m/s²
+safe-deceleration profiles now test whether moving the dense braking target earlier improves both
+timing and pad retention without simply increasing its weight.
 A checkpoint-safe post-loop engine-logit warm start then tested whether the fixed one-engine landing
 schedule lacked braking
 authority. On matched 256-scenario evaluations, logit shifts through +0.60 retain one engine and
