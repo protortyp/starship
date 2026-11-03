@@ -175,11 +175,11 @@ preceding measured half-steps. Fraction 13/18 now inserts only its midpoint at 3
 original stage-171 boundary moves unchanged to stage 172. A verified restart carries the exact solved
 stage-170 actor, critic and optimizer into that midpoint. It opens at 35% deterministic landing and
 its first diagnostic is warning-free at 67/128 actor and 42/128 critic rank. Fixed checkpoints near
-updates 124, 224 and 424 land 32.7%, 33.2% and 34.8% over 1,024 seeds. At update 424, 28% of
-crashes exceed vertical speed, 60% exceed horizontal speed and 52% miss the pad, while actor/critic
-rank remains healthy at 73/42. Landed episodes complete exactly one inverted-to-upright recovery at
-this still-loose midpoint, although the later strict cleanup stages must still remove the subsequent
-re-flip. Final broad strict-target acceptance remains unchanged.
+updates 124, 224, 424 and 624 land 32.7%, 33.2%, 34.8% and 34.9% over 1,024 seeds. At update 624,
+30% of crashes exceed vertical speed, 57% exceed horizontal speed and 54% miss the pad, while
+actor/critic rank remains healthy at 73/42. Landed episodes complete exactly one inverted-to-upright
+recovery at this still-loose midpoint, although the later strict cleanup stages must still remove the
+subsequent re-flip. Final broad strict-target acceptance remains unchanged.
 A checkpoint-safe private post-loop steering adapter was then tested as a matched capacity A/B. It
 keeps engine logits and throttle exact while learning its own gimbal, flap and RCS features, but the
 live result falls to 26% over its latest 20 evaluations by update 129. Its fixed update-124 probe
@@ -187,7 +187,13 @@ lands only 25.8% versus 33.2% for the constrained-head control, and horizontal-s
 rise from 58% to 72% despite healthy 64/128 actor and 41/128 critic rank. The branch is retired: extra
 lateral feature capacity destabilizes the inherited steering schedule rather than solving the measured
 midpoint.
-The protected midpoint best's new
+The measured stage-171 control's update-324
+[40-second chase recording](assets/salto-stage171-midpoint-u324.mp4) and
+[nine-frame sequence](assets/salto-stage171-midpoint-u324-sequence.jpg) show seed 3 completing the
+powered salto and landing under the tighter midpoint. It contacts at 18.51 m/s vertical speed,
+4.32 m/s horizontal speed and 234 m miss under the interim 21.39 m/s, 12.83 m/s and 313.89 m
+limits. This remains an intermediate curriculum landing with a later re-flip, not the final clean
+safe-target claim. The earlier protected midpoint best's
 [40-second chase recording](assets/salto-stage167-midpoint-live.mp4) and
 [nine-frame sequence](assets/salto-stage167-midpoint-live-sequence.jpg) show seed 3 completing one
 powered salto, recovery and the two-engine descent. It contacts at 19.13 m/s vertical speed,
