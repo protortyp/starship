@@ -40,6 +40,9 @@ class TrainConfig:
     # One-time delta applied to the existing trainable post-loop throttle residual after loading a
     # checkpoint. The shifted parameter is saved normally and its stale optimizer moments cleared.
     post_loop_throttle_bias_delta: float = 0.0
+    # One-time equal logit delta for all post-loop engine heads. This changes only the expected
+    # engine count while preserving their learned ranking and the complete pre-salto policy.
+    post_loop_engine_logit_bias_delta: float = 0.0
     sim: SimConfig = field(default_factory=SimConfig)
     obs: ObsConfig = field(default_factory=ObsConfig)
     reward: RewardConfig = field(default_factory=RewardConfig)

@@ -251,7 +251,13 @@ and 42% miss the pad. Since the final 36.25 to 35 m/s transition has remained be
 gate for more than 900 combined actor updates, stage 97 now bisects only that blocked transition at
 35.625 m/s while preserving the three already-solved 35 m/s interpolation stages exactly. The
 original 35 m/s boundary moves to stage 98 and remains unchanged. A protected parallel run tests
-this curriculum bridge while the long stage-97 optimizer continues untouched. A
+this curriculum bridge while the long stage-97 optimizer continues untouched. Its early protected
+best lands 41.7% over 1,024 episodes and has crossed the 45% gate once. A checkpoint-safe post-loop
+engine-logit warm start then tested whether the fixed one-engine landing schedule lacked braking
+authority. On matched 256-scenario evaluations, logit shifts through +0.60 retain one engine and
+45.3% landing; the first state-dependent two-engine mixtures at +0.62, +0.64, +0.66 and +0.68 fall
+to 37.9%, 23.4%, 10.5% and 0.8%, respectively, while +0.70 and above land 0%. More thrust is therefore
+not the stage-97 remedy; keep the learned one-engine schedule while improving its timing and control. A
 [39.8-second stage-97 chase recording](assets/salto-stage97-35ms.mp4) and
 [nine-frame sequence](assets/salto-stage97-35ms-sequence.jpg) show a landed 35 m/s curriculum
 episode. They are an interim stricter-boundary artifact, not the final 15 m safe-pad claim.

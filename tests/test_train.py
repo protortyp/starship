@@ -269,6 +269,41 @@ def test_post_loop_throttle_bias_rejects_incompatible_actor(tmp_path):
         runner.offset_post_loop_throttle(float("nan"))
 
 
+def test_post_loop_engine_logit_warm_start_changes_only_trainable_residual(tmp_path):
+    cfg = compose_cfg(
+        *SHORT_EPISODES,
+        "runner.actor.class_name=starship.train.models:ContinuousAdapterRNNModel",
+        "+runner.actor.continuous_adapter_hidden_dim=16",
+        "+runner.actor.post_loop_adapter_hidden_dim=16",
+    )
+    runner = make_runner(cfg, tmp_path)
+    actor = runner.alg.actor
+    output = next(
+        module
+        for module in reversed(list(actor.post_loop_adapter.modules()))
+        if isinstance(module, torch.nn.Linear)
+    )
+    before = {name: parameter.detach().clone() for name, parameter in actor.named_parameters()}
+    runner.alg.optimizer.state[output.bias] = {"stale": torch.tensor(1.0)}
+
+    runner.offset_post_loop_engine_logits(0.75)
+
+    for name, parameter in actor.named_parameters():
+        expected = before[name].clone()
+        if parameter is output.bias:
+            expected[:3] += 0.75
+        assert torch.equal(parameter, expected)
+    assert output.bias not in runner.alg.optimizer.state
+
+
+def test_post_loop_engine_logit_bias_rejects_incompatible_actor(tmp_path):
+    runner = make_runner(compose_cfg(), tmp_path)
+    with pytest.raises(ValueError, match="post-loop adapter"):
+        runner.offset_post_loop_engine_logits(0.5)
+    with pytest.raises(ValueError, match="finite"):
+        runner.offset_post_loop_engine_logits(float("nan"))
+
+
 class CoastingPolicy(torch.nn.Module):
     def reset(self, dones=None):
         pass

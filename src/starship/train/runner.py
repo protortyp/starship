@@ -304,6 +304,30 @@ class StarshipRunner(OnPolicyRunner):
         self.alg.optimizer.state.pop(output.bias, None)
         self.alg.actor.reset()
 
+    def offset_post_loop_engine_logits(self, delta: float) -> None:
+        """Warm-start landing engine count without changing engine rank or the learned salto."""
+        if not math.isfinite(delta):
+            raise ValueError("post-loop engine logit bias delta must be finite")
+        adapter = getattr(self.alg.actor, "post_loop_adapter", None)
+        if adapter is None:
+            raise ValueError("post-loop engine logit bias needs an actor with a post-loop adapter")
+        output = next(
+            (
+                module
+                for module in reversed(list(adapter.modules()))
+                if isinstance(module, torch.nn.Linear)
+            ),
+            None,
+        )
+        if output is None or output.bias is None or output.bias.numel() < 3:
+            raise ValueError("post-loop adapter has no engine-logit output biases")
+        with torch.no_grad():
+            output.bias[:3] += delta
+        # Preserve the rest of the actor and critic optimizer. Adam stores one moment tensor for
+        # this full bias parameter, so clear it after changing the three engine-logit entries.
+        self.alg.optimizer.state.pop(output.bias, None)
+        self.alg.actor.reset()
+
     def save(self, path: str, infos: dict | None = None) -> None:
         infos = {**(infos or {}), "best_eval": self.best_eval}
         if self.curriculum is not None:
