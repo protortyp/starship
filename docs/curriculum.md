@@ -45,21 +45,22 @@ speed, 0.75 m/s horizontal speed, 12.5 m pad radius, 5° tilt, and 10°/s angula
 additionally requires exactly one inverted-to-upright recovery with no re-flip and penalizes axial
 roll and rotation beyond 360°.
 
-Current campaign: stages 0--165 are solved. The unified policy completed the 51-step two-engine
+Current campaign: stages 0--166 are solved. The unified policy completed the 51-step two-engine
 braking/pad ladder, restored the exact 35 m/s vertical, 22 m/s horizontal and 450 m pad waypoint,
 passed the 34.583 m/s vertical half-step after eight more iterations, passed its pad/horizontal
 half-step after another 13, cleared the original 34.167 m/s boundary after five, and reached stage
 154. It then completed all five steps to 30 m/s and all four to 25 m/s; the exact 25 m/s endpoint
 needed 51 stage-specific iterations and promoted to stage 163, the first of nine steps toward
-20 m/s. The first three steps toward 20 m/s then passed after 74, 9 and 23 iterations; stage 166,
-step four of nine, remains active. Its protected best lands 41.6% over 512 episodes, with 66% of
+20 m/s. The first three steps toward 20 m/s then passed after 74, 9 and 23 iterations. Stage 166,
+step four of nine, initially regressed; its protected best lands 41.6% over 512 episodes, with 66% of
 crashes over the horizontal-speed limit, 63% missing the pad and only 7% over the vertical-speed
 limit. A second protected rollback briefly restored 48% deterministic landing but exposed that
 checkpoint loading reset the optimizer from the intended 1e-6 post-warmup rate to its 3e-5
 bootstrap rate. That resume bug is now regression-tested and fixed. Recovery from the protected
-stage-166 checkpoint runs at a TensorBoard-confirmed 1e-6 and opened at 40--46% deterministic
-landing while live rollout landing recovered from zero to 31% in four iterations. The historical
-path to that boundary starts with
+stage-166 checkpoint runs at a TensorBoard-confirmed 1e-6, recovered live rollout landing from zero
+to 31% in four iterations, and passed the boundary after 16 iterations on consecutive 47% and 50%
+evaluations. Stage 167, step five of nine toward 20 m/s, is active. The historical path to that
+boundary starts with
 `salto_stage60_lateral_pad_v1`: its
 0.625 m/s braking ladder reached and solved the 80 m/s boundary (stage 34) after about 1,000 stage
 updates. Tightening all five landing constraints

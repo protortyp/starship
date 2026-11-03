@@ -42,6 +42,7 @@ STAGE99_TOUCHDOWN_COUNT_V90_FAST_EXPERIMENT = (
 STAGE99_TOUCHDOWN_COUNT_V90_HSPEED5_EXPERIMENT = (
     ROOT / "logs" / "salto_stage99_touchdown_count_v90_hspeed5_v2"
 )
+STAGE166_RECOVERY_EXPERIMENT = ROOT / "logs" / "salto_stage166_touchdown_count_v90_recover_v1"
 STAGE99_VERTICAL_TOUCHDOWN1000_EXPERIMENT = (
     ROOT / "logs" / "salto_stage99_vertical_touchdown1000_v1"
 )
@@ -407,6 +408,18 @@ TRACES = (
         99,
         "#4f46e5",
     ),
+    Trace(
+        "protected 1e-6 recovery (live)",
+        ROOT / "out/salto-stage166-touchdown-count-v90-recover-v1.log",
+        166,
+        "#16a34a",
+    ),
+    Trace(
+        "protected 1e-6 recovery (live)",
+        ROOT / "out/salto-stage166-touchdown-count-v90-recover-v1.log",
+        167,
+        "#16a34a",
+    ),
 )
 
 
@@ -587,6 +600,9 @@ def rank_panel() -> list[str]:
     stage99_vertical_touchdown1000 = EventAccumulator(
         str(latest_event_file(STAGE99_VERTICAL_TOUCHDOWN1000_EXPERIMENT))
     ).Reload()
+    stage166_recovery = EventAccumulator(
+        str(latest_event_file(STAGE166_RECOVERY_EXPERIMENT))
+    ).Reload()
     tags = (
         (control, "plasticity/actor/features/effective_rank", "control actor rank", "#2563eb"),
         (control, "plasticity/critic/features/effective_rank", "control critic rank", "#7c3aed"),
@@ -763,6 +779,18 @@ def rank_panel() -> list[str]:
             "plasticity/critic/features/effective_rank",
             "vertical-only + 1,000 m critic rank",
             "#0e7490",
+        ),
+        (
+            stage166_recovery,
+            "plasticity/actor/features/effective_rank",
+            "protected 1e-6 recovery actor rank",
+            "#16a34a",
+        ),
+        (
+            stage166_recovery,
+            "plasticity/critic/features/effective_rank",
+            "protected 1e-6 recovery critic rank",
+            "#65a30d",
         ),
     )
     series = [
