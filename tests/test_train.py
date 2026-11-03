@@ -888,6 +888,8 @@ def test_ranked_engine_count_reselects_once_at_touchdown_gate_and_jit_matches(tm
         "+runner.actor.resample_engine_count_touchdown=true",
         "+runner.actor.distribution_cfg.deterministic_engine_selection=floor_expected",
         "+runner.actor.distribution_cfg.stochastic_engine_selection=ranked_count",
+        "+runner.actor.distribution_cfg.ranked_count_temperature=0.01",
+        "+runner.actor.distribution_cfg.ranked_count_hold_steps=1000",
     )
     runner = make_runner(cfg, tmp_path)
     actor = runner.alg.actor.eval()
@@ -911,6 +913,20 @@ def test_ranked_engine_count_reselects_once_at_touchdown_gate_and_jit_matches(tm
         touchdown_output.bias.zero_()
         touchdown_output.bias[:3].fill_(1.0)
 
+    actor.reset()
+    with torch.inference_mode():
+        assert actor(obs, stochastic_output=True)[:, :3].sum() == 1
+        assert actor.distribution.params[3].item() == 1.0
+        obs["policy"][:, 12] = 0.1
+        assert actor(obs, stochastic_output=True)[:, :3].sum() == 2
+        assert actor.distribution.params[3].item() == 1.0
+        touchdown_output.bias[:3].fill_(-10.0)
+        assert actor(obs, stochastic_output=True)[:, :3].sum() == 2
+        assert actor.distribution.params[3].item() == 0.0
+
+    with torch.no_grad():
+        touchdown_output.bias[:3].fill_(1.0)
+    obs["policy"][:, 12] = 0.2
     actor.reset()
     assert actor(obs, stochastic_output=False)[:, :3].sum() == 1
     obs["policy"][:, 12] = 0.1
