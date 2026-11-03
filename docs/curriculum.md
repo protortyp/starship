@@ -148,7 +148,9 @@ exactly frozen. Once enabled, the direct-observation post-loop adapter raised ro
 65 actor updates. The same policy then passed every remaining fine braking boundary through 70 m/s
 (stages 63--73) without a rollback or restart, reaching the 60 m/s stage 74 cliff after only about
 175 actor updates in total. This clears the complete segment that had blocked all continuous-only and
-20-step count controls.
+20-step count controls. The following direct 70 to 60 m/s transition then produced zero train and
+deterministic landings for 311 updates while critic rank fell to 13/128. The protected stage-73 actor
+now resumes through 67.5, 65, and 62.5 m/s coupled bridges before retrying 60 m/s, with a fresh critic.
 
 ## Findings
 
