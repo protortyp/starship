@@ -16,6 +16,7 @@ SAFE_DECEL_EXPERIMENT = ROOT / "logs" / "salto_stage94_safe_decel_v1"
 CRITIC_EXTENSION_EXPERIMENT = ROOT / "logs" / "salto_stage94_critic_extension_v1"
 WARMSTART_EXPERIMENT = ROOT / "logs" / "salto_stage94_throttle_warmstart_v1"
 RESTART_EXPERIMENT = ROOT / "logs" / "salto_stage97_best_restart_v1"
+MIDPOINT_EXPERIMENT = ROOT / "logs" / "salto_stage97_midpoint_v1"
 LINE = re.compile(r"eval landed\s+(?P<landed>\d+\.\d+).*stage\s+(?P<stage>\d+)")
 PROMOTED_DENSE = "promoted dense tail (58.75 to 42.5 m/s)"
 COUNT_COHERENT = "count-coherent promotions (stages 92-93)"
@@ -197,14 +198,14 @@ TRACES = (
         1,
     ),
     Trace(
-        "long control: stage 94 pass + stage 95 (live)",
+        "long control: stage 94 pass + stage 95 (retired)",
         ROOT / "out/salto-stage92-count-hold-v1.log",
         94,
         "#0f766e",
         1,
     ),
     Trace(
-        "long control: stage 94 pass + stage 95 (live)",
+        "long control: stage 94 pass + stage 95 (retired)",
         ROOT / "out/salto-stage92-count-hold-v1.log",
         95,
         "#0f766e",
@@ -239,6 +240,12 @@ TRACES = (
         ROOT / "out/salto-stage97-best-restart-v1.log",
         97,
         "#111827",
+    ),
+    Trace(
+        "35.625 m/s protected midpoint (live)",
+        ROOT / "out/salto-stage97-midpoint-v1.log",
+        97,
+        "#0284c7",
     ),
 )
 
@@ -302,7 +309,7 @@ def landing_panel() -> list[str]:
     series = [(trace, rolling(read_landing(trace))) for trace in TRACES]
     longest = max(len(values) for _, values in series)
     x_max = max(500, ((longest + 499) // 500) * 500)
-    lines = [text(left, 55, "Landing success at the hard braking boundary", size=20)]
+    lines = [text(left, 55, "Hard-boundary landing success", size=20)]
     for tick in (0.3, 0.4, 0.45, 0.5):
         y = top + (y_max - tick) / (y_max - y_min) * height
         dash = ' stroke-dasharray="5 5"' if tick == 0.45 else ""
@@ -364,6 +371,7 @@ def rank_panel() -> list[str]:
     ).Reload()
     warmstart = EventAccumulator(str(latest_event_file(WARMSTART_EXPERIMENT))).Reload()
     restart = EventAccumulator(str(latest_event_file(RESTART_EXPERIMENT))).Reload()
+    midpoint = EventAccumulator(str(latest_event_file(MIDPOINT_EXPERIMENT))).Reload()
     tags = (
         (control, "plasticity/actor/features/effective_rank", "control actor rank", "#2563eb"),
         (control, "plasticity/critic/features/effective_rank", "control critic rank", "#7c3aed"),
@@ -403,6 +411,18 @@ def rank_panel() -> list[str]:
             "best-restart critic rank",
             "#78716c",
         ),
+        (
+            midpoint,
+            "plasticity/actor/features/effective_rank",
+            "midpoint actor rank",
+            "#0284c7",
+        ),
+        (
+            midpoint,
+            "plasticity/critic/features/effective_rank",
+            "midpoint critic rank",
+            "#0e7490",
+        ),
     )
     series = [
         (label, color, [event.value for event in accumulator.Scalars(tag)])
@@ -425,11 +445,7 @@ def rank_panel() -> list[str]:
         lines.append(text(x, top + height + 23, str(tick), anchor="middle"))
     lines.append(text(left + width / 2, top + height + 48, "training update", anchor="middle"))
     legend_x, legend_top = 620, 455
-    lines.append(
-        f'<rect x="{legend_x - 10}" y="{legend_top - 17}" width="255" '
-        f'height="{10 + 20 * len(series)}" fill="white"/>'
-    )
-    for index, (label, color, values) in enumerate(series):
+    for _, color, values in series:
         lines.append(
             polyline(
                 values,
@@ -444,6 +460,11 @@ def rank_panel() -> list[str]:
                 x_stride=diagnostics_interval,
             )
         )
+    lines.append(
+        f'<rect x="{legend_x - 10}" y="{legend_top - 17}" width="255" '
+        f'height="{10 + 20 * len(series)}" fill="white"/>'
+    )
+    for index, (label, color, _) in enumerate(series):
         legend_y = legend_top + index * 20
         lines.append(
             f'<line x1="{legend_x}" y1="{legend_y}" x2="{legend_x + 22}" '
