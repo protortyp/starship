@@ -197,7 +197,13 @@ lands only 25.8% versus 33.2% for the constrained-head control, and horizontal-s
 rise from 58% to 72% despite healthy 64/128 actor and 41/128 critic rank. The branch is retired: extra
 lateral feature capacity destabilizes the inherited steering schedule rather than solving the measured
 midpoint.
-The measured stage-171 control's update-324
+The original stage-172 boundary's update-1,013
+[40-second chase recording](assets/salto-stage172-u1013.mp4) and
+[nine-frame sequence](assets/salto-stage172-u1013-sequence.jpg) show seed 3 completing the powered
+salto and landing under the unchanged 7/9 boundary. It contacts at 19.58 m/s vertical speed,
+4.65 m/s horizontal speed and about 233 m miss under the interim 21.11 m/s, 12.67 m/s and 311.11 m
+limits. The later re-flip remains visible, so this is current curriculum evidence rather than a
+clean-single-salto or safe-target claim. The measured stage-171 control's update-324
 [40-second chase recording](assets/salto-stage171-midpoint-u324.mp4) and
 [nine-frame sequence](assets/salto-stage171-midpoint-u324-sequence.jpg) show seed 3 completing the
 powered salto and landing under the tighter midpoint. It contacts at 18.51 m/s vertical speed,
