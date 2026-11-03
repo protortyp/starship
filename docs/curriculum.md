@@ -64,8 +64,12 @@ trajectory declined to 15--22% live landing, and a post-fix rollback correctly r
 rate; the 100-update retry nevertheless reproduced 27--35% evaluation landing without a new best.
 That redundant control is retired. A protected restart now keeps the actor and healthy 0.94
 explained-variance critic, clears only stale actor Adam moments and halves the touchdown-adapter rate
-to 5e-7 for the long window. Its first evaluations are 34--40%. The historical path to that
-boundary starts from a protected 512-episode landing rate of 37.1%; among its crashes, 58% miss the
+to 5e-7. It also declined and rolled back after 135 updates, so optimizer state and rate are ruled
+out as the boundary's cause. A nonuniform interpolation now inserts only the measured midpoint at
+325 m pad radius, 22.5 m/s vertical speed and 13.5 m/s horizontal speed. Saved stages 0--166 are
+bit-identical, and the former stage 167 remains exact at stage 168. The protected midpoint run opens
+at 39--40% deterministic landing. The historical path to that boundary starts from a protected
+512-episode landing rate of 37.1%; among its crashes, 58% miss the
 pad, 47% exceed horizontal speed and 33% exceed vertical speed. The tighter step is therefore a
 balanced terminal-control problem rather than another critic-collapse or single-limit failure. The
 historical path to that boundary starts with

@@ -46,6 +46,7 @@ STAGE166_RECOVERY_EXPERIMENT = ROOT / "logs" / "salto_stage166_touchdown_count_v
 STAGE167_ACTOR_RESET_EXPERIMENT = (
     ROOT / "logs" / "salto_stage167_touchdown_count_v90_actor_reset_v1"
 )
+STAGE167_MIDPOINT_EXPERIMENT = ROOT / "logs" / "salto_stage167_midpoint_v1"
 STAGE99_VERTICAL_TOUCHDOWN1000_EXPERIMENT = (
     ROOT / "logs" / "salto_stage99_vertical_touchdown1000_v1"
 )
@@ -412,22 +413,28 @@ TRACES = (
         "#4f46e5",
     ),
     Trace(
-        "protected 1e-6 recovery (live)",
+        "protected 1e-6 recovery (retired)",
         ROOT / "out/salto-stage166-touchdown-count-v90-recover-v1.log",
         166,
         "#16a34a",
     ),
     Trace(
-        "protected 1e-6 recovery (live)",
+        "protected 1e-6 recovery (retired)",
         ROOT / "out/salto-stage166-touchdown-count-v90-recover-v1.log",
         167,
         "#16a34a",
     ),
     Trace(
-        "actor-moment reset at 5e-7 (live)",
+        "actor-moment reset at 5e-7 (retired)",
         ROOT / "out/salto-stage167-touchdown-count-v90-actor-reset-v1.log",
         167,
         "#0d9488",
+    ),
+    Trace(
+        "22.5 m/s measured midpoint (live)",
+        ROOT / "out/salto-stage167-midpoint-v1.log",
+        167,
+        "#0f766e",
     ),
 )
 
@@ -614,6 +621,9 @@ def rank_panel() -> list[str]:
     ).Reload()
     stage167_actor_reset = EventAccumulator(
         str(latest_event_file(STAGE167_ACTOR_RESET_EXPERIMENT))
+    ).Reload()
+    stage167_midpoint = EventAccumulator(
+        str(latest_event_file(STAGE167_MIDPOINT_EXPERIMENT))
     ).Reload()
     tags = (
         (control, "plasticity/actor/features/effective_rank", "control actor rank", "#2563eb"),
@@ -815,6 +825,18 @@ def rank_panel() -> list[str]:
             "plasticity/critic/features/effective_rank",
             "actor-reset 5e-7 critic rank",
             "#14b8a6",
+        ),
+        (
+            stage167_midpoint,
+            "plasticity/actor/features/effective_rank",
+            "22.5 m/s midpoint actor rank",
+            "#0f766e",
+        ),
+        (
+            stage167_midpoint,
+            "plasticity/critic/features/effective_rank",
+            "22.5 m/s midpoint critic rank",
+            "#115e59",
         ),
     )
     series = [
