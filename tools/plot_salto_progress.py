@@ -50,6 +50,7 @@ STAGE167_MIDPOINT_EXPERIMENT = ROOT / "logs" / "salto_stage167_midpoint_v1"
 STAGE167_MIDPOINT_LOWSTD_EXPERIMENT = ROOT / "logs" / "salto_stage167_midpoint_lowstd_v1"
 STAGE167_MIDPOINT_MINSTD_EXPERIMENT = ROOT / "logs" / "salto_stage167_midpoint_minstd_v1"
 STAGE167_MIDPOINT_HSPEED2_EXPERIMENT = ROOT / "logs" / "salto_stage167_midpoint_minstd_hspeed2_v1"
+STAGE168_GATE40_EXPERIMENT = ROOT / "logs" / "salto_stage168_hspeed2_gate40_4k_v1"
 STAGE99_VERTICAL_TOUCHDOWN1000_EXPERIMENT = (
     ROOT / "logs" / "salto_stage99_vertical_touchdown1000_v1"
 )
@@ -446,7 +447,7 @@ TRACES = (
         "#0891b2",
     ),
     Trace(
-        "22.5 m/s midpoint, minimum noise (live)",
+        "22.5 m/s midpoint, minimum noise (retired)",
         ROOT / "out/salto-stage167-midpoint-minstd-v1.log",
         167,
         "#0369a1",
@@ -458,11 +459,17 @@ TRACES = (
         "#9333ea",
     ),
     Trace(
-        "2x horizontal shaping at original boundary (live)",
+        "2x horizontal shaping at original boundary (retired)",
         ROOT / "out/salto-stage167-midpoint-minstd-hspeed2-v1.log",
         168,
         "#7e22ce",
         1,
+    ),
+    Trace(
+        "40% intermediate gate at stage 169 (live)",
+        ROOT / "out/salto-stage168-hspeed2-gate40-4k-v1.log",
+        169,
+        "#a21caf",
     ),
 )
 
@@ -662,6 +669,7 @@ def rank_panel() -> list[str]:
     stage167_midpoint_hspeed2 = EventAccumulator(
         str(latest_event_file(STAGE167_MIDPOINT_HSPEED2_EXPERIMENT))
     ).Reload()
+    stage168_gate40 = EventAccumulator(str(latest_event_file(STAGE168_GATE40_EXPERIMENT))).Reload()
     tags = (
         (control, "plasticity/actor/features/effective_rank", "control actor rank", "#2563eb"),
         (control, "plasticity/critic/features/effective_rank", "control critic rank", "#7c3aed"),
@@ -904,6 +912,12 @@ def rank_panel() -> list[str]:
             "plasticity/critic/features/effective_rank",
             "2x horizontal A/B critic rank",
             "#9333ea",
+        ),
+        (
+            stage168_gate40,
+            "plasticity/critic/features/effective_rank",
+            "stage-169 gentler critic warmup rank",
+            "#a21caf",
         ),
     )
     series = [

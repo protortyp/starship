@@ -76,18 +76,24 @@ A second matched sweep across every continuous head further raises stochastic la
 at 0.03 to 31.7% at 0.02, 32.0% at 0.01 and 33.4% at the configured 0.005 minimum; return is also
 highest at 0.005. The fixed-0.005 continuation remains stable through 270 updates at 30--36% live
 landing, sets an isolated 47% deterministic best with actor rank 72/128 and critic rank 46/128, and
-has no rollback, although it has not yet produced consecutive gate crossings. Its latest protected
+has no rollback, although it does not produce consecutive gate crossings in a complete 500-update
+comparison and ends at 32% evaluation landing. Its latest protected
 best lands 38.9% over a fresh 1,024-episode probe. Among crashes, 56% exceed horizontal speed, 51%
 miss the pad and 27% exceed vertical speed: compared with the initial midpoint policy, pad-miss
 failures improve from 59% to 51% while horizontal-limit failures worsen from 49% to 56%. A protected
 parallel branch therefore doubles only horizontal-speed shaping and trains a fresh critic for 100
 updates before using the same 5e-7 touchdown-adapter rate and 0.005 exploration. It passes the
 inserted midpoint at iteration 16,097 after about 24 actor updates on consecutive 45% evaluations
-and is now training the original 5/9 boundary at stage 168. Actor rank is healthy at 67/128; the
-fresh critic remains low-rank at 5/128 despite reaching about 0.71 explained variance, so a broad
-fixed-seed probe must still distinguish a policy gain from gate noise. The 4,096-environment control
-continues untouched during that bounded A/B. This is a balanced terminal-control problem, not
-another critic-collapse or single-limit failure. The historical path to that boundary starts with
+and reaches the original 5/9 boundary at stage 168. Its protected best lands 40.7% over 1,024 fixed
+stage-167 seeds and 38.7% on stage 168, versus 40.2% and 37.1% for the earlier baselines. Stage-168
+crashes are 65% horizontal-limit, 50% pad-miss and 17% vertical-limit failures. The live actor then
+declines to 24--36% as the fresh critic compresses to rank 4--5/128 despite about 0.71 explained
+variance, so the 1,024-environment process is retired after about 150 actor updates with its better
+checkpoint protected. The 4,096-environment slot now resumes from that stage-168 best with a gentler
+1e-5 fresh-critic warmup and a 40% intermediate promotion gate. It passes stage 168 on startup and
+begins stage 169 before any actor update. The final broad strict-target acceptance remains unchanged.
+This is a balanced terminal-control problem, not another single-limit failure. The historical path
+to that boundary starts with
 `salto_stage60_lateral_pad_v1`: its
 0.625 m/s braking ladder reached and solved the 80 m/s boundary (stage 34) after about 1,000 stage
 updates. Tightening all five landing constraints
