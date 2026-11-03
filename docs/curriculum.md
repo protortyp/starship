@@ -182,7 +182,11 @@ recovery at this still-loose midpoint, although the later strict cleanup stages 
 subsequent re-flip. The long run passes the midpoint after about 711 actor updates on consecutive 40%
 evaluations, saving `model_stage171_passed.pt`, and advances into the unchanged original 7/9 boundary
 at stage 172. That boundary opens at 40% and averages 32.4% through its first 59 evaluations; training
-continues without rollback. Final broad strict-target acceptance remains unchanged.
+continues without rollback. Its fixed checkpoints near stage-specific updates 112, 262 and 513 land
+31.4%, 31.8% and 31.8% over 1,024 seeds. At update 513, 33% of crashes exceed vertical speed, 57%
+exceed horizontal speed and 51% miss the pad, while actor/critic rank remains healthy at 72/43. This
+is a flat healthy transfer so far, so it continues toward the requested 1,000- and 1,500-update
+horizons. Final broad strict-target acceptance remains unchanged.
 A checkpoint-safe private post-loop steering adapter was then tested as a matched capacity A/B. It
 keeps engine logits and throttle exact while learning its own gimbal, flap and RCS features, but the
 live result falls to 26% over its latest 20 evaluations by update 129. Its fixed update-124 probe
