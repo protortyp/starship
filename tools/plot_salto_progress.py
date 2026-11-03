@@ -27,6 +27,7 @@ STAGE99_SAFE05_EXPERIMENT = ROOT / "logs" / "salto_stage99_safe05_v1"
 STAGE99_VERTICAL_REWARD_EXPERIMENT = ROOT / "logs" / "salto_stage99_vertical_reward_v1"
 STAGE99_VERTICAL_SAFE1_EXPERIMENT = ROOT / "logs" / "salto_stage99_vertical_safe1_v1"
 STAGE99_VERTICAL_SAFE1_FAST_EXPERIMENT = ROOT / "logs" / "salto_stage99_vertical_safe1_fast_v1"
+STAGE99_VERTICAL_SAFE1_PAD01_EXPERIMENT = ROOT / "logs" / "salto_stage99_vertical_safe1_pad01_v1"
 STAGE99_VERTICAL_TOUCHDOWN1000_EXPERIMENT = (
     ROOT / "logs" / "salto_stage99_vertical_touchdown1000_v1"
 )
@@ -321,7 +322,7 @@ TRACES = (
         "#0891b2",
     ),
     Trace(
-        "vertical-only + 1 m/s² profile (live)",
+        "vertical-only + 1 m/s² profile (retired)",
         ROOT / "out/salto-stage99-vertical-safe1-v1.log",
         99,
         "#047857",
@@ -337,6 +338,12 @@ TRACES = (
         ROOT / "out/salto-stage99-vertical-safe1-fast-v1.log",
         99,
         "#b45309",
+    ),
+    Trace(
+        "vertical-only + 1 m/s² + 2x pad shaping (live)",
+        ROOT / "out/salto-stage99-vertical-safe1-pad01-v1.log",
+        99,
+        "#15803d",
     ),
 )
 
@@ -436,15 +443,15 @@ def landing_panel() -> list[str]:
     legend = list(dict.fromkeys((trace.label, trace.color) for trace in TRACES))
     legend_x = 535
     lines.append(
-        f'<rect x="500" y="30" width="325" height="{10 + 16 * len(legend)}" fill="white"/>'
+        f'<rect x="500" y="30" width="325" height="{10 + 14 * len(legend)}" fill="white"/>'
     )
     for index, (label, color) in enumerate(legend):
-        y = 43 + 16 * index
+        y = 43 + 14 * index
         lines.append(
             f'<line x1="{legend_x}" y1="{y}" x2="{legend_x + 22}" y2="{y}" '
             f'stroke="{color}" stroke-width="3"/>'
         )
-        lines.append(text(legend_x + 29, y + 4, label, size=10))
+        lines.append(text(legend_x + 29, y + 4, label, size=9))
     return lines
 
 
@@ -484,6 +491,9 @@ def rank_panel() -> list[str]:
     ).Reload()
     stage99_vertical_safe1_fast = EventAccumulator(
         str(latest_event_file(STAGE99_VERTICAL_SAFE1_FAST_EXPERIMENT))
+    ).Reload()
+    stage99_vertical_safe1_pad01 = EventAccumulator(
+        str(latest_event_file(STAGE99_VERTICAL_SAFE1_PAD01_EXPERIMENT))
     ).Reload()
     stage99_vertical_touchdown1000 = EventAccumulator(
         str(latest_event_file(STAGE99_VERTICAL_TOUCHDOWN1000_EXPERIMENT))
@@ -604,6 +614,12 @@ def rank_panel() -> list[str]:
             "plasticity/critic/features/effective_rank",
             "vertical-only + 1 m/s² fast critic rank",
             "#b45309",
+        ),
+        (
+            stage99_vertical_safe1_pad01,
+            "plasticity/critic/features/effective_rank",
+            "vertical-only + 2x pad critic rank",
+            "#15803d",
         ),
         (
             stage99_vertical_touchdown1000,

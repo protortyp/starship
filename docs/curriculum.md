@@ -298,9 +298,12 @@ updates. Matched vertical-only-objective runs now compare the original 2.0 m/s²
 m/s² while preserving the same protected actor, fresh-critic warmup, and optimizer settings.
 The corrected 2.0 m/s² run is also retired after 101 actor updates: its 90-update checkpoint lowers
 mean crash speed to 39.9 m/s and vertical-limit failures to 81%, but broad landing falls to 37.8% as
-pad-miss failures climb to 65%. The corrected 1.0 m/s² run avoids that trade at update 40, preserving
-the 39.1% broad landing baseline and 52% pad-miss rate, so its 4,096-environment control continues to
-at least 500 actor updates while a matched 2e-6 actor-rate run tests faster adaptation.
+pad-miss failures climb to 65%. The corrected 1.0 m/s² run initially avoids that trade at update 40,
+preserving the 39.1% broad baseline and 52% pad-miss rate, but by update 90 it falls to 33.6% landing
+as pad misses reach 70% despite vertical failures improving to 74%. That control is retired after 106
+actor updates. A matched 2e-6 actor-rate run now tests faster adaptation, while a new
+4,096-environment run doubles near-ground pad-centering weight from 0.05 to 0.10 under the same
+vertical-only 1.0 m/s² objective.
 A checkpoint-safe post-loop engine-logit warm start then tested whether the fixed one-engine landing
 schedule lacked braking
 authority. On matched 256-scenario evaluations, logit shifts through +0.60 retain one engine and

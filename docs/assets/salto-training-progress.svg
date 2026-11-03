@@ -70,76 +70,79 @@
 <polyline points="72.0,227.0 72.3,240.5 72.6,230.0 72.9,231.5 73.2,228.8 73.5,227.0 73.8,228.3 74.1,229.2 74.4,236.0 74.7,240.5 75.0,246.6 75.3,242.0 75.6,241.5 75.9,241.8 76.2,242.0 76.5,242.8 76.7,243.9 77.0,242.5 77.3,242.2 77.6,241.0 77.9,241.1 78.2,240.1 78.5,240.7 78.8,241.3 79.1,241.4 79.4,241.0 79.7,241.0 80.0,241.8 80.3,241.0 80.6,241.8 80.9,243.6 81.2,244.6 81.5,245.0 81.8,242.5 82.1,242.5 82.4,238.9 82.7,240.0 83.0,239.2 83.3,239.2 83.6,238.5 83.9,235.3 84.2,234.2 84.5,234.9 84.8,234.9 85.1,236.0 85.4,232.4 85.7,232.0 85.9,229.5 86.2,228.4 86.5,227.4 86.8,228.8 87.1,228.8 87.4,228.4 87.7,229.2 88.0,228.4 88.3,229.2 88.6,228.4 88.9,228.1 89.2,227.0 89.5,226.3 89.8,225.6 90.1,225.2 90.4,227.0 90.7,227.0 91.0,228.4 91.3,231.3 91.6,231.3 91.9,230.6 92.2,231.0 92.5,230.2 92.8,232.4 93.1,232.8 93.4,234.6 93.7,235.3 94.0,234.9 94.3,235.3 94.6,234.6 94.9,234.9 95.2,235.3 95.4,235.6 95.7,233.5 96.0,231.7 96.3,231.7 96.6,233.1 96.9,231.7 97.2,234.6 97.5,234.9 97.8,233.8 98.1,232.0 98.4,231.0 98.7,230.2 99.0,230.6 99.3,232.4 99.6,232.4 99.9,231.0 100.2,233.5 100.5,234.2 100.8,233.1 101.1,232.4 101.4,232.8 101.7,230.6 102.0,229.2 102.3,229.2 102.6,227.4 102.9,228.8 103.2,227.4 103.5,229.5 103.8,228.8 104.1,228.4 104.4,229.5 104.6,227.4 104.9,226.3 105.2,226.6 105.5,227.4 105.8,228.4 106.1,227.4 106.4,227.7 106.7,225.6 107.0,225.6 107.3,228.8 107.6,227.4 107.9,226.3 108.2,225.9 108.5,226.3 108.8,225.2 109.1,227.4 109.4,228.8 109.7,229.5 110.0,231.0 110.3,231.3 110.6,233.1 110.9,231.0 111.2,231.3 111.5,233.5 111.8,233.5 112.1,235.3 112.4,237.4 112.7,240.7 113.0,243.9 113.3,243.9 113.6,243.9 113.8,241.4 114.1,242.8 114.4,242.1 114.7,241.0 115.0,241.4 115.3,243.9 115.6,247.9 115.9,248.6 116.2,249.3 116.5,248.2 116.8,249.7 117.1,250.0 117.4,250.4 117.7,250.8 118.0,249.3 118.3,252.6 118.6,251.5 118.9,249.7 119.2,247.9 119.5,247.5 119.8,248.2 120.1,246.4 120.4,246.4 120.7,247.5 121.0,251.1 121.3,254.0 121.6,253.3 121.9,255.1 122.2,254.0 122.5,255.1 122.8,256.2 123.0,252.2 123.3,252.6 123.6,254.7 123.9,254.7 124.2,253.6 124.5,255.4 124.8,256.5 125.1,255.1 125.4,256.2 125.7,254.4 126.0,255.4 126.3,254.7 126.6,258.3 126.9,259.4 127.2,257.6 127.5,256.9 127.8,255.1 128.1,253.3 128.4,251.5 128.7,249.3 129.0,251.1 129.3,251.5 129.6,254.7 129.9,253.6 130.2,253.6 130.5,255.1 130.8,254.7 131.1,253.6" fill="none" stroke="#6d28d9" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/>
 <polyline points="72.0,227.0 72.3,240.5 72.6,230.0 72.9,231.5 73.2,228.8 73.5,227.0 73.8,228.3 74.1,229.2 74.4,236.0 74.7,240.5 75.0,246.6 75.3,242.0 75.6,241.5 75.9,241.8 76.2,242.0 76.5,242.8 76.7,243.9 77.0,242.5 77.3,242.2 77.6,241.0 77.9,241.1 78.2,240.1 78.5,240.7 78.8,241.3 79.1,241.4 79.4,241.0 79.7,241.0 80.0,241.8 80.3,241.0 80.6,241.8 80.9,243.6 81.2,244.6 81.5,245.0 81.8,242.5 82.1,242.5 82.4,238.9 82.7,240.0 83.0,239.2 83.3,239.2 83.6,238.5 83.9,235.3 84.2,234.2 84.5,234.9 84.8,234.9 85.1,236.0 85.4,232.4 85.7,232.0 85.9,229.5 86.2,228.4 86.5,227.4 86.8,228.8 87.1,228.8 87.4,228.4 87.7,229.2 88.0,228.4 88.3,229.2 88.6,228.4 88.9,228.1 89.2,227.0 89.5,226.3 89.8,225.6" fill="none" stroke="#0f766e" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/>
 <polyline points="72.0,227.0 72.3,240.5 72.6,230.0 72.9,231.5 73.2,228.8 73.5,227.0 73.8,228.3 74.1,229.2 74.4,236.0 74.7,240.5 75.0,246.6 75.3,242.0 75.6,241.5 75.9,241.8 76.2,242.0 76.5,242.8 76.7,243.9 77.0,242.5 77.3,242.2 77.6,241.0 77.9,241.1 78.2,240.1 78.5,240.7 78.8,241.3 79.1,241.4 79.4,241.0 79.7,241.0 80.0,241.8 80.3,241.0 80.6,241.8 80.9,243.6 81.2,244.6 81.5,245.0 81.8,242.5 82.1,242.5 82.4,238.9 82.7,240.0 83.0,239.2 83.3,239.2 83.6,238.5 83.9,235.3 84.2,234.2 84.5,234.9 84.8,234.9 85.1,236.0 85.4,232.4 85.7,232.0 85.9,229.5 86.2,228.4 86.5,227.4 86.8,228.8 87.1,228.8 87.4,228.4 87.7,229.2 88.0,228.4 88.3,229.2 88.6,228.4 88.9,228.1 89.2,227.0 89.5,226.3 89.8,225.6 90.1,225.2 90.4,227.0 90.7,227.0 91.0,228.4 91.3,231.3 91.6,231.3 91.9,230.6 92.2,231.0 92.5,230.2 92.8,232.4 93.1,232.8 93.4,234.6 93.7,235.3 94.0,234.9 94.3,235.3 94.6,234.6 94.9,234.9 95.2,235.3 95.4,235.6 95.7,233.5 96.0,231.7 96.3,231.7 96.6,233.1 96.9,231.7 97.2,234.6 97.5,234.9 97.8,233.8 98.1,232.0 98.4,231.0 98.7,230.2 99.0,230.6 99.3,232.4 99.6,232.4 99.9,231.0 100.2,233.5 100.5,234.2 100.8,233.1 101.1,232.4 101.4,232.8 101.7,230.6 102.0,229.2 102.3,229.2 102.6,227.0 102.9,228.8 103.2,226.6 103.5,228.8 103.8,228.8 104.1,228.8 104.4,229.5 104.6,227.4 104.9,227.4 105.2,227.4 105.5,228.1 105.8,229.9 106.1,229.9 106.4,229.9 106.7,228.1 107.0,229.5 107.3,232.4 107.6,232.0 107.9,231.3 108.2,232.4 108.5,232.4 108.8,233.1 109.1,236.7 109.4,239.6 109.7,239.2 110.0,241.4 110.3,240.7 110.6,243.2 110.9,241.8 111.2,241.8 111.5,240.0 111.8,240.7 112.1,242.1 112.4,243.2 112.7,243.6 113.0,246.1 113.3,244.3 113.6,244.3 113.8,242.5 114.1,242.1 114.4,240.0 114.7,239.2 115.0,238.2 115.3,240.7 115.6,241.8 115.9,241.8 116.2,242.1 116.5,239.2 116.8,238.5 117.1,238.9 117.4,238.9 117.7,238.2 118.0,238.2 118.3,240.0 118.6,240.7 118.9,241.0 119.2,238.2 119.5,238.5 119.8,239.2 120.1,240.3 120.4,238.5 120.7,241.4 121.0,242.8 121.3,243.2 121.6,247.2 121.9,248.6 122.2,248.2 122.5,248.6 122.8,247.2 123.0,245.7 123.3,246.4 123.6,246.4 123.9,247.2 124.2,249.3 124.5,251.1 124.8,251.1 125.1,251.8 125.4,252.2 125.7,251.5 126.0,250.4 126.3,251.8 126.6,254.0 126.9,255.4 127.2,255.1 127.5,253.6 127.8,254.0 128.1,252.6 128.4,251.8 128.7,254.0 129.0,251.8 129.3,250.0 129.6,250.4 129.9,249.3 130.2,251.1 130.5,252.6 130.8,253.6 131.1,255.1 131.4,257.2" fill="none" stroke="#0891b2" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/>
-<polyline points="72.0,227.0 72.3,240.5 72.6,230.0 72.9,231.5 73.2,228.8 73.5,227.0 73.8,228.3 74.1,229.2 74.4,236.0 74.7,240.5 75.0,246.6 75.3,242.0 75.6,241.5 75.9,241.8 76.2,242.0 76.5,242.8 76.7,243.9 77.0,242.5 77.3,242.2 77.6,241.0 77.9,241.1 78.2,240.1 78.5,240.7 78.8,241.3 79.1,241.4 79.4,241.0 79.7,241.0 80.0,241.8 80.3,241.0 80.6,241.8 80.9,243.6 81.2,244.6 81.5,245.0 81.8,242.5 82.1,242.5 82.4,238.9 82.7,240.0 83.0,239.2 83.3,239.2 83.6,238.5 83.9,235.3 84.2,234.2 84.5,234.9 84.8,234.9 85.1,236.0 85.4,232.4 85.7,232.0 85.9,229.5 86.2,228.4 86.5,227.4 86.8,228.8 87.1,228.8 87.4,228.4 87.7,229.2 88.0,228.4 88.3,229.2 88.6,228.4 88.9,228.1 89.2,227.0 89.5,226.3 89.8,225.6 90.1,225.2 90.4,227.0 90.7,227.0 91.0,228.4 91.3,231.3 91.6,231.3 91.9,230.6 92.2,231.0 92.5,230.2 92.8,232.4 93.1,232.8 93.4,234.6 93.7,235.3 94.0,234.9 94.3,235.3 94.6,234.6 94.9,234.9 95.2,235.3 95.4,235.6 95.7,233.5 96.0,231.7 96.3,231.7 96.6,233.1 96.9,231.7 97.2,234.6 97.5,234.9 97.8,233.8 98.1,232.0 98.4,231.0 98.7,230.2 99.0,230.6 99.3,232.4 99.6,232.4 99.9,231.0 100.2,233.5 100.5,234.2 100.8,233.1 101.1,232.4 101.4,232.8 101.7,230.6 102.0,229.2 102.3,229.2 102.6,227.7 102.9,229.2 103.2,227.4 103.5,230.2 103.8,229.5 104.1,229.2 104.4,230.6 104.6,228.4 104.9,227.0 105.2,226.3 105.5,226.3 105.8,227.4 106.1,227.0 106.4,225.9 106.7,224.5 107.0,225.2 107.3,228.4 107.6,226.3 107.9,225.6 108.2,225.6 108.5,225.2 108.8,225.2 109.1,227.7 109.4,229.2 109.7,229.5 110.0,232.0 110.3,231.3 110.6,233.1 110.9,230.2 111.2,231.7 111.5,232.8 111.8,232.4 112.1,234.2 112.4,236.7 112.7,238.2 113.0,240.7 113.3,241.0 113.6,241.0 113.8,239.2 114.1,238.2 114.4,237.4 114.7,235.3 115.0,237.4 115.3,239.2 115.6,241.8 115.9,242.8 116.2,245.0 116.5,245.0 116.8,245.7 117.1,245.7 117.4,246.1 117.7,248.2 118.0,249.0 118.3,252.2 118.6,252.9 118.9,252.2 119.2,250.8 119.5,251.5 119.8,252.6 120.1,253.6 120.4,254.7 120.7,254.7 121.0,258.7 121.3,263.0 121.6,265.5 121.9,264.8 122.2,267.7 122.5,268.8 122.8,269.1 123.0,268.4 123.3,270.6 123.6,272.4 123.9,274.2 124.2,276.0 124.5,277.4 124.8,277.0 125.1,274.5 125.4,277.0 125.7,277.0 126.0,276.3" fill="none" stroke="#047857" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/>
-<polyline points="72.0,227.0 72.3,240.5 72.6,230.0 72.9,231.5 73.2,228.8 73.5,227.0 73.8,228.3 74.1,229.2 74.4,236.0 74.7,240.5 75.0,246.6 75.3,242.0 75.6,241.5 75.9,241.8 76.2,242.0 76.5,242.8 76.7,243.9 77.0,242.5 77.3,242.2 77.6,241.0 77.9,241.1 78.2,240.1 78.5,240.7 78.8,241.3 79.1,241.4 79.4,241.0 79.7,241.0 80.0,241.8 80.3,241.0 80.6,241.8 80.9,243.6 81.2,244.6 81.5,245.0 81.8,242.5 82.1,242.5 82.4,238.9 82.7,240.0 83.0,239.2 83.3,239.2 83.6,238.5 83.9,235.3 84.2,234.2 84.5,234.9 84.8,234.9 85.1,236.0 85.4,232.4 85.7,232.0 85.9,229.5 86.2,228.4 86.5,227.4 86.8,228.8 87.1,228.8 87.4,228.4 87.7,229.2 88.0,228.4 88.3,229.2 88.6,228.4 88.9,228.1 89.2,227.0 89.5,226.3 89.8,225.6 90.1,225.2 90.4,227.0 90.7,227.0 91.0,228.4 91.3,231.3 91.6,231.3 91.9,230.6 92.2,231.0 92.5,230.2 92.8,232.4 93.1,232.8 93.4,234.6 93.7,235.3 94.0,234.9 94.3,235.3 94.6,234.6 94.9,234.9 95.2,235.3 95.4,235.6 95.7,233.5 96.0,231.7 96.3,231.7 96.6,233.1 96.9,231.7 97.2,234.6 97.5,234.9 97.8,233.8 98.1,232.0 98.4,231.0 98.7,230.2 99.0,230.6 99.3,232.4 99.6,232.4 99.9,231.0 100.2,233.5 100.5,234.2 100.8,233.1 101.1,232.4 101.4,232.8 101.7,230.6 102.0,229.2 102.3,229.2 102.6,227.4 102.9,229.2 103.2,227.7 103.5,229.9 103.8,229.2 104.1,228.8 104.4,229.2 104.6,226.3 104.9,225.6 105.2,225.2 105.5,225.2 105.8,227.0 106.1,226.6 106.4,225.6 106.7,223.8 107.0,224.1 107.3,226.6 107.6,227.7 107.9,227.0 108.2,227.4 108.5,227.0 108.8,227.0 109.1,228.8 109.4,230.6 109.7,230.6" fill="none" stroke="#0e7490" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/>
-<polyline points="72.0,227.0 72.3,240.5 72.6,230.0 72.9,231.5 73.2,228.8" fill="none" stroke="#b45309" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/>
-<rect x="500" y="30" width="325" height="538" fill="white"/>
+<polyline points="72.0,227.0 72.3,240.5 72.6,230.0 72.9,231.5 73.2,228.8 73.5,227.0 73.8,228.3 74.1,229.2 74.4,236.0 74.7,240.5 75.0,246.6 75.3,242.0 75.6,241.5 75.9,241.8 76.2,242.0 76.5,242.8 76.7,243.9 77.0,242.5 77.3,242.2 77.6,241.0 77.9,241.1 78.2,240.1 78.5,240.7 78.8,241.3 79.1,241.4 79.4,241.0 79.7,241.0 80.0,241.8 80.3,241.0 80.6,241.8 80.9,243.6 81.2,244.6 81.5,245.0 81.8,242.5 82.1,242.5 82.4,238.9 82.7,240.0 83.0,239.2 83.3,239.2 83.6,238.5 83.9,235.3 84.2,234.2 84.5,234.9 84.8,234.9 85.1,236.0 85.4,232.4 85.7,232.0 85.9,229.5 86.2,228.4 86.5,227.4 86.8,228.8 87.1,228.8 87.4,228.4 87.7,229.2 88.0,228.4 88.3,229.2 88.6,228.4 88.9,228.1 89.2,227.0 89.5,226.3 89.8,225.6 90.1,225.2 90.4,227.0 90.7,227.0 91.0,228.4 91.3,231.3 91.6,231.3 91.9,230.6 92.2,231.0 92.5,230.2 92.8,232.4 93.1,232.8 93.4,234.6 93.7,235.3 94.0,234.9 94.3,235.3 94.6,234.6 94.9,234.9 95.2,235.3 95.4,235.6 95.7,233.5 96.0,231.7 96.3,231.7 96.6,233.1 96.9,231.7 97.2,234.6 97.5,234.9 97.8,233.8 98.1,232.0 98.4,231.0 98.7,230.2 99.0,230.6 99.3,232.4 99.6,232.4 99.9,231.0 100.2,233.5 100.5,234.2 100.8,233.1 101.1,232.4 101.4,232.8 101.7,230.6 102.0,229.2 102.3,229.2 102.6,227.7 102.9,229.2 103.2,227.4 103.5,230.2 103.8,229.5 104.1,229.2 104.4,230.6 104.6,228.4 104.9,227.0 105.2,226.3 105.5,226.3 105.8,227.4 106.1,227.0 106.4,225.9 106.7,224.5 107.0,225.2 107.3,228.4 107.6,226.3 107.9,225.6 108.2,225.6 108.5,225.2 108.8,225.2 109.1,227.7 109.4,229.2 109.7,229.5 110.0,232.0 110.3,231.3 110.6,233.1 110.9,230.2 111.2,231.7 111.5,232.8 111.8,232.4 112.1,234.2 112.4,236.7 112.7,238.2 113.0,240.7 113.3,241.0 113.6,241.0 113.8,239.2 114.1,238.2 114.4,237.4 114.7,235.3 115.0,237.4 115.3,239.2 115.6,241.8 115.9,242.8 116.2,245.0 116.5,245.0 116.8,245.7 117.1,245.7 117.4,246.1 117.7,248.2 118.0,249.0 118.3,252.2 118.6,252.9 118.9,252.2 119.2,250.8 119.5,251.5 119.8,252.6 120.1,253.6 120.4,254.7 120.7,254.7 121.0,258.7 121.3,263.0 121.6,265.5 121.9,264.8 122.2,267.7 122.5,268.8 122.8,269.1 123.0,268.4 123.3,270.6 123.6,272.4 123.9,274.2 124.2,276.0 124.5,277.4 124.8,277.0 125.1,274.5 125.4,277.0 125.7,277.0 126.0,276.3 126.3,277.8 126.6,278.5 126.9,279.6 127.2,280.6 127.5,280.3 127.8,279.6 128.1,280.6 128.4,280.3 128.7,281.7 129.0,282.8 129.3,286.0 129.6,286.4 129.9,286.4 130.2,288.6 130.5,290.4 130.8,290.4 131.1,290.4 131.4,291.1 131.7,292.2 132.0,293.6 132.3,295.0 132.5,297.2 132.8,297.6" fill="none" stroke="#047857" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="72.0,227.0 72.3,240.5 72.6,230.0 72.9,231.5 73.2,228.8 73.5,227.0 73.8,228.3 74.1,229.2 74.4,236.0 74.7,240.5 75.0,246.6 75.3,242.0 75.6,241.5 75.9,241.8 76.2,242.0 76.5,242.8 76.7,243.9 77.0,242.5 77.3,242.2 77.6,241.0 77.9,241.1 78.2,240.1 78.5,240.7 78.8,241.3 79.1,241.4 79.4,241.0 79.7,241.0 80.0,241.8 80.3,241.0 80.6,241.8 80.9,243.6 81.2,244.6 81.5,245.0 81.8,242.5 82.1,242.5 82.4,238.9 82.7,240.0 83.0,239.2 83.3,239.2 83.6,238.5 83.9,235.3 84.2,234.2 84.5,234.9 84.8,234.9 85.1,236.0 85.4,232.4 85.7,232.0 85.9,229.5 86.2,228.4 86.5,227.4 86.8,228.8 87.1,228.8 87.4,228.4 87.7,229.2 88.0,228.4 88.3,229.2 88.6,228.4 88.9,228.1 89.2,227.0 89.5,226.3 89.8,225.6 90.1,225.2 90.4,227.0 90.7,227.0 91.0,228.4 91.3,231.3 91.6,231.3 91.9,230.6 92.2,231.0 92.5,230.2 92.8,232.4 93.1,232.8 93.4,234.6 93.7,235.3 94.0,234.9 94.3,235.3 94.6,234.6 94.9,234.9 95.2,235.3 95.4,235.6 95.7,233.5 96.0,231.7 96.3,231.7 96.6,233.1 96.9,231.7 97.2,234.6 97.5,234.9 97.8,233.8 98.1,232.0 98.4,231.0 98.7,230.2 99.0,230.6 99.3,232.4 99.6,232.4 99.9,231.0 100.2,233.5 100.5,234.2 100.8,233.1 101.1,232.4 101.4,232.8 101.7,230.6 102.0,229.2 102.3,229.2 102.6,227.4 102.9,229.2 103.2,227.7 103.5,229.9 103.8,229.2 104.1,228.8 104.4,229.2 104.6,226.3 104.9,225.6 105.2,225.2 105.5,225.2 105.8,227.0 106.1,226.6 106.4,225.6 106.7,223.8 107.0,224.1 107.3,226.6 107.6,227.7 107.9,227.0 108.2,227.4 108.5,227.0 108.8,227.0 109.1,228.8 109.4,230.6 109.7,230.6 110.0,232.4 110.3,231.0 110.6,232.4 110.9,229.9 111.2,230.2 111.5,231.7 111.8,232.8 112.1,237.1 112.4,237.8 112.7,241.0 113.0,241.8 113.3,238.2 113.6,237.8 113.8,238.5 114.1,238.5 114.4,236.4 114.7,235.6 115.0,234.2 115.3,234.6 115.6,237.1 115.9,235.3 116.2,236.4 116.5,234.9 116.8,235.3 117.1,235.6 117.4,233.5 117.7,232.8 118.0,233.1 118.3,236.0 118.6,236.7 118.9,236.0 119.2,235.6 119.5,232.0 119.8,235.3 120.1,233.8 120.4,236.7 120.7,236.7 121.0,239.6 121.3,239.2 121.6,240.3 121.9,241.0 122.2,241.4" fill="none" stroke="#0e7490" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="72.0,227.0 72.3,240.5 72.6,230.0 72.9,231.5 73.2,228.8 73.5,227.0" fill="none" stroke="#b45309" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="72.0,227.0 72.3,240.5 72.6,230.0 72.9,231.5 73.2,228.8" fill="none" stroke="#15803d" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/>
+<rect x="500" y="30" width="325" height="486" fill="white"/>
 <line x1="535" y1="43" x2="557" y2="43" stroke="#9ca3af" stroke-width="3"/>
-<text x="564" y="47" font-size="10" text-anchor="start" fill="#374151">3D distance only</text>
-<line x1="535" y1="59" x2="557" y2="59" stroke="#10b981" stroke-width="3"/>
-<text x="564" y="63" font-size="10" text-anchor="start" fill="#374151">lateral pad shaping</text>
-<line x1="535" y1="75" x2="557" y2="75" stroke="#f59e0b" stroke-width="3"/>
-<text x="564" y="79" font-size="10" text-anchor="start" fill="#374151">first stage-62 midpoint</text>
-<line x1="535" y1="91" x2="557" y2="91" stroke="#2563eb" stroke-width="3"/>
-<text x="564" y="95" font-size="10" text-anchor="start" fill="#374151">refined stage-62 bridge</text>
-<line x1="535" y1="107" x2="557" y2="107" stroke="#dc2626" stroke-width="3"/>
-<text x="564" y="111" font-size="10" text-anchor="start" fill="#374151">2x lateral-speed shaping</text>
-<line x1="535" y1="123" x2="557" y2="123" stroke="#db2777" stroke-width="3"/>
-<text x="564" y="127" font-size="10" text-anchor="start" fill="#374151">20-step persistent count</text>
-<line x1="535" y1="139" x2="557" y2="139" stroke="#0891b2" stroke-width="3"/>
-<text x="564" y="143" font-size="10" text-anchor="start" fill="#374151">phase-coherent landing adapter</text>
-<line x1="535" y1="155" x2="557" y2="155" stroke="#7c3aed" stroke-width="3"/>
-<text x="564" y="159" font-size="10" text-anchor="start" fill="#374151">62.5 m/s long braking bridge</text>
-<line x1="535" y1="171" x2="557" y2="171" stroke="#ea580c" stroke-width="3"/>
-<text x="564" y="175" font-size="10" text-anchor="start" fill="#374151">60 m/s braking boundary</text>
-<line x1="535" y1="187" x2="557" y2="187" stroke="#92400e" stroke-width="3"/>
-<text x="564" y="191" font-size="10" text-anchor="start" fill="#374151">promoted dense tail (58.75 to 42.5 m/s)</text>
-<line x1="535" y1="203" x2="557" y2="203" stroke="#dc2626" stroke-width="3"/>
-<text x="564" y="207" font-size="10" text-anchor="start" fill="#374151">stage 92, std 0.10 collapse</text>
-<line x1="535" y1="219" x2="557" y2="219" stroke="#f59e0b" stroke-width="3"/>
-<text x="564" y="223" font-size="10" text-anchor="start" fill="#374151">stage 92, lower learning rate</text>
-<line x1="535" y1="235" x2="557" y2="235" stroke="#0f766e" stroke-width="3"/>
-<text x="564" y="239" font-size="10" text-anchor="start" fill="#374151">stage 92, std 0.03 old decoder</text>
-<line x1="535" y1="251" x2="557" y2="251" stroke="#059669" stroke-width="3"/>
-<text x="564" y="255" font-size="10" text-anchor="start" fill="#374151">count-coherent promotions (stages 92-93)</text>
-<line x1="535" y1="267" x2="557" y2="267" stroke="#0f766e" stroke-width="3"/>
-<text x="564" y="271" font-size="10" text-anchor="start" fill="#374151">long control: stages 94-95 (retired)</text>
-<line x1="535" y1="283" x2="557" y2="283" stroke="#7c3aed" stroke-width="3"/>
-<text x="564" y="287" font-size="10" text-anchor="start" fill="#374151">2 m/s² one-engine braking A/B</text>
-<line x1="535" y1="299" x2="557" y2="299" stroke="#db2777" stroke-width="3"/>
-<text x="564" y="303" font-size="10" text-anchor="start" fill="#374151">corrected braking + throttle warm start (live)</text>
-<line x1="535" y1="315" x2="557" y2="315" stroke="#db2777" stroke-width="3"/>
-<text x="564" y="319" font-size="10" text-anchor="start" fill="#374151">corrected braking, original stage-97 window</text>
-<line x1="535" y1="331" x2="557" y2="331" stroke="#111827" stroke-width="3"/>
-<text x="564" y="335" font-size="10" text-anchor="start" fill="#374151">protected stage-97 best restart (live)</text>
-<line x1="535" y1="347" x2="557" y2="347" stroke="#0284c7" stroke-width="3"/>
-<text x="564" y="351" font-size="10" text-anchor="start" fill="#374151">35.625 m/s protected midpoint (passed)</text>
-<line x1="535" y1="363" x2="557" y2="363" stroke="#0369a1" stroke-width="3"/>
-<text x="564" y="367" font-size="10" text-anchor="start" fill="#374151">original 35 m/s boundary (passed)</text>
-<line x1="535" y1="379" x2="557" y2="379" stroke="#0e7490" stroke-width="3"/>
-<text x="564" y="383" font-size="10" text-anchor="start" fill="#374151">first 30 m/s braking step (live)</text>
-<line x1="535" y1="395" x2="557" y2="395" stroke="#7c2d12" stroke-width="3"/>
-<text x="564" y="399" font-size="10" text-anchor="start" fill="#374151">34.583 m/s protected midpoint (live)</text>
-<line x1="535" y1="411" x2="557" y2="411" stroke="#7e22ce" stroke-width="3"/>
-<text x="564" y="415" font-size="10" text-anchor="start" fill="#374151">vertical-only bridge, fresh critic (retired)</text>
-<line x1="535" y1="427" x2="557" y2="427" stroke="#be123c" stroke-width="3"/>
-<text x="564" y="431" font-size="10" text-anchor="start" fill="#374151">500 m touchdown specialist (retired)</text>
-<line x1="535" y1="443" x2="557" y2="443" stroke="#c026d3" stroke-width="3"/>
-<text x="564" y="447" font-size="10" text-anchor="start" fill="#374151">1,000 m legacy-objective specialist (retired)</text>
-<line x1="535" y1="459" x2="557" y2="459" stroke="#4d7c0f" stroke-width="3"/>
-<text x="564" y="463" font-size="10" text-anchor="start" fill="#374151">2x vertical-speed shaping (retired)</text>
-<line x1="535" y1="475" x2="557" y2="475" stroke="#6d28d9" stroke-width="3"/>
-<text x="564" y="479" font-size="10" text-anchor="start" fill="#374151">1 m/s² legacy objective (retired)</text>
-<line x1="535" y1="491" x2="557" y2="491" stroke="#0f766e" stroke-width="3"/>
-<text x="564" y="495" font-size="10" text-anchor="start" fill="#374151">0.5 m/s² critic warmup (superseded)</text>
-<line x1="535" y1="507" x2="557" y2="507" stroke="#0891b2" stroke-width="3"/>
-<text x="564" y="511" font-size="10" text-anchor="start" fill="#374151">vertical-only 2 m/s² objective (retired)</text>
-<line x1="535" y1="523" x2="557" y2="523" stroke="#047857" stroke-width="3"/>
-<text x="564" y="527" font-size="10" text-anchor="start" fill="#374151">vertical-only + 1 m/s² profile (live)</text>
-<line x1="535" y1="539" x2="557" y2="539" stroke="#0e7490" stroke-width="3"/>
-<text x="564" y="543" font-size="10" text-anchor="start" fill="#374151">vertical-only + 1,000 m specialist (live)</text>
-<line x1="535" y1="555" x2="557" y2="555" stroke="#b45309" stroke-width="3"/>
-<text x="564" y="559" font-size="10" text-anchor="start" fill="#374151">vertical-only + 1 m/s², 4x actor rate (live)</text>
+<text x="564" y="47" font-size="9" text-anchor="start" fill="#374151">3D distance only</text>
+<line x1="535" y1="57" x2="557" y2="57" stroke="#10b981" stroke-width="3"/>
+<text x="564" y="61" font-size="9" text-anchor="start" fill="#374151">lateral pad shaping</text>
+<line x1="535" y1="71" x2="557" y2="71" stroke="#f59e0b" stroke-width="3"/>
+<text x="564" y="75" font-size="9" text-anchor="start" fill="#374151">first stage-62 midpoint</text>
+<line x1="535" y1="85" x2="557" y2="85" stroke="#2563eb" stroke-width="3"/>
+<text x="564" y="89" font-size="9" text-anchor="start" fill="#374151">refined stage-62 bridge</text>
+<line x1="535" y1="99" x2="557" y2="99" stroke="#dc2626" stroke-width="3"/>
+<text x="564" y="103" font-size="9" text-anchor="start" fill="#374151">2x lateral-speed shaping</text>
+<line x1="535" y1="113" x2="557" y2="113" stroke="#db2777" stroke-width="3"/>
+<text x="564" y="117" font-size="9" text-anchor="start" fill="#374151">20-step persistent count</text>
+<line x1="535" y1="127" x2="557" y2="127" stroke="#0891b2" stroke-width="3"/>
+<text x="564" y="131" font-size="9" text-anchor="start" fill="#374151">phase-coherent landing adapter</text>
+<line x1="535" y1="141" x2="557" y2="141" stroke="#7c3aed" stroke-width="3"/>
+<text x="564" y="145" font-size="9" text-anchor="start" fill="#374151">62.5 m/s long braking bridge</text>
+<line x1="535" y1="155" x2="557" y2="155" stroke="#ea580c" stroke-width="3"/>
+<text x="564" y="159" font-size="9" text-anchor="start" fill="#374151">60 m/s braking boundary</text>
+<line x1="535" y1="169" x2="557" y2="169" stroke="#92400e" stroke-width="3"/>
+<text x="564" y="173" font-size="9" text-anchor="start" fill="#374151">promoted dense tail (58.75 to 42.5 m/s)</text>
+<line x1="535" y1="183" x2="557" y2="183" stroke="#dc2626" stroke-width="3"/>
+<text x="564" y="187" font-size="9" text-anchor="start" fill="#374151">stage 92, std 0.10 collapse</text>
+<line x1="535" y1="197" x2="557" y2="197" stroke="#f59e0b" stroke-width="3"/>
+<text x="564" y="201" font-size="9" text-anchor="start" fill="#374151">stage 92, lower learning rate</text>
+<line x1="535" y1="211" x2="557" y2="211" stroke="#0f766e" stroke-width="3"/>
+<text x="564" y="215" font-size="9" text-anchor="start" fill="#374151">stage 92, std 0.03 old decoder</text>
+<line x1="535" y1="225" x2="557" y2="225" stroke="#059669" stroke-width="3"/>
+<text x="564" y="229" font-size="9" text-anchor="start" fill="#374151">count-coherent promotions (stages 92-93)</text>
+<line x1="535" y1="239" x2="557" y2="239" stroke="#0f766e" stroke-width="3"/>
+<text x="564" y="243" font-size="9" text-anchor="start" fill="#374151">long control: stages 94-95 (retired)</text>
+<line x1="535" y1="253" x2="557" y2="253" stroke="#7c3aed" stroke-width="3"/>
+<text x="564" y="257" font-size="9" text-anchor="start" fill="#374151">2 m/s² one-engine braking A/B</text>
+<line x1="535" y1="267" x2="557" y2="267" stroke="#db2777" stroke-width="3"/>
+<text x="564" y="271" font-size="9" text-anchor="start" fill="#374151">corrected braking + throttle warm start (live)</text>
+<line x1="535" y1="281" x2="557" y2="281" stroke="#db2777" stroke-width="3"/>
+<text x="564" y="285" font-size="9" text-anchor="start" fill="#374151">corrected braking, original stage-97 window</text>
+<line x1="535" y1="295" x2="557" y2="295" stroke="#111827" stroke-width="3"/>
+<text x="564" y="299" font-size="9" text-anchor="start" fill="#374151">protected stage-97 best restart (live)</text>
+<line x1="535" y1="309" x2="557" y2="309" stroke="#0284c7" stroke-width="3"/>
+<text x="564" y="313" font-size="9" text-anchor="start" fill="#374151">35.625 m/s protected midpoint (passed)</text>
+<line x1="535" y1="323" x2="557" y2="323" stroke="#0369a1" stroke-width="3"/>
+<text x="564" y="327" font-size="9" text-anchor="start" fill="#374151">original 35 m/s boundary (passed)</text>
+<line x1="535" y1="337" x2="557" y2="337" stroke="#0e7490" stroke-width="3"/>
+<text x="564" y="341" font-size="9" text-anchor="start" fill="#374151">first 30 m/s braking step (live)</text>
+<line x1="535" y1="351" x2="557" y2="351" stroke="#7c2d12" stroke-width="3"/>
+<text x="564" y="355" font-size="9" text-anchor="start" fill="#374151">34.583 m/s protected midpoint (live)</text>
+<line x1="535" y1="365" x2="557" y2="365" stroke="#7e22ce" stroke-width="3"/>
+<text x="564" y="369" font-size="9" text-anchor="start" fill="#374151">vertical-only bridge, fresh critic (retired)</text>
+<line x1="535" y1="379" x2="557" y2="379" stroke="#be123c" stroke-width="3"/>
+<text x="564" y="383" font-size="9" text-anchor="start" fill="#374151">500 m touchdown specialist (retired)</text>
+<line x1="535" y1="393" x2="557" y2="393" stroke="#c026d3" stroke-width="3"/>
+<text x="564" y="397" font-size="9" text-anchor="start" fill="#374151">1,000 m legacy-objective specialist (retired)</text>
+<line x1="535" y1="407" x2="557" y2="407" stroke="#4d7c0f" stroke-width="3"/>
+<text x="564" y="411" font-size="9" text-anchor="start" fill="#374151">2x vertical-speed shaping (retired)</text>
+<line x1="535" y1="421" x2="557" y2="421" stroke="#6d28d9" stroke-width="3"/>
+<text x="564" y="425" font-size="9" text-anchor="start" fill="#374151">1 m/s² legacy objective (retired)</text>
+<line x1="535" y1="435" x2="557" y2="435" stroke="#0f766e" stroke-width="3"/>
+<text x="564" y="439" font-size="9" text-anchor="start" fill="#374151">0.5 m/s² critic warmup (superseded)</text>
+<line x1="535" y1="449" x2="557" y2="449" stroke="#0891b2" stroke-width="3"/>
+<text x="564" y="453" font-size="9" text-anchor="start" fill="#374151">vertical-only 2 m/s² objective (retired)</text>
+<line x1="535" y1="463" x2="557" y2="463" stroke="#047857" stroke-width="3"/>
+<text x="564" y="467" font-size="9" text-anchor="start" fill="#374151">vertical-only + 1 m/s² profile (retired)</text>
+<line x1="535" y1="477" x2="557" y2="477" stroke="#0e7490" stroke-width="3"/>
+<text x="564" y="481" font-size="9" text-anchor="start" fill="#374151">vertical-only + 1,000 m specialist (live)</text>
+<line x1="535" y1="491" x2="557" y2="491" stroke="#b45309" stroke-width="3"/>
+<text x="564" y="495" font-size="9" text-anchor="start" fill="#374151">vertical-only + 1 m/s², 4x actor rate (live)</text>
+<line x1="535" y1="505" x2="557" y2="505" stroke="#15803d" stroke-width="3"/>
+<text x="564" y="509" font-size="9" text-anchor="start" fill="#374151">vertical-only + 1 m/s² + 2x pad shaping (live)</text>
 <text x="72" y="590" font-size="20" text-anchor="start" fill="#374151">Protected braking-policy plasticity comparisons</text>
 <line x1="72" y1="850.0" x2="814" y2="850.0" stroke="#e5e7eb"/>
 <text x="62" y="854.0" font-size="13" text-anchor="end" fill="#374151">0</text>
@@ -176,10 +179,11 @@
 <polyline points="72.0,823.6 77.0,749.8 82.1,814.8 87.1,834.2 92.2,839.5 97.2,841.2 102.3,841.2 107.3,830.7 112.4,825.4 117.4,825.4 122.5,828.9 127.5,828.9 132.6,828.9 137.6,827.1 142.7,828.9 147.7,828.9 152.8,828.9 157.8,828.9 162.9,828.9 167.9,828.9" fill="none" stroke="#6d28d9" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/>
 <polyline points="72.0,823.6 77.0,760.4 82.1,818.4 87.1,837.7 92.2,844.7 97.2,846.5 102.3,846.5" fill="none" stroke="#0f766e" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/>
 <polyline points="72.0,823.6 77.0,756.8 82.1,825.4 87.1,844.7 92.2,846.5 97.2,846.5 102.3,846.5 107.3,841.2 112.4,832.4 117.4,825.4 122.5,823.6 127.5,821.9 132.6,818.4 137.6,820.1 142.7,818.4 147.7,818.4 152.8,818.4 157.8,818.4 162.9,820.1 167.9,821.9 173.0,820.1" fill="none" stroke="#0891b2" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/>
-<polyline points="72.0,823.6 77.0,749.8 82.1,813.1 87.1,827.1 92.2,830.7 97.2,825.4 102.3,814.8 107.3,814.8 112.4,814.8 117.4,813.1 122.5,818.4 127.5,820.1 132.6,820.1 137.6,820.1 142.7,820.1 147.7,820.1 152.8,823.6 157.8,823.6 162.9,823.6" fill="none" stroke="#047857" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="72.0,823.6 77.0,749.8 82.1,813.1 87.1,827.1 92.2,830.7 97.2,825.4 102.3,814.8 107.3,814.8 112.4,814.8 117.4,813.1 122.5,818.4 127.5,820.1 132.6,820.1 137.6,820.1 142.7,820.1 147.7,820.1 152.8,823.6 157.8,823.6 162.9,823.6 167.9,821.9 173.0,820.1" fill="none" stroke="#047857" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/>
 
-<polyline points="72.0,825.4 77.0,756.8 82.1,825.4 87.1,844.7 92.2,846.5 97.2,846.5 102.3,846.5 107.3,839.5 112.4,832.4 117.4,825.4 122.5,823.6 127.5,825.4 132.6,828.9 137.6,827.1" fill="none" stroke="#0e7490" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/>
-<rect x="445" y="598" width="420" height="175" fill="white"/>
+
+<polyline points="72.0,825.4 77.0,756.8 82.1,825.4 87.1,844.7 92.2,846.5 97.2,846.5 102.3,846.5 107.3,839.5 112.4,832.4 117.4,825.4 122.5,823.6 127.5,825.4 132.6,828.9 137.6,827.1 142.7,825.4 147.7,820.1 152.8,821.9 157.8,825.4" fill="none" stroke="#0e7490" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/>
+<rect x="445" y="598" width="420" height="190" fill="white"/>
 <line x1="455" y1="615" x2="477" y2="615" stroke="#2563eb" stroke-width="3"/>
 <text x="484" y="619" font-size="8" text-anchor="start" fill="#374151">control actor rank</text>
 <line x1="455" y1="630" x2="477" y2="630" stroke="#7c3aed" stroke-width="3"/>
@@ -202,26 +206,28 @@
 <text x="484" y="754" font-size="8" text-anchor="start" fill="#374151">midpoint critic rank</text>
 <line x1="455" y1="765" x2="477" y2="765" stroke="#7c2d12" stroke-width="3"/>
 <text x="484" y="769" font-size="8" text-anchor="start" fill="#374151">stage-99 midpoint actor rank</text>
-<line x1="660" y1="615" x2="682" y2="615" stroke="#a16207" stroke-width="3"/>
-<text x="689" y="619" font-size="8" text-anchor="start" fill="#374151">stage-99 midpoint critic rank</text>
-<line x1="660" y1="630" x2="682" y2="630" stroke="#7e22ce" stroke-width="3"/>
-<text x="689" y="634" font-size="8" text-anchor="start" fill="#374151">vertical-only fresh critic rank</text>
-<line x1="660" y1="645" x2="682" y2="645" stroke="#be123c" stroke-width="3"/>
-<text x="689" y="649" font-size="8" text-anchor="start" fill="#374151">500 m specialist critic rank</text>
-<line x1="660" y1="660" x2="682" y2="660" stroke="#c026d3" stroke-width="3"/>
-<text x="689" y="664" font-size="8" text-anchor="start" fill="#374151">1,000 m specialist critic rank</text>
-<line x1="660" y1="675" x2="682" y2="675" stroke="#4d7c0f" stroke-width="3"/>
-<text x="689" y="679" font-size="8" text-anchor="start" fill="#374151">2x-speed-shaping critic rank</text>
-<line x1="660" y1="690" x2="682" y2="690" stroke="#6d28d9" stroke-width="3"/>
-<text x="689" y="694" font-size="8" text-anchor="start" fill="#374151">1 m/s² braking critic rank</text>
-<line x1="660" y1="705" x2="682" y2="705" stroke="#0f766e" stroke-width="3"/>
-<text x="689" y="709" font-size="8" text-anchor="start" fill="#374151">0.5 m/s² braking critic rank</text>
-<line x1="660" y1="720" x2="682" y2="720" stroke="#0891b2" stroke-width="3"/>
-<text x="689" y="724" font-size="8" text-anchor="start" fill="#374151">vertical-only reward critic rank</text>
-<line x1="660" y1="735" x2="682" y2="735" stroke="#047857" stroke-width="3"/>
-<text x="689" y="739" font-size="8" text-anchor="start" fill="#374151">vertical-only + 1 m/s² critic rank</text>
-<line x1="660" y1="750" x2="682" y2="750" stroke="#b45309" stroke-width="3"/>
-<text x="689" y="754" font-size="8" text-anchor="start" fill="#374151">vertical-only + 1 m/s² fast critic rank</text>
+<line x1="455" y1="780" x2="477" y2="780" stroke="#a16207" stroke-width="3"/>
+<text x="484" y="784" font-size="8" text-anchor="start" fill="#374151">stage-99 midpoint critic rank</text>
+<line x1="660" y1="615" x2="682" y2="615" stroke="#7e22ce" stroke-width="3"/>
+<text x="689" y="619" font-size="8" text-anchor="start" fill="#374151">vertical-only fresh critic rank</text>
+<line x1="660" y1="630" x2="682" y2="630" stroke="#be123c" stroke-width="3"/>
+<text x="689" y="634" font-size="8" text-anchor="start" fill="#374151">500 m specialist critic rank</text>
+<line x1="660" y1="645" x2="682" y2="645" stroke="#c026d3" stroke-width="3"/>
+<text x="689" y="649" font-size="8" text-anchor="start" fill="#374151">1,000 m specialist critic rank</text>
+<line x1="660" y1="660" x2="682" y2="660" stroke="#4d7c0f" stroke-width="3"/>
+<text x="689" y="664" font-size="8" text-anchor="start" fill="#374151">2x-speed-shaping critic rank</text>
+<line x1="660" y1="675" x2="682" y2="675" stroke="#6d28d9" stroke-width="3"/>
+<text x="689" y="679" font-size="8" text-anchor="start" fill="#374151">1 m/s² braking critic rank</text>
+<line x1="660" y1="690" x2="682" y2="690" stroke="#0f766e" stroke-width="3"/>
+<text x="689" y="694" font-size="8" text-anchor="start" fill="#374151">0.5 m/s² braking critic rank</text>
+<line x1="660" y1="705" x2="682" y2="705" stroke="#0891b2" stroke-width="3"/>
+<text x="689" y="709" font-size="8" text-anchor="start" fill="#374151">vertical-only reward critic rank</text>
+<line x1="660" y1="720" x2="682" y2="720" stroke="#047857" stroke-width="3"/>
+<text x="689" y="724" font-size="8" text-anchor="start" fill="#374151">vertical-only + 1 m/s² critic rank</text>
+<line x1="660" y1="735" x2="682" y2="735" stroke="#b45309" stroke-width="3"/>
+<text x="689" y="739" font-size="8" text-anchor="start" fill="#374151">vertical-only + 1 m/s² fast critic rank</text>
+<line x1="660" y1="750" x2="682" y2="750" stroke="#15803d" stroke-width="3"/>
+<text x="689" y="754" font-size="8" text-anchor="start" fill="#374151">vertical-only + 2x pad critic rank</text>
 <line x1="660" y1="765" x2="682" y2="765" stroke="#0e7490" stroke-width="3"/>
 <text x="689" y="769" font-size="8" text-anchor="start" fill="#374151">vertical-only + 1,000 m critic rank</text>
 </g>
