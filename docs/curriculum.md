@@ -176,11 +176,15 @@ updates with no rollback or KL stop. Stage 79 inherited 31--36% deterministic la
 another 63 actor updates. Stage 80 (56.25 m/s vertical speed, 621.875 m pad) then inherited a usable
 policy, climbed from 31--44% to consecutive gate-level evaluations, and passed after 83 actor updates.
 Stage 81 (55 m/s, 612.5 m pad) recovered from an initial 24--38% range, reached 39--42% exploratory
-landing, and passed after 142 actor updates. Stage 82 (53.75 m/s, 603.125 m pad) inherits 32--44%
-deterministic landing, still without a rollback or KL stop. Actor feature rank remains about 65/128
-with no dead units and the trainable post-loop adapter retains nonzero gradients; critic feature rank
-is about 15/128, but recent explained variance remains healthy at about 0.61. The run has a
-20,000-update horizon for the complete dense tail.
+landing, and passed after 142 actor updates. Stage 82 (53.75 m/s, 603.125 m pad) then spent roughly
+200 updates in a 26--38% trough before recovering and passing after 322 updates. That validates the
+long horizon again. Stages 83--85 subsequently passed in 149, 147, and 178 updates, protecting the
+50 m/s policy, and the first 40 m/s bridge passed after another 67 updates. None of these transitions
+rolled back or hit a KL stop. The exact protected stage-85 actor landed seed 3 in 32.0 s; its
+[chase-camera recording](assets/salto-stage85-50ms.mp4) and
+[nine-frame sequence](assets/salto-stage85-50ms-sequence.jpg) show the full single salto, recovery,
+and deliberately still-loose 50 m/s curriculum touchdown. Stage 87 (47.5 m/s) inherits 36--39%
+deterministic landing. The run has a 20,000-update horizon for the complete dense tail.
 
 ## Findings
 

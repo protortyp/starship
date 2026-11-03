@@ -62,37 +62,72 @@ TRACES = (
         1,
     ),
     Trace(
-        "58.75 m/s dense tail",
+        "promoted dense tail (58.75 to 48.75 m/s)",
         ROOT / "out/salto-stage78-dense-tail-v1.log",
         78,
         "#92400e",
     ),
     Trace(
-        "57.5 m/s dense tail",
+        "promoted dense tail (58.75 to 48.75 m/s)",
         ROOT / "out/salto-stage78-dense-tail-v1.log",
         79,
-        "#a16207",
+        "#92400e",
         1,
     ),
     Trace(
-        "56.25 m/s dense tail",
+        "promoted dense tail (58.75 to 48.75 m/s)",
         ROOT / "out/salto-stage78-dense-tail-v1.log",
         80,
-        "#15803d",
+        "#92400e",
         1,
     ),
     Trace(
-        "55 m/s dense tail",
+        "promoted dense tail (58.75 to 48.75 m/s)",
         ROOT / "out/salto-stage78-dense-tail-v1.log",
         81,
-        "#0f766e",
+        "#92400e",
         1,
     ),
     Trace(
-        "53.75 m/s dense tail (live)",
+        "promoted dense tail (58.75 to 48.75 m/s)",
         ROOT / "out/salto-stage78-dense-tail-v1.log",
         82,
-        "#0369a1",
+        "#92400e",
+        1,
+    ),
+    Trace(
+        "promoted dense tail (58.75 to 48.75 m/s)",
+        ROOT / "out/salto-stage78-dense-tail-v1.log",
+        83,
+        "#92400e",
+        1,
+    ),
+    Trace(
+        "promoted dense tail (58.75 to 48.75 m/s)",
+        ROOT / "out/salto-stage78-dense-tail-v1.log",
+        84,
+        "#92400e",
+        1,
+    ),
+    Trace(
+        "promoted dense tail (58.75 to 48.75 m/s)",
+        ROOT / "out/salto-stage78-dense-tail-v1.log",
+        85,
+        "#92400e",
+        1,
+    ),
+    Trace(
+        "promoted dense tail (58.75 to 48.75 m/s)",
+        ROOT / "out/salto-stage78-dense-tail-v1.log",
+        86,
+        "#92400e",
+        1,
+    ),
+    Trace(
+        "47.5 m/s dense tail (live)",
+        ROOT / "out/salto-stage78-dense-tail-v1.log",
+        87,
+        "#0f766e",
         1,
     ),
 )
@@ -190,17 +225,19 @@ def landing_panel() -> list[str]:
                 color=trace.color,
             )
         )
+    legend = list(dict.fromkeys((trace.label, trace.color) for trace in TRACES))
     legend_x = 535
     lines.append(
-        f'<rect x="{legend_x - 10}" y="30" width="290" height="226" fill="white" opacity="0.9"/>'
+        f'<rect x="{legend_x - 10}" y="30" width="290" height="{10 + 20 * len(legend)}" '
+        'fill="white" opacity="0.9"/>'
     )
-    for index, trace in enumerate(TRACES):
+    for index, (label, color) in enumerate(legend):
         y = 43 + 20 * index
         lines.append(
             f'<line x1="{legend_x}" y1="{y}" x2="{legend_x + 22}" y2="{y}" '
-            f'stroke="{trace.color}" stroke-width="3"/>'
+            f'stroke="{color}" stroke-width="3"/>'
         )
-        lines.append(text(legend_x + 29, y + 4, trace.label, size=12))
+        lines.append(text(legend_x + 29, y + 4, label, size=12))
     return lines
 
 
