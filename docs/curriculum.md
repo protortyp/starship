@@ -237,7 +237,10 @@ exceed the vertical-speed limit and 48.3% miss the pad. Repeating the throttle-r
 newer checkpoint finds that the actor has already learned the earlier braking offset: a further +0.1
 changes the matched 256-scenario rate only from 41.4% to 41.8%, and larger offsets trade vertical
 speed for worse pad accuracy. The live optimizer therefore continues instead of restarting from the
-older sweep.
+older sweep. The longer window is now paying off: by 300 stage-97 evaluations the latest 50 mean rose
+to 37.8%, three evaluations crossed the 45% gate, and the protected best reached 46.9%. A new
+1,024-episode probe improved from 37.1% to 39.5%, with explained variance near 0.73, actor rank
+67/128, and no rollback. The crossings are not yet consecutive, so stage 97 remains active.
 
 ## Findings
 
