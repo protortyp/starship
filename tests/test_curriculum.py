@@ -86,10 +86,55 @@ def test_interpolated_stages_expand_to_cumulative_numeric_overrides():
     assert curriculum.target_configs()[1].time_cost == pytest.approx(0.5)
 
 
+def test_fractional_interpolation_inserts_nonuniform_midpoints():
+    config = CurriculumConfig(
+        enabled=True,
+        stages=[
+            {"name": "base", "overrides": ["sim.landing.pad_radius=100"]},
+            {
+                "name": "tighten landing",
+                "interpolate": {
+                    "fractions": [0.25, 0.375, 1],
+                    "overrides": ["sim.landing.pad_radius=60"],
+                },
+            },
+        ],
+    )
+
+    curriculum = Curriculum(compose_cfg(), OmegaConf.create(config))
+
+    assert [stage["name"] for stage in curriculum.stages[1:]] == [
+        "tighten landing (1/3)",
+        "tighten landing (2/3)",
+        "tighten landing (3/3)",
+    ]
+    assert [curriculum.configs(stage)[0].landing.pad_radius for stage in range(1, 4)] == [
+        90,
+        85,
+        60,
+    ]
+
+
 @pytest.mark.parametrize(
     ("interpolation", "message"),
     [
         ({"steps": 0, "overrides": ["sim.landing.pad_radius=10"]}, "positive integer"),
+        (
+            {"fractions": [0.5, 0.4, 1], "overrides": ["sim.landing.pad_radius=10"]},
+            "strictly increasing",
+        ),
+        (
+            {"fractions": [0.5, 0.9], "overrides": ["sim.landing.pad_radius=10"]},
+            "end at 1",
+        ),
+        (
+            {
+                "steps": 2,
+                "fractions": [0.5, 1],
+                "overrides": ["sim.landing.pad_radius=10"],
+            },
+            "either steps or fractions",
+        ),
         ({"steps": 2, "overrides": ["sim.wind.enabled=true"]}, "must be numeric"),
         ({"steps": 2, "overrides": ["runner.algorithm.gamma=0.9"]}, "must start with"),
     ],
@@ -154,7 +199,7 @@ def test_salto_landing_curriculum_finishes_with_a_strict_single_loop():
         cfg = compose("salto_land")
     assert cfg.iterations == 2000
     curriculum = Curriculum(cfg, cfg.curriculum)
-    assert len(curriculum.stages) == 205
+    assert len(curriculum.stages) == 206
     horizontal, horizontal_reward = curriculum.configs(56)
     assert horizontal.landing.pad_radius == pytest.approx(718.75)
     assert horizontal.landing.max_vertical_speed == pytest.approx(73.75)
@@ -234,6 +279,18 @@ def test_salto_landing_curriculum_finishes_with_a_strict_single_loop():
     assert original_next.landing.pad_radius == pytest.approx(441.6666666666667)
     assert original_next.landing.max_vertical_speed == pytest.approx(34.166666666666664)
     assert original_next.landing.max_horizontal_speed == pytest.approx(21.333333333333332)
+    solved_step, _ = curriculum.configs(166)
+    assert solved_step.landing.pad_radius == pytest.approx(327.77777777777777)
+    assert solved_step.landing.max_vertical_speed == pytest.approx(22.77777777777778)
+    assert solved_step.landing.max_horizontal_speed == pytest.approx(13.666666666666666)
+    midpoint, _ = curriculum.configs(167)
+    assert midpoint.landing.pad_radius == pytest.approx(325)
+    assert midpoint.landing.max_vertical_speed == pytest.approx(22.5)
+    assert midpoint.landing.max_horizontal_speed == pytest.approx(13.5)
+    original_step, _ = curriculum.configs(168)
+    assert original_step.landing.pad_radius == pytest.approx(322.22222222222223)
+    assert original_step.landing.max_vertical_speed == pytest.approx(22.22222222222222)
+    assert original_step.landing.max_horizontal_speed == pytest.approx(13.333333333333334)
     safe_stage = len(curriculum.stages) - 8
     safe, _ = curriculum.configs(safe_stage)
     assert safe.landing.pad_radius == pytest.approx(15)

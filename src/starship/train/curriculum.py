@@ -3,6 +3,7 @@ promoted to the next stage once the current one is solved (eval landing rate abo
 for several consecutive evals)."""
 
 import copy
+import itertools
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -62,8 +63,37 @@ class Curriculum:
             if stage.get("overrides"):
                 raise ValueError("an interpolated curriculum stage cannot also define overrides")
             steps = interpolation.get("steps")
-            if not isinstance(steps, int) or isinstance(steps, bool) or steps < 1:
-                raise ValueError("curriculum interpolation steps must be a positive integer")
+            fractions = interpolation.get("fractions")
+            if fractions is None:
+                if not isinstance(steps, int) or isinstance(steps, bool) or steps < 1:
+                    raise ValueError("curriculum interpolation steps must be a positive integer")
+                fractions = [step / steps for step in range(1, steps + 1)]
+            else:
+                if steps is not None:
+                    raise ValueError(
+                        "curriculum interpolation needs either steps or fractions, not both"
+                    )
+                if (
+                    not isinstance(fractions, list)
+                    or not fractions
+                    or any(
+                        not isinstance(fraction, (int, float))
+                        or isinstance(fraction, bool)
+                        or not 0 < fraction <= 1
+                        for fraction in fractions
+                    )
+                ):
+                    raise ValueError(
+                        "curriculum interpolation fractions must be a nonempty list of numbers "
+                        "in (0, 1]"
+                    )
+                if fractions[-1] != 1 or any(
+                    previous >= current for previous, current in itertools.pairwise(fractions)
+                ):
+                    raise ValueError(
+                        "curriculum interpolation fractions must be strictly increasing and "
+                        "end at 1"
+                    )
             targets: list[tuple[str, float | int]] = []
             starts: list[float | int] = []
             for override in interpolation.get("overrides") or []:
@@ -88,13 +118,14 @@ class Curriculum:
                 raise ValueError("a curriculum interpolation needs at least one override")
 
             name = stage["name"]
-            for step in range(1, steps + 1):
-                fraction = step / steps
+            for step, fraction in enumerate(fractions, 1):
                 overrides = []
                 for start, (key, target) in zip(starts, targets, strict=True):
-                    value = target if step == steps else start + (target - start) * fraction
+                    value = target if fraction == 1 else start + (target - start) * fraction
                     overrides.append(f"{key}={value}")
-                expanded.append({"name": f"{name} ({step}/{steps})", "overrides": overrides})
+                expanded.append(
+                    {"name": f"{name} ({step}/{len(fractions)})", "overrides": overrides}
+                )
             for key, target in targets:
                 OmegaConf.update(merged, key, target, force_add=False)
         return expanded

@@ -619,7 +619,21 @@ stages:
         - sim.landing.max_horizontal_speed=15
   - name: brake and recover toward 20 m/s
     interpolate:
-      steps: 9
+      # The original 1/9--4/9 boundaries are solved. A protected 512-episode probe at the
+      # original 5/9 boundary still lands 37.1%, but three healthy training trajectories move
+      # away from it. Insert only the measured half-step between 4/9 and 5/9, then preserve every
+      # original downstream fraction exactly.
+      fractions:
+        - 0.1111111111111111
+        - 0.2222222222222222
+        - 0.3333333333333333
+        - 0.4444444444444444
+        - 0.5
+        - 0.5555555555555556
+        - 0.6666666666666666
+        - 0.7777777777777778
+        - 0.8888888888888888
+        - 1
       overrides:
         - sim.landing.pad_radius=300
         - sim.landing.max_vertical_speed=20
