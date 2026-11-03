@@ -516,121 +516,155 @@ stages:
       - sim.landing.pad_radius=650
       - sim.landing.max_vertical_speed=60
       - sim.landing.max_horizontal_speed=32
-  - name: 78 brake below 50 m/s
-    overrides:
-      - sim.landing.pad_radius=575
-      - sim.landing.max_vertical_speed=50
-      - sim.landing.max_horizontal_speed=28
-  - name: 79 brake below 40 m/s
-    overrides:
-      - sim.landing.pad_radius=500
-      - sim.landing.max_vertical_speed=40
-      - sim.landing.max_horizontal_speed=25
-  - name: 80 brake below 35 m/s
-    overrides:
-      - sim.landing.pad_radius=450
-      - sim.landing.max_vertical_speed=35
-      - sim.landing.max_horizontal_speed=22
-  - name: 81 brake below 30 m/s
-    overrides:
-      - sim.landing.pad_radius=400
-      - sim.landing.max_vertical_speed=30
-      - sim.landing.max_horizontal_speed=18
-  - name: 82 brake below 25 m/s
-    overrides:
-      - sim.landing.pad_radius=350
-      - sim.landing.max_vertical_speed=25
-      - sim.landing.max_horizontal_speed=15
-  - name: 83 brake below 20 m/s
-    overrides:
-      - sim.landing.pad_radius=300
-      - sim.landing.max_vertical_speed=20
-      - sim.landing.max_horizontal_speed=12
-      - sim.landing.max_tilt=1.0471975511965976
-      - sim.landing.max_angular_rate=1.5707963267948966
-  - name: 84 brake below 16 m/s
-    overrides:
-      - sim.landing.pad_radius=250
-      - sim.landing.max_vertical_speed=16
-      - sim.landing.max_horizontal_speed=10
-      - sim.landing.max_tilt=0.7853981633974483
-      - sim.landing.max_angular_rate=1.0471975511965976
-  - name: 85 controlled touchdown below 12 m/s
-    overrides:
-      - sim.landing.pad_radius=200
-      - sim.landing.max_vertical_speed=12
-      - sim.landing.max_horizontal_speed=8
-      - sim.landing.max_tilt=0.5235987755982988
-      - sim.landing.max_angular_rate=0.7853981633974483
-  - name: 86 touchdown below 10 m/s
-    overrides:
-      - sim.landing.pad_radius=150
-      - sim.landing.max_vertical_speed=10
-      - sim.landing.max_horizontal_speed=6
-  - name: 87 touchdown below 8 m/s
-    overrides:
-      - sim.landing.pad_radius=100
-      - sim.landing.max_vertical_speed=8
-      - sim.landing.max_horizontal_speed=5
-      - sim.landing.max_tilt=0.3490658503988659
-      - sim.landing.max_angular_rate=0.5235987755982988
-  - name: 88 touchdown below 6 m/s
-    overrides:
-      - sim.landing.pad_radius=70
-      - sim.landing.max_vertical_speed=6
-      - sim.landing.max_horizontal_speed=4
-  - name: 89 touchdown below 5 m/s
-    overrides:
-      - sim.landing.pad_radius=40
-      - sim.landing.max_vertical_speed=5
-      - sim.landing.max_horizontal_speed=3
-      - sim.landing.max_tilt=0.2617993877991494
-      - sim.landing.max_angular_rate=0.3490658503988659
-  - name: 90 touchdown below 4 m/s
-    overrides:
-      - sim.landing.pad_radius=30
-      - sim.landing.max_vertical_speed=4
-      - sim.landing.max_horizontal_speed=2.5
-  - name: 91 touchdown below 3 m/s
-    overrides:
-      - sim.landing.pad_radius=20
-      - sim.landing.max_vertical_speed=3
-      - sim.landing.max_horizontal_speed=1.5
-      - sim.landing.max_tilt=0.17453292519943295
-      - sim.landing.max_angular_rate=0.17453292519943295
-  - name: 92 safe pad landing
-    overrides:
-      - sim.landing.pad_radius=15
-      - sim.landing.max_vertical_speed=2
-      - sim.landing.max_horizontal_speed=1
-      - sim.landing.max_tilt=0.08726646259971647
-      - sim.landing.max_angular_rate=0.08726646259971647
+  # The original post-60 schedule jumped 10 m/s and 75 m at once. Earlier braking evidence needed
+  # at most 1.25 m/s, 0.75 m/s horizontal speed and 12.5 m pad changes, so expand these compact
+  # waypoints into bounded cumulative stages. Attitude changes are likewise capped near 5 degrees
+  # and angular-rate changes near 10 degrees/s.
+  - name: brake toward 50 m/s
+    interpolate:
+      steps: 8
+      overrides:
+        - sim.landing.pad_radius=575
+        - sim.landing.max_vertical_speed=50
+        - sim.landing.max_horizontal_speed=28
+  - name: brake toward 40 m/s
+    interpolate:
+      steps: 8
+      overrides:
+        - sim.landing.pad_radius=500
+        - sim.landing.max_vertical_speed=40
+        - sim.landing.max_horizontal_speed=25
+  - name: brake toward 35 m/s
+    interpolate:
+      steps: 4
+      overrides:
+        - sim.landing.pad_radius=450
+        - sim.landing.max_vertical_speed=35
+        - sim.landing.max_horizontal_speed=22
+  - name: brake toward 30 m/s
+    interpolate:
+      steps: 6
+      overrides:
+        - sim.landing.pad_radius=400
+        - sim.landing.max_vertical_speed=30
+        - sim.landing.max_horizontal_speed=18
+  - name: brake toward 25 m/s
+    interpolate:
+      steps: 4
+      overrides:
+        - sim.landing.pad_radius=350
+        - sim.landing.max_vertical_speed=25
+        - sim.landing.max_horizontal_speed=15
+  - name: brake and recover toward 20 m/s
+    interpolate:
+      steps: 9
+      overrides:
+        - sim.landing.pad_radius=300
+        - sim.landing.max_vertical_speed=20
+        - sim.landing.max_horizontal_speed=12
+        - sim.landing.max_tilt=1.0471975511965976
+        - sim.landing.max_angular_rate=1.5707963267948966
+  - name: controlled touchdown toward 16 m/s
+    interpolate:
+      steps: 4
+      overrides:
+        - sim.landing.pad_radius=250
+        - sim.landing.max_vertical_speed=16
+        - sim.landing.max_horizontal_speed=10
+        - sim.landing.max_tilt=0.7853981633974483
+        - sim.landing.max_angular_rate=1.0471975511965976
+  - name: controlled touchdown toward 12 m/s
+    interpolate:
+      steps: 4
+      overrides:
+        - sim.landing.pad_radius=200
+        - sim.landing.max_vertical_speed=12
+        - sim.landing.max_horizontal_speed=8
+        - sim.landing.max_tilt=0.5235987755982988
+        - sim.landing.max_angular_rate=0.7853981633974483
+  - name: touchdown toward 10 m/s
+    interpolate:
+      steps: 4
+      overrides:
+        - sim.landing.pad_radius=150
+        - sim.landing.max_vertical_speed=10
+        - sim.landing.max_horizontal_speed=6
+  - name: touchdown toward 8 m/s
+    interpolate:
+      steps: 4
+      overrides:
+        - sim.landing.pad_radius=100
+        - sim.landing.max_vertical_speed=8
+        - sim.landing.max_horizontal_speed=5
+        - sim.landing.max_tilt=0.3490658503988659
+        - sim.landing.max_angular_rate=0.5235987755982988
+  - name: touchdown toward 6 m/s
+    interpolate:
+      steps: 3
+      overrides:
+        - sim.landing.pad_radius=70
+        - sim.landing.max_vertical_speed=6
+        - sim.landing.max_horizontal_speed=4
+  - name: touchdown toward 5 m/s
+    interpolate:
+      steps: 3
+      overrides:
+        - sim.landing.pad_radius=40
+        - sim.landing.max_vertical_speed=5
+        - sim.landing.max_horizontal_speed=3
+        - sim.landing.max_tilt=0.2617993877991494
+        - sim.landing.max_angular_rate=0.3490658503988659
+  - name: touchdown below 4 m/s
+    interpolate:
+      steps: 1
+      overrides:
+        - sim.landing.pad_radius=30
+        - sim.landing.max_vertical_speed=4
+        - sim.landing.max_horizontal_speed=2.5
+  - name: touchdown toward 3 m/s
+    interpolate:
+      steps: 2
+      overrides:
+        - sim.landing.pad_radius=20
+        - sim.landing.max_vertical_speed=3
+        - sim.landing.max_horizontal_speed=1.5
+        - sim.landing.max_tilt=0.17453292519943295
+        - sim.landing.max_angular_rate=0.17453292519943295
+  - name: safe pad landing
+    interpolate:
+      steps: 1
+      overrides:
+        - sim.landing.pad_radius=15
+        - sim.landing.max_vertical_speed=2
+        - sim.landing.max_horizontal_speed=1
+        - sim.landing.max_tilt=0.08726646259971647
+        - sim.landing.max_angular_rate=0.08726646259971647
   # Cumulative absolute rotation can be gamed by wobbling and repeated flips. Introduce the dense
   # cleanup costs gradually after the safe landing is learned; jumping directly from no axial-roll
   # or re-flip cost to the exact sparse invariant left the inherited controller near 1,000 degrees
   # of roll travel and 1.2 re-flips per episode.
-  - name: 93 reduce axial roll after the salto
+  - name: reduce axial roll after the salto
     overrides:
       - reward.roll_travel_cost=0.1
-  - name: 94 further reduce axial roll
+  - name: further reduce axial roll
     overrides:
       - reward.roll_travel_cost=0.25
-  - name: 95 strongly discourage axial roll
+  - name: strongly discourage axial roll
     overrides:
       - reward.roll_travel_cost=0.5
-  - name: 96 minimize axial roll
+  - name: minimize axial roll
     overrides:
       - reward.roll_travel_cost=1
-  - name: 97 discourage rotation overshoot and re-flips
+  - name: discourage rotation overshoot and re-flips
     overrides:
       - reward.loop_overshoot_cost=6.25
       - reward.reflip_cost=2.5
-  - name: 98 strongly discourage rotation overshoot and re-flips
+  - name: strongly discourage rotation overshoot and re-flips
     overrides:
       - reward.loop_overshoot_cost=7.5
       - reward.reflip_cost=5
   # Touchdown finally counts only after exactly one inverted-to-upright recovery with no re-flip.
-  - name: 99 clean single salto then safe pad landing
+  - name: clean single salto then safe pad landing
     overrides:
       - sim.require_single_loop_before_landing=true
       - reward.loop_overshoot_cost=10

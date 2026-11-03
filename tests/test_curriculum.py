@@ -1,3 +1,4 @@
+import itertools
 import json
 
 import numpy as np
@@ -39,6 +40,67 @@ def test_stage_overrides_accumulate():
     assert (spawn0.altitude, spawn0.vertical_speed, reward0.time_cost) == (60, -30, base_time_cost)
     assert (spawn1.altitude, spawn1.vertical_speed, reward1.time_cost) == (60.0, -35.0, 0.5)
     assert curriculum.target_configs()[0].spawn.vertical_speed == -35.0
+
+
+def test_interpolated_stages_expand_to_cumulative_numeric_overrides():
+    config = CurriculumConfig(
+        enabled=True,
+        stages=[
+            {
+                "name": "base",
+                "overrides": ["sim.landing.pad_radius=100", "sim.landing.max_vertical_speed=10"],
+            },
+            {
+                "name": "tighten landing",
+                "interpolate": {
+                    "steps": 4,
+                    "overrides": [
+                        "sim.landing.pad_radius=60",
+                        "sim.landing.max_vertical_speed=2",
+                    ],
+                },
+            },
+            {"name": "final reward", "overrides": ["reward.time_cost=0.5"]},
+        ],
+    )
+    curriculum = Curriculum(compose_cfg(), OmegaConf.create(config))
+    assert len(curriculum.stages) == 6
+    assert [stage["name"] for stage in curriculum.stages[1:5]] == [
+        "tighten landing (1/4)",
+        "tighten landing (2/4)",
+        "tighten landing (3/4)",
+        "tighten landing (4/4)",
+    ]
+    assert [curriculum.configs(stage)[0].landing.pad_radius for stage in range(1, 5)] == [
+        90,
+        80,
+        70,
+        60,
+    ]
+    assert [curriculum.configs(stage)[0].landing.max_vertical_speed for stage in range(1, 5)] == [
+        8,
+        6,
+        4,
+        2,
+    ]
+    assert curriculum.target_configs()[1].time_cost == pytest.approx(0.5)
+
+
+@pytest.mark.parametrize(
+    ("interpolation", "message"),
+    [
+        ({"steps": 0, "overrides": ["sim.landing.pad_radius=10"]}, "positive integer"),
+        ({"steps": 2, "overrides": ["sim.wind.enabled=true"]}, "must be numeric"),
+        ({"steps": 2, "overrides": ["runner.algorithm.gamma=0.9"]}, "must start with"),
+    ],
+)
+def test_invalid_interpolated_stage_is_rejected(interpolation, message):
+    config = CurriculumConfig(
+        enabled=True,
+        stages=[{"name": "bad interpolation", "interpolate": interpolation}],
+    )
+    with pytest.raises(ValueError, match=message):
+        Curriculum(compose_cfg(), OmegaConf.create(config))
 
 
 def test_attitude_stages_preserve_spawns_and_resume_indices():
@@ -92,7 +154,7 @@ def test_salto_landing_curriculum_finishes_with_a_strict_single_loop():
         cfg = compose("salto_land")
     assert cfg.iterations == 2000
     curriculum = Curriculum(cfg, cfg.curriculum)
-    assert len(curriculum.stages) == 100
+    assert len(curriculum.stages) == 150
     horizontal, horizontal_reward = curriculum.configs(56)
     assert horizontal.landing.pad_radius == pytest.approx(718.75)
     assert horizontal.landing.max_vertical_speed == pytest.approx(73.75)
@@ -116,12 +178,36 @@ def test_salto_landing_curriculum_finishes_with_a_strict_single_loop():
     assert bridge74.landing.pad_radius == pytest.approx(687.5)
     assert bridge74.landing.max_vertical_speed == pytest.approx(67.5)
     assert bridge74.landing.max_horizontal_speed == pytest.approx(34.25)
-    cleanup = [curriculum.configs(stage)[1] for stage in range(92, 100)]
+    first_dense, _ = curriculum.configs(78)
+    assert first_dense.landing.pad_radius == pytest.approx(640.625)
+    assert first_dense.landing.max_vertical_speed == pytest.approx(58.75)
+    assert first_dense.landing.max_horizontal_speed == pytest.approx(31.5)
+    fifty, _ = curriculum.configs(85)
+    assert fifty.landing.pad_radius == pytest.approx(575)
+    assert fifty.landing.max_vertical_speed == pytest.approx(50)
+    assert fifty.landing.max_horizontal_speed == pytest.approx(28)
+    safe_stage = len(curriculum.stages) - 8
+    safe, _ = curriculum.configs(safe_stage)
+    assert safe.landing.pad_radius == pytest.approx(15)
+    assert safe.landing.max_vertical_speed == pytest.approx(2)
+    assert safe.landing.max_horizontal_speed == pytest.approx(1)
+    dense = [curriculum.configs(stage)[0].landing for stage in range(77, safe_stage + 1)]
+    for previous, current in itertools.pairwise(dense):
+        assert previous.pad_radius - current.pad_radius <= 12.5
+        assert previous.max_vertical_speed - current.max_vertical_speed <= 1.25
+        assert previous.max_horizontal_speed - current.max_horizontal_speed <= 0.75
+        assert previous.max_tilt - current.max_tilt <= np.radians(5) + 1e-12
+        assert previous.max_angular_rate - current.max_angular_rate <= np.radians(10) + 1e-12
+    cleanup = [
+        curriculum.configs(stage)[1]
+        for stage in range(len(curriculum.stages) - 8, len(curriculum.stages))
+    ]
     assert [reward.roll_travel_cost for reward in cleanup] == [0, 0.1, 0.25, 0.5, 1, 1, 1, 1]
     assert [reward.reflip_cost for reward in cleanup] == [0, 0, 0, 0, 0, 2.5, 5, 10]
     assert [reward.loop_overshoot_cost for reward in cleanup] == [5, 5, 5, 5, 5, 6.25, 7.5, 10]
     assert [
-        curriculum.configs(stage)[0].require_single_loop_before_landing for stage in range(92, 100)
+        curriculum.configs(stage)[0].require_single_loop_before_landing
+        for stage in range(len(curriculum.stages) - 8, len(curriculum.stages))
     ] == [
         False,
         False,

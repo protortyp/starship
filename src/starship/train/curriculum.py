@@ -32,7 +32,8 @@ class Curriculum:
         resolved = copy.deepcopy(cfg)
         OmegaConf.resolve(resolved)
         self._base = OmegaConf.masked_copy(resolved, ["sim", "reward"])
-        self.stages = [OmegaConf.to_container(s, resolve=True) for s in curriculum.stages]
+        raw_stages = [OmegaConf.to_container(s, resolve=True) for s in curriculum.stages]
+        self.stages = self._expand_stages(raw_stages)
         if not self.stages:
             raise ValueError("a curriculum needs at least one stage")
         self.promote_landed = curriculum.promote_landed
@@ -41,6 +42,62 @@ class Curriculum:
             raise ValueError(f"start_stage {curriculum.start_stage} is not a valid stage")
         self.stage = curriculum.start_stage
         self.passes = 0
+
+    def _expand_stages(self, stages: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        """Expand numeric linear-interpolation blocks into ordinary cumulative stages."""
+        merged = copy.deepcopy(self._base)
+        expanded: list[dict[str, Any]] = []
+        for stage in stages:
+            interpolation = stage.get("interpolate")
+            if interpolation is None:
+                expanded.append(stage)
+                # Track valid ordinary overrides so a later interpolation starts at the value that
+                # will actually be active. Invalid keys remain rejected by configs(), as before.
+                for override in stage.get("overrides") or []:
+                    key, separator, raw_value = override.partition("=")
+                    if separator and key.startswith(("sim.", "reward.")):
+                        OmegaConf.update(merged, key, yaml.safe_load(raw_value), force_add=False)
+                continue
+
+            if stage.get("overrides"):
+                raise ValueError("an interpolated curriculum stage cannot also define overrides")
+            steps = interpolation.get("steps")
+            if not isinstance(steps, int) or isinstance(steps, bool) or steps < 1:
+                raise ValueError("curriculum interpolation steps must be a positive integer")
+            targets: list[tuple[str, float | int]] = []
+            starts: list[float | int] = []
+            for override in interpolation.get("overrides") or []:
+                key, separator, raw_value = override.partition("=")
+                if not separator or not key.startswith(("sim.", "reward.")):
+                    raise ValueError(
+                        f"curriculum interpolation override {override!r} must start with "
+                        "sim. or reward."
+                    )
+                start = OmegaConf.select(merged, key)
+                target = yaml.safe_load(raw_value)
+                if (
+                    not isinstance(start, (int, float))
+                    or isinstance(start, bool)
+                    or not isinstance(target, (int, float))
+                    or isinstance(target, bool)
+                ):
+                    raise ValueError(f"curriculum interpolation {key!r} must be numeric")
+                starts.append(start)
+                targets.append((key, target))
+            if not targets:
+                raise ValueError("a curriculum interpolation needs at least one override")
+
+            name = stage["name"]
+            for step in range(1, steps + 1):
+                fraction = step / steps
+                overrides = []
+                for start, (key, target) in zip(starts, targets, strict=True):
+                    value = target if step == steps else start + (target - start) * fraction
+                    overrides.append(f"{key}={value}")
+                expanded.append({"name": f"{name} ({step}/{steps})", "overrides": overrides})
+            for key, target in targets:
+                OmegaConf.update(merged, key, target, force_add=False)
+        return expanded
 
     @property
     def name(self) -> str:

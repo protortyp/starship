@@ -38,9 +38,12 @@
 
 The `salto_land` curriculum first learns one powered end-over-end rotation and recovery, then keeps
 the same recurrent policy alive while tightening touchdown speed, pad radius, attitude and angular
-rate. It uses 95 stages and a 2,000-update default budget; promotion requires at least 45% of 256
-deterministic evaluation episodes twice in succession. The final stage additionally requires exactly
-one inverted-to-upright recovery with no re-flip and penalizes axial roll and rotation beyond 360°.
+rate. It expands to 150 stages and has a 2,000-update default budget; promotion requires at least 45%
+of 256 deterministic evaluation episodes twice in succession. Compact numeric interpolation blocks
+keep the long braking tail reviewable while limiting each post-60 transition to 1.25 m/s vertical
+speed, 0.75 m/s horizontal speed, 12.5 m pad radius, 5° tilt, and 10°/s angular rate. The final stage
+additionally requires exactly one inverted-to-upright recovery with no re-flip and penalizes axial
+roll and rotation beyond 360°.
 
 Current run: `salto_stage60_lateral_pad_v1`. The 0.625 m/s braking ladder reached and solved the
 80 m/s boundary (stage 34) after about 1,000 stage updates. Tightening all five landing constraints
@@ -159,7 +162,10 @@ updates. Actor feature rank remained about 63--66/128, the post-loop adapter ret
 gradients, and the run had no rollback. This validates the long horizon instead of a premature
 midpoint restart. The original 60 m/s boundary now starts with 27--34% deterministic landing rather
 than the zero signal measured by the failed direct 70 to 60 m/s trial; training continues from the
-promoted actor.
+promoted actor. The original schedule after 60 m/s jumped directly to 50 m/s while shrinking the pad
+by 75 m. All solved indices through stage 77 are now preserved verbatim for checkpoint compatibility,
+while the remaining coarse waypoints expand into 65 bounded landing stages before the seven exact-salto
+cleanup stages. This makes the next restart resume at stage 78 without another avoidable curriculum cliff.
 
 ## Findings
 
