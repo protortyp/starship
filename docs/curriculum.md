@@ -165,7 +165,12 @@ than the zero signal measured by the failed direct 70 to 60 m/s trial; training 
 promoted actor. The original schedule after 60 m/s jumped directly to 50 m/s while shrinking the pad
 by 75 m. All solved indices through stage 77 are now preserved verbatim for checkpoint compatibility,
 while the remaining coarse waypoints expand into 65 bounded landing stages before the seven exact-salto
-cleanup stages. This makes the next restart resume at stage 78 without another avoidable curriculum cliff.
+cleanup stages. Stage 77 passed after 136 actor updates with no rollback. The obsolete process then
+confirmed the predicted cliff at the old 50 m/s stage with zero train and deterministic landings, so it
+was stopped after eight updates. A fresh-critic restart from the protected stage-77 actor now resumes at
+the new 58.75 m/s, 640.625 m pad boundary. Its first critic-warmup evaluations retain 35--37% landing
+and its first complete exploratory rollout lands 28%, demonstrating that stage 78 is learnable before
+any actor update. The run has a 20,000-update horizon for the complete dense tail.
 
 ## Findings
 

@@ -55,11 +55,17 @@ TRACES = (
         1,
     ),
     Trace(
-        "60 m/s braking boundary (live)",
+        "60 m/s braking boundary",
         ROOT / "out/salto-stage74-bridges-v1.log",
         77,
         "#ea580c",
         1,
+    ),
+    Trace(
+        "58.75 m/s dense tail (live)",
+        ROOT / "out/salto-stage78-dense-tail-v1.log",
+        78,
+        "#92400e",
     ),
 )
 
@@ -158,7 +164,7 @@ def landing_panel() -> list[str]:
         )
     legend_x = 535
     lines.append(
-        f'<rect x="{legend_x - 10}" y="30" width="290" height="186" fill="white" opacity="0.9"/>'
+        f'<rect x="{legend_x - 10}" y="30" width="290" height="206" fill="white" opacity="0.9"/>'
     )
     for index, trace in enumerate(TRACES):
         y = 43 + 20 * index
