@@ -150,7 +150,15 @@ rows remain exact. The run then produces the required consecutive 40% evaluation
 formerly blocked stage 170 after about 126 actor updates. The next-stage distribution briefly reads
 31/128 critic feature rank, but explained variance remains 0.93--0.97 and the following diagnostic
 recovers to 40/128. Training resumes from the protected stage-171 best; its fresh diagnostic is
-warning-free at 67/128 actor and 43/128 critic rank. The 40% gate is only for intermediate traversal;
+warning-free at 67/128 actor and 43/128 critic rank. The continuation then completes 500 updates
+without promotion or rollback. Deterministic landing averages 30.4% over the full window and 30.7%,
+29.9% and 30.0% over its latest 250, 100 and 20 evaluations. Fixed 1,024-seed landing is 30.1% at
+update 116, 31.1% at update 266 and 29.8% at update 516: flat within sampling noise rather than the
+unrestricted controller's collapse. The latest broad crash failures are 37% vertical speed, 60%
+horizontal speed and 49% pad miss. Actor/critic ranks remain 72/128 and 43/128 with 0.963 recent
+explained variance. A critic output gradient warning compares the stable current norm with an
+exceptionally large first-update spike; representation and value fit remain healthy, so the run
+continues toward the requested 1,500-update horizon. The 40% gate is only for intermediate traversal;
 final broad strict-target acceptance remains unchanged.
 The protected midpoint best's new
 [40-second chase recording](assets/salto-stage167-midpoint-live.mp4) and
