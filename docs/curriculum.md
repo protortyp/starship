@@ -45,8 +45,8 @@ speed, 0.75 m/s horizontal speed, 12.5 m pad radius, 5° tilt, and 10°/s angula
 additionally requires exactly one inverted-to-upright recovery with no re-flip and penalizes axial
 roll and rotation beyond 360°.
 
-Current campaign: stages 0--110 are solved and the unified policy is advancing through the 51-step
-two-engine braking/pad ladder; it has reached stage 111 (step 12/51). The historical path to that
+Current campaign: stages 0--111 are solved and the unified policy is advancing through the 51-step
+two-engine braking/pad ladder; it has reached stage 112 (step 13/51). The historical path to that
 boundary starts with
 `salto_stage60_lateral_pad_v1`: its
 0.625 m/s braking ladder reached and solved the 80 m/s boundary (stage 34) after about 1,000 stage
@@ -348,7 +348,7 @@ and 35.4% at update 200. Mean crash horizontal speed falls from 67.4 to 62.8 m/s
 gate while vertical-limit failures stay at 2% and engine count stays near 1.41. The base run remains
 untouched for the long horizon. After one protected rollback before solving the bridge, it passes the
 90 m/s gate at iteration 14,523 and then clears the first 12 cumulative braking/pad steps in another
-217 iterations without a further rollback, reaching stage 111. A matched 5x
+312 iterations without a further rollback, reaching stage 112. A matched 5x
 horizontal-speed-shaping branch is retired during critic-only warmup because the base policy solves
 the measured lateral bottleneck before that A/B reaches actor training. The two-engine policy
 must subsequently traverse a dense braking ladder and re-tighten the pad before the strict 15 m
