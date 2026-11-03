@@ -17,6 +17,7 @@ CRITIC_EXTENSION_EXPERIMENT = ROOT / "logs" / "salto_stage94_critic_extension_v1
 WARMSTART_EXPERIMENT = ROOT / "logs" / "salto_stage94_throttle_warmstart_v1"
 RESTART_EXPERIMENT = ROOT / "logs" / "salto_stage97_best_restart_v1"
 MIDPOINT_EXPERIMENT = ROOT / "logs" / "salto_stage97_midpoint_v1"
+STAGE99_MIDPOINT_EXPERIMENT = ROOT / "logs" / "salto_stage99_midpoint_v1"
 LINE = re.compile(r"eval landed\s+(?P<landed>\d+\.\d+).*stage\s+(?P<stage>\d+)")
 PROMOTED_DENSE = "promoted dense tail (58.75 to 42.5 m/s)"
 COUNT_COHERENT = "count-coherent promotions (stages 92-93)"
@@ -259,6 +260,12 @@ TRACES = (
         99,
         "#0e7490",
     ),
+    Trace(
+        "34.583 m/s protected midpoint (live)",
+        ROOT / "out/salto-stage99-midpoint-v1.log",
+        99,
+        "#7c2d12",
+    ),
 )
 
 
@@ -357,10 +364,10 @@ def landing_panel() -> list[str]:
     legend = list(dict.fromkeys((trace.label, trace.color) for trace in TRACES))
     legend_x = 535
     lines.append(
-        f'<rect x="500" y="30" width="325" height="{10 + 18 * len(legend)}" fill="white"/>'
+        f'<rect x="500" y="30" width="325" height="{10 + 17 * len(legend)}" fill="white"/>'
     )
     for index, (label, color) in enumerate(legend):
-        y = 43 + 18 * index
+        y = 43 + 17 * index
         lines.append(
             f'<line x1="{legend_x}" y1="{y}" x2="{legend_x + 22}" y2="{y}" '
             f'stroke="{color}" stroke-width="3"/>'
@@ -384,6 +391,9 @@ def rank_panel() -> list[str]:
     warmstart = EventAccumulator(str(latest_event_file(WARMSTART_EXPERIMENT))).Reload()
     restart = EventAccumulator(str(latest_event_file(RESTART_EXPERIMENT))).Reload()
     midpoint = EventAccumulator(str(latest_event_file(MIDPOINT_EXPERIMENT))).Reload()
+    stage99_midpoint = EventAccumulator(
+        str(latest_event_file(STAGE99_MIDPOINT_EXPERIMENT))
+    ).Reload()
     tags = (
         (control, "plasticity/actor/features/effective_rank", "control actor rank", "#2563eb"),
         (control, "plasticity/critic/features/effective_rank", "control critic rank", "#7c3aed"),
@@ -434,6 +444,18 @@ def rank_panel() -> list[str]:
             "plasticity/critic/features/effective_rank",
             "midpoint critic rank",
             "#0e7490",
+        ),
+        (
+            stage99_midpoint,
+            "plasticity/actor/features/effective_rank",
+            "stage-99 midpoint actor rank",
+            "#7c2d12",
+        ),
+        (
+            stage99_midpoint,
+            "plasticity/critic/features/effective_rank",
+            "stage-99 midpoint critic rank",
+            "#a16207",
         ),
     )
     series = [

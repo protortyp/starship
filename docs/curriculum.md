@@ -257,7 +257,9 @@ evaluations, and the original unchanged 35 m/s boundary inherited a 46% first ev
 after another 26 updates. The original first 30 m/s interpolation step plateaued at a 39.5%
 protected best over its first 80 evaluations; a 1,024-episode probe lands 36.0%, with 89% of crashes
 breaking vertical speed and 59% missing the pad. A protected 34.583 m/s midpoint now precedes that
-original stage while preserving all solved and downstream waypoints exactly. A checkpoint-safe post-loop
+original stage while preserving all solved and downstream waypoints exactly. Its first protected best
+lands 38.0% over 1,024 episodes versus 36.0% at the original step, crosses the small 45% gate in
+isolation, and retains actor rank 65/128, so the A/B continues. A checkpoint-safe post-loop
 engine-logit warm start then tested whether the fixed one-engine landing schedule lacked braking
 authority. On matched 256-scenario evaluations, logit shifts through +0.60 retain one engine and
 45.3% landing; the first state-dependent two-engine mixtures at +0.62, +0.64, +0.66 and +0.68 fall
