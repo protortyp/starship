@@ -38,7 +38,7 @@
 
 The `salto_land` curriculum first learns one powered end-over-end rotation and recovery, then keeps
 the same recurrent policy alive while tightening touchdown speed, pad radius, attitude and angular
-rate. It expands to 150 stages and has a 2,000-update default budget; promotion requires at least 45%
+rate. It expands to 151 stages and has a 2,000-update default budget; promotion requires at least 45%
 of 256 deterministic evaluation episodes twice in succession. Compact numeric interpolation blocks
 keep the long braking tail reviewable while limiting each post-60 transition to 1.25 m/s vertical
 speed, 0.75 m/s horizontal speed, 12.5 m pad radius, 5° tilt, and 10°/s angular rate. The final stage
@@ -246,7 +246,12 @@ had fallen to 32.3%, despite healthy 0.79 explained variance. A protected restar
 best preserved the actor, critic, optimizer, reward and exploration settings. Its four first
 25-update means are 36.1%, 37.4%, 37.4%, and 37.5%, with two isolated gate crossings, 0.78 explained
 variance, actor rank 67/128, and no rollback. Stage 97 therefore remains active toward a combined
-1,500-update horizon. A
+1,500-update horizon. A fresh 1,024-episode probe lands 38.5%; 90% of crashes violate vertical speed
+and 42% miss the pad. Since the final 36.25 to 35 m/s transition has remained below the consecutive
+gate for more than 900 combined actor updates, stage 97 now bisects only that blocked transition at
+35.625 m/s while preserving the three already-solved 35 m/s interpolation stages exactly. The
+original 35 m/s boundary moves to stage 98 and remains unchanged. A protected parallel run tests
+this curriculum bridge while the long stage-97 optimizer continues untouched. A
 [39.8-second stage-97 chase recording](assets/salto-stage97-35ms.mp4) and
 [nine-frame sequence](assets/salto-stage97-35ms-sequence.jpg) show a landed 35 m/s curriculum
 episode. They are an interim stricter-boundary artifact, not the final 15 m safe-pad claim.

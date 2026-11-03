@@ -534,9 +534,19 @@ stages:
         - sim.landing.pad_radius=500
         - sim.landing.max_vertical_speed=40
         - sim.landing.max_horizontal_speed=25
+  # The final 36.25 -> 35 m/s transition plateaued around 38% deterministic landings for more than
+  # 900 combined actor updates, despite a healthy actor and a protected 47.3% best. Preserve the
+  # already-solved 38.75, 37.5 and 36.25 m/s stages exactly, then bisect only the blocked boundary.
+  - name: brake toward 36.25 m/s
+    interpolate:
+      steps: 3
+      overrides:
+        - sim.landing.pad_radius=462.5
+        - sim.landing.max_vertical_speed=36.25
+        - sim.landing.max_horizontal_speed=22.75
   - name: brake toward 35 m/s
     interpolate:
-      steps: 4
+      steps: 2
       overrides:
         - sim.landing.pad_radius=450
         - sim.landing.max_vertical_speed=35

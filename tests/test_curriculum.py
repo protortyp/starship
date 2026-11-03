@@ -154,7 +154,7 @@ def test_salto_landing_curriculum_finishes_with_a_strict_single_loop():
         cfg = compose("salto_land")
     assert cfg.iterations == 2000
     curriculum = Curriculum(cfg, cfg.curriculum)
-    assert len(curriculum.stages) == 150
+    assert len(curriculum.stages) == 151
     horizontal, horizontal_reward = curriculum.configs(56)
     assert horizontal.landing.pad_radius == pytest.approx(718.75)
     assert horizontal.landing.max_vertical_speed == pytest.approx(73.75)
@@ -186,6 +186,14 @@ def test_salto_landing_curriculum_finishes_with_a_strict_single_loop():
     assert fifty.landing.pad_radius == pytest.approx(575)
     assert fifty.landing.max_vertical_speed == pytest.approx(50)
     assert fifty.landing.max_horizontal_speed == pytest.approx(28)
+    blocked_bridge, _ = curriculum.configs(97)
+    assert blocked_bridge.landing.pad_radius == pytest.approx(456.25)
+    assert blocked_bridge.landing.max_vertical_speed == pytest.approx(35.625)
+    assert blocked_bridge.landing.max_horizontal_speed == pytest.approx(22.375)
+    original_boundary, _ = curriculum.configs(98)
+    assert original_boundary.landing.pad_radius == pytest.approx(450)
+    assert original_boundary.landing.max_vertical_speed == pytest.approx(35)
+    assert original_boundary.landing.max_horizontal_speed == pytest.approx(22)
     safe_stage = len(curriculum.stages) - 8
     safe, _ = curriculum.configs(safe_stage)
     assert safe.landing.pad_radius == pytest.approx(15)
