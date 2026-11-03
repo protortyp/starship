@@ -336,10 +336,13 @@ probe bug briefly overstated both policies because its confidence-only stochasti
 the deterministic touchdown-count latch before every action; confidence now runs through a separate
 policy copy. Corrected 1,024-seed probes at actor updates 40 and 90 are 32.8%/33.9% for the
 conservative branch and 35.2%/39.4% for the high-throughput branch, against a 34.8% baseline. The
-conservative branch is retired after 149 actor updates. The improving branch continues long-horizon,
-but its mean engine count falls from 1.18 to 1.08 and 88% of update-90 crashes still break the loose
-vertical-speed bound; a stricter 90 m/s branch therefore tests whether the 95 m/s success gate is
-rewarding a retreat to the inherited one-engine schedule. Any successful two-engine policy
+conservative branch is retired after 149 actor updates. The loose high-throughput branch is retired
+after 200 actor updates: its update-190 probe lands 38.7%, averages 1.003 engines and leaves 99% of
+crashes above the 95 m/s vertical limit, confirming that the loose success gate rewards a retreat to
+the inherited one-engine schedule. A stricter 90 m/s branch instead lands 12.3% at actor update 29;
+its successful episodes retain 1.424 engines versus 1.159 on crashes. That desired count/success
+correlation now continues in matched 1,024-environment and 4,096-environment runs rather than
+spending the long horizon on the demonstrably saturated loose objective. Any successful two-engine policy
 must subsequently traverse a dense braking ladder and re-tighten the pad before the strict 15 m
 target.
 A checkpoint-safe post-loop engine-logit warm start then tested whether the fixed one-engine landing
