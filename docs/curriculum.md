@@ -45,8 +45,11 @@ speed, 0.75 m/s horizontal speed, 12.5 m pad radius, 5° tilt, and 10°/s angula
 additionally requires exactly one inverted-to-upright recovery with no re-flip and penalizes axial
 roll and rotation beyond 360°.
 
-Current campaign: stages 0--139 are solved and the unified policy is advancing through the 51-step
-two-engine braking/pad ladder; it has reached stage 140 (step 41/51). The historical path to that
+Current campaign: stages 0--153 are solved. The unified policy completed the 51-step two-engine
+braking/pad ladder, restored the exact 35 m/s vertical, 22 m/s horizontal and 450 m pad waypoint,
+passed the 34.583 m/s vertical half-step after eight more iterations, passed its pad/horizontal
+half-step after another 13, cleared the original 34.167 m/s boundary after five, and reached stage
+154 (the first of five steps toward 30 m/s). The historical path to that
 boundary starts with
 `salto_stage60_lateral_pad_v1`: its
 0.625 m/s braking ladder reached and solved the 80 m/s boundary (stage 34) after about 1,000 stage
@@ -347,10 +350,11 @@ continuation improves clean 1,024-seed landing from 16.2% at actor update 50 to 
 and 35.4% at update 200. Mean crash horizontal speed falls from 67.4 to 62.8 m/s against the 60 m/s
 gate while vertical-limit failures stay at 2% and engine count stays near 1.41. The base run remains
 untouched for the long horizon. After one protected rollback before solving the bridge, it passes the
-90 m/s gate at iteration 14,523 and then clears the first 40 cumulative braking/pad steps in another
-671 iterations without a further rollback, reaching stage 140. Steps 21 through 40 clear in only
-202 iterations. Actor feature rank is 62/128, critic rank remains above its collapse warning at
-33/128 after recovering from 19/128, and the touchdown adapter retains nonzero updates. A matched 5x
+90 m/s gate at iteration 14,523 and then clears all 51 cumulative braking/pad steps in another 865
+iterations without a further rollback, reaching stage 151. Actor feature rank is 42/128 and the
+touchdown adapter retains strong nonzero updates. Critic rank oscillates from 8--45/128 and briefly
+triggers the collapse warning, but its latest sample rebounds to 32/128 while explained variance
+remains 0.84--0.92; retain it while promotions continue. A matched 5x
 horizontal-speed-shaping branch is retired during critic-only warmup because the base policy solves
 the measured lateral bottleneck before that A/B reaches actor training. The two-engine policy
 must subsequently traverse a dense braking ladder and re-tighten the pad before the strict 15 m
