@@ -180,6 +180,13 @@ vertical speed, 58% exceed horizontal speed and 53% miss the pad, while actor/cr
 72/43. Landed episodes complete exactly one inverted-to-upright recovery at this still-loose midpoint,
 although the later strict cleanup stages must still remove the subsequent re-flip. Final broad
 strict-target acceptance remains unchanged.
+A checkpoint-safe private post-loop steering adapter was then tested as a matched capacity A/B. It
+keeps engine logits and throttle exact while learning its own gimbal, flap and RCS features, but the
+live result falls to 26% over its latest 20 evaluations by update 129. Its fixed update-124 probe
+lands only 25.8% versus 33.2% for the constrained-head control, and horizontal-speed crash failures
+rise from 58% to 72% despite healthy 64/128 actor and 41/128 critic rank. The branch is retired: extra
+lateral feature capacity destabilizes the inherited steering schedule rather than solving the measured
+midpoint.
 The protected midpoint best's new
 [40-second chase recording](assets/salto-stage167-midpoint-live.mp4) and
 [nine-frame sequence](assets/salto-stage167-midpoint-live-sequence.jpg) show seed 3 completing one

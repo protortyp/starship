@@ -535,7 +535,7 @@ TRACES = (
         "#84cc16",
     ),
     Trace(
-        "private lateral adapter A/B (live)",
+        "private lateral adapter, 129 updates (retired)",
         ROOT / "out/salto-stage171-midpoint-private-lateral-1k-v1.log",
         171,
         "#10b981",
