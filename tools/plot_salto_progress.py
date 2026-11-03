@@ -242,10 +242,16 @@ TRACES = (
         "#111827",
     ),
     Trace(
-        "35.625 m/s protected midpoint (live)",
+        "35.625 m/s protected midpoint (passed)",
         ROOT / "out/salto-stage97-midpoint-v1.log",
         97,
         "#0284c7",
+    ),
+    Trace(
+        "original 35 m/s boundary after bridge (live)",
+        ROOT / "out/salto-stage97-midpoint-v1.log",
+        98,
+        "#0369a1",
     ),
 )
 
@@ -345,15 +351,15 @@ def landing_panel() -> list[str]:
     legend = list(dict.fromkeys((trace.label, trace.color) for trace in TRACES))
     legend_x = 535
     lines.append(
-        f'<rect x="500" y="30" width="325" height="{10 + 20 * len(legend)}" fill="white"/>'
+        f'<rect x="500" y="30" width="325" height="{10 + 18 * len(legend)}" fill="white"/>'
     )
     for index, (label, color) in enumerate(legend):
-        y = 43 + 20 * index
+        y = 43 + 18 * index
         lines.append(
             f'<line x1="{legend_x}" y1="{y}" x2="{legend_x + 22}" y2="{y}" '
             f'stroke="{color}" stroke-width="3"/>'
         )
-        lines.append(text(legend_x + 29, y + 4, label, size=12))
+        lines.append(text(legend_x + 29, y + 4, label, size=11))
     return lines
 
 

@@ -252,7 +252,8 @@ gate for more than 900 combined actor updates, stage 97 now bisects only that bl
 35.625 m/s while preserving the three already-solved 35 m/s interpolation stages exactly. The
 original 35 m/s boundary moves to stage 98 and remains unchanged. A protected parallel run tests
 this curriculum bridge while the long stage-97 optimizer continues untouched. Its early protected
-best lands 41.7% over 1,024 episodes and has crossed the 45% gate once. A checkpoint-safe post-loop
+best lands 41.7% over 1,024 episodes; the midpoint passed after 101 updates on consecutive 48%
+evaluations, and the original unchanged 35 m/s boundary inherited a 46% first evaluation. A checkpoint-safe post-loop
 engine-logit warm start then tested whether the fixed one-engine landing schedule lacked braking
 authority. On matched 256-scenario evaluations, logit shifts through +0.60 retain one engine and
 45.3% landing; the first state-dependent two-engine mixtures at +0.62, +0.64, +0.66 and +0.68 fall
