@@ -402,7 +402,7 @@ TRACES = (
         "#c026d3",
     ),
     Trace(
-        "90 m/s + 5x horizontal shaping (live)",
+        "90 m/s + 5x horizontal shaping (retired warmup)",
         ROOT / "out/salto-stage99-touchdown-count-v90-hspeed5-v2.log",
         99,
         "#4f46e5",

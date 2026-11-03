@@ -45,8 +45,9 @@ speed, 0.75 m/s horizontal speed, 12.5 m pad radius, 5° tilt, and 10°/s angula
 additionally requires exactly one inverted-to-upright recovery with no re-flip and penalizes axial
 roll and rotation beyond 360°.
 
-Current campaign: stages 0--98 are solved and the protected stage-99 altitude-gated engine-count
-bridge is training on a 90 m/s two-engine gate. The historical path to that boundary starts with
+Current campaign: stages 0--99 are solved and the unified policy is advancing through the 51-step
+two-engine braking/pad ladder; it has reached stage 104 (step 5/51). The historical path to that
+boundary starts with
 `salto_stage60_lateral_pad_v1`: its
 0.625 m/s braking ladder reached and solved the 80 m/s boundary (stage 34) after about 1,000 stage
 updates. Tightening all five landing constraints
@@ -345,9 +346,10 @@ its successful episodes retain 1.424 engines versus 1.159 on crashes. Its 4,096-
 continuation improves clean 1,024-seed landing from 16.2% at actor update 50 to 20.9% at update 150
 and 35.4% at update 200. Mean crash horizontal speed falls from 67.4 to 62.8 m/s against the 60 m/s
 gate while vertical-limit failures stay at 2% and engine count stays near 1.41. The base run remains
-untouched for the long horizon; a matched 5x horizontal-speed-shaping branch restarts its fresh
-critic with rollback tolerance widened so warmup variance cannot discard the value fit. Any
-successful two-engine policy
+untouched for the long horizon. It passes the 90 m/s bridge at iteration 14,523 and then clears the
+first five cumulative braking/pad steps in another 40 updates without rollback. A matched 5x
+horizontal-speed-shaping branch is retired during critic-only warmup because the base policy solves
+the measured lateral bottleneck before that A/B reaches actor training. The two-engine policy
 must subsequently traverse a dense braking ladder and re-tighten the pad before the strict 15 m
 target.
 A checkpoint-safe post-loop engine-logit warm start then tested whether the fixed one-engine landing
