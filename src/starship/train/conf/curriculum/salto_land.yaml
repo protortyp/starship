@@ -553,14 +553,17 @@ stages:
         - sim.landing.max_horizontal_speed=22
   # The first 35 -> 30 m/s interpolation step stayed at a 39.5% protected best for its first 80
   # evaluations. Its broad probe attributed 89% of crashes to vertical speed and 59% to the pad.
-  # Bisect only that coupled transition, then preserve the original waypoint and remaining spacing.
-  - name: bridge toward 34.583 m/s
-    interpolate:
-      steps: 1
-      overrides:
-        - sim.landing.pad_radius=445.8333333333333
-        - sim.landing.max_vertical_speed=34.58333333333333
-        - sim.landing.max_horizontal_speed=21.666666666666664
+  # A coupled half-step then averaged 37.25% over 100 evaluations and declined to 35.4% over its
+  # latest 20. Isolate its two measured failure modes: learn the smaller vertical-speed limit while
+  # keeping the solved pad/horizontal limits, then apply the lateral half-step before preserving the
+  # original waypoint and remaining spacing.
+  - name: bridge vertical speed toward 34.583 m/s
+    overrides:
+      - sim.landing.max_vertical_speed=34.58333333333333
+  - name: bridge pad and horizontal speed toward 34.583 m/s
+    overrides:
+      - sim.landing.pad_radius=445.8333333333333
+      - sim.landing.max_horizontal_speed=21.666666666666664
   - name: original 34.167 m/s braking step
     interpolate:
       steps: 1

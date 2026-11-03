@@ -38,7 +38,7 @@
 
 The `salto_land` curriculum first learns one powered end-over-end rotation and recovery, then keeps
 the same recurrent policy alive while tightening touchdown speed, pad radius, attitude and angular
-rate. It expands to 152 stages and has a 2,000-update default budget; promotion requires at least 45%
+rate. It expands to 153 stages and has a 2,000-update default budget; promotion requires at least 45%
 of 256 deterministic evaluation episodes twice in succession. Compact numeric interpolation blocks
 keep the long braking tail reviewable while limiting each post-60 transition to 1.25 m/s vertical
 speed, 0.75 m/s horizontal speed, 12.5 m pad radius, 5° tilt, and 10°/s angular rate. The final stage
@@ -258,8 +258,13 @@ after another 26 updates. The original first 30 m/s interpolation step plateaued
 protected best over its first 80 evaluations; a 1,024-episode probe lands 36.0%, with 89% of crashes
 breaking vertical speed and 59% missing the pad. A protected 34.583 m/s midpoint now precedes that
 original stage while preserving all solved and downstream waypoints exactly. Its first protected best
-lands 38.0% over 1,024 episodes versus 36.0% at the original step, crosses the small 45% gate in
-isolation, and retains actor rank 65/128, so the A/B continues. A checkpoint-safe post-loop
+lands 38.0% over 1,024 episodes versus 36.0% at the original step, but the coupled midpoint averaged
+37.25% over 100 evaluations, declined to 35.4% over its latest 20, and crossed the 45% gate only in
+isolation despite actor rank remaining healthy. Following the earlier general-landing breakthrough,
+stage 99 now isolates the vertical-speed half-step while retaining the solved 450 m pad and 22 m/s
+horizontal limit; stage 100 then tightens the pad and horizontal speed before the original boundary.
+The coupled run remains an untouched control while matched fresh-critic runs compare the split. A
+checkpoint-safe post-loop
 engine-logit warm start then tested whether the fixed one-engine landing schedule lacked braking
 authority. On matched 256-scenario evaluations, logit shifts through +0.60 retain one engine and
 45.3% landing; the first state-dependent two-engine mixtures at +0.62, +0.64, +0.66 and +0.68 fall
