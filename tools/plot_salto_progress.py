@@ -69,6 +69,9 @@ STAGE171_POST_LOOP_LATERAL_EXPERIMENT = (
     ROOT / "logs" / "salto_stage171_post_loop_lateral_head_4k_v1"
 )
 STAGE171_MIDPOINT_LATERAL_EXPERIMENT = ROOT / "logs" / "salto_stage171_midpoint_lateral_head_4k_v1"
+STAGE171_MIDPOINT_PRIVATE_LATERAL_EXPERIMENT = (
+    ROOT / "logs" / "salto_stage171_midpoint_private_lateral_1k_v1"
+)
 STAGE99_VERTICAL_TOUCHDOWN1000_EXPERIMENT = (
     ROOT / "logs" / "salto_stage99_vertical_touchdown1000_v1"
 )
@@ -531,6 +534,12 @@ TRACES = (
         171,
         "#84cc16",
     ),
+    Trace(
+        "private lateral adapter A/B (live)",
+        ROOT / "out/salto-stage171-midpoint-private-lateral-1k-v1.log",
+        171,
+        "#10b981",
+    ),
 )
 
 
@@ -753,6 +762,9 @@ def rank_panel() -> list[str]:
     ).Reload()
     stage171_midpoint_lateral = EventAccumulator(
         str(latest_event_file(STAGE171_MIDPOINT_LATERAL_EXPERIMENT))
+    ).Reload()
+    stage171_midpoint_private_lateral = EventAccumulator(
+        str(latest_event_file(STAGE171_MIDPOINT_PRIVATE_LATERAL_EXPERIMENT))
     ).Reload()
     tags = (
         (control, "plasticity/actor/features/effective_rank", "control actor rank", "#2563eb"),
@@ -1086,6 +1098,18 @@ def rank_panel() -> list[str]:
             "plasticity/critic/features/effective_rank",
             "stage-171 midpoint critic rank",
             "#84cc16",
+        ),
+        (
+            stage171_midpoint_private_lateral,
+            "plasticity/actor/features/effective_rank",
+            "private lateral actor rank",
+            "#047857",
+        ),
+        (
+            stage171_midpoint_private_lateral,
+            "plasticity/critic/features/effective_rank",
+            "private lateral critic rank",
+            "#10b981",
         ),
     )
     series = [

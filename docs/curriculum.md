@@ -174,11 +174,12 @@ preceding measured half-steps. Fraction 13/18 now inserts only its midpoint at 3
 21.39 m/s vertical speed and 12.83 m/s horizontal speed; stages 0--170 remain config-identical and the
 original stage-171 boundary moves unchanged to stage 172. A verified restart carries the exact solved
 stage-170 actor, critic and optimizer into that midpoint. It opens at 35% deterministic landing and
-its first diagnostic is warning-free at 67/128 actor and 42/128 critic rank. The fixed checkpoint near
-update 124 lands 32.7% over 1,024 seeds; 30% of crashes exceed vertical speed, 57% exceed horizontal
-speed and 52% miss the pad, while actor/critic rank remains 73/43. Landed episodes complete exactly
-one inverted-to-upright recovery at this still-loose midpoint, although the later strict cleanup stages
-must still remove the subsequent re-flip. Final broad strict-target acceptance remains unchanged.
+its first diagnostic is warning-free at 67/128 actor and 42/128 critic rank. Fixed checkpoints near
+updates 124 and 224 land 32.7% and 33.2% over 1,024 seeds. At update 224, 28% of crashes exceed
+vertical speed, 58% exceed horizontal speed and 53% miss the pad, while actor/critic rank remains
+72/43. Landed episodes complete exactly one inverted-to-upright recovery at this still-loose midpoint,
+although the later strict cleanup stages must still remove the subsequent re-flip. Final broad
+strict-target acceptance remains unchanged.
 The protected midpoint best's new
 [40-second chase recording](assets/salto-stage167-midpoint-live.mp4) and
 [nine-frame sequence](assets/salto-stage167-midpoint-live-sequence.jpg) show seed 3 completing one
