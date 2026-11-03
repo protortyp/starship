@@ -175,10 +175,12 @@ post-loop adapter raised exploratory landing from about 27% to 40% and passed st
 updates with no rollback or KL stop. Stage 79 inherited 31--36% deterministic landing and passed in
 another 63 actor updates. Stage 80 (56.25 m/s vertical speed, 621.875 m pad) then inherited a usable
 policy, climbed from 31--44% to consecutive gate-level evaluations, and passed after 83 actor updates.
-Stage 81 (55 m/s, 612.5 m pad) starts at 30--33% deterministic landing, still without a rollback or
-KL stop. Actor feature rank is 68/128 with no dead units and the trainable post-loop adapter retains
-nonzero gradients; critic feature rank has fallen to 14/128, so its value fit and landing trend remain
-under observation. The run has a 20,000-update horizon for the complete dense tail.
+Stage 81 (55 m/s, 612.5 m pad) recovered from an initial 24--38% range, reached 39--42% exploratory
+landing, and passed after 142 actor updates. Stage 82 (53.75 m/s, 603.125 m pad) inherits 32--44%
+deterministic landing, still without a rollback or KL stop. Actor feature rank remains about 65/128
+with no dead units and the trainable post-loop adapter retains nonzero gradients; critic feature rank
+is about 15/128, but recent explained variance remains healthy at about 0.61. The run has a
+20,000-update horizon for the complete dense tail.
 
 ## Findings
 
