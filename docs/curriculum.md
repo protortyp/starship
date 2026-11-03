@@ -196,8 +196,13 @@ speed, 56% exceed horizontal speed and 48% miss the pad, with actor/critic rank 
 312.5 m pad radius, 21.25 m/s vertical speed and 12.75 m/s horizontal speed; stages 0--171 remain
 config-identical and the unchanged original 7/9 boundary moves to stage 173. A verified restart
 carries the exact update-1,513 actor, critic and optimizer into that midpoint. Its first three
-deterministic evaluations are 34%, 31% and 30%. Final broad strict-target acceptance remains
-unchanged.
+deterministic evaluations are 34%, 31% and 30%. Fixed 1,024-seed checkpoints near midpoint updates
+100 and 500 land 31.0% and 30.1%. At update 500, 37% of crashes exceed vertical speed, 60% exceed
+horizontal speed and 47% miss the pad, while actor/critic rank remains healthy at 73/44. Through
+514 live evaluations the midpoint averages 31.9% overall and over its latest 500, 31.8% latest-250,
+31.2% latest-100 and 31.7% latest-20 without promotion or rollback. This is a healthy but broadly
+flat opening, so the same uninterrupted run continues toward 1,000/1,500 updates. Final broad
+strict-target acceptance remains unchanged.
 A checkpoint-safe private post-loop steering adapter was then tested as a matched capacity A/B. It
 keeps engine logits and throttle exact while learning its own gimbal, flap and RCS features, but the
 live result falls to 26% over its latest 20 evaluations by update 129. Its fixed update-124 probe
