@@ -196,11 +196,17 @@ TRACES = (
         1,
     ),
     Trace(
-        "stage 94, held deployment count (live)",
+        "long control: stage 94 pass + stage 95 (live)",
         ROOT / "out/salto-stage92-count-hold-v1.log",
         94,
         "#0f766e",
         1,
+    ),
+    Trace(
+        "long control: stage 94 pass + stage 95 (live)",
+        ROOT / "out/salto-stage92-count-hold-v1.log",
+        95,
+        "#0f766e",
     ),
     Trace(
         "2 m/s² one-engine braking A/B",

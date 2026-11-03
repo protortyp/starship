@@ -228,8 +228,10 @@ the unchanged policy from 38.4% to 51.6% in a matched sweep and scores 55.3%, 47
 and preserves every other actor and critic moment. Starting the live continuation from the exact
 100-update critic checkpoint passed stage 94 immediately at 54%, stage 95 after two actor updates,
 and stage 96 after another 13. Stage 97 inherited 36--39% deterministic landing. The unchanged
-stage-94 control continues in parallel as the long-horizon comparison. Over the first 120 stage-97
-updates, the protected best rose to 42.2% and the latest 20-evaluation mean recovered to 36.3% after
+control vindicated the requested long horizon by eventually passing stage 94 after 539 evaluations,
+without rollback, and moving to stage 95. It continues in parallel as an independent comparison.
+Over the first 120 stage-97 updates, the protected best rose to 42.2% and the latest 20-evaluation
+mean recovered to 36.3% after
 an intervening dip to 29.9%. A 1,024-episode probe of the newer best lands 37.1%; 82.8% of crashes
 exceed the vertical-speed limit and 48.3% miss the pad. Repeating the throttle-residual sweep on that
 newer checkpoint finds that the actor has already learned the earlier braking offset: a further +0.1
