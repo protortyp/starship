@@ -218,6 +218,17 @@ The shared 0.03 continuous exploration cap also made the measured +0.3 throttle 
 ten-sigma event. Exploration ranges can now be overridden by actuator without changing old
 checkpoints: widening only throttle to 0.10 reduced a matched 512-episode exploratory rollout by
 0.6 percentage points, versus 6.1 points when gimbal, flaps and roll control were widened as well.
+The corrected 2 m/s² braking reward then trained the critic for 200 updates while leaving the actor
+bit-identical. Explained variance reached 0.729, but feature rank remained 13/128, so a further 100
+critic-only updates raised explained variance to 0.777 while rank still ended at 12/128. That warning
+has therefore been exercised rather than ignored; extending the same fit no longer has supporting
+evidence. A checkpoint-compatible +0.8 offset to the trainable post-loop throttle residual improves
+the unchanged policy from 38.4% to 51.6% in a matched sweep and scores 55.3%, 47.9%, and 43.1% over
+1,024 deterministic episodes at stages 94--96. It clears only the shifted bias's optimizer moments
+and preserves every other actor and critic moment. Starting the live continuation from the exact
+100-update critic checkpoint passed stage 94 immediately at 54%, stage 95 after two actor updates,
+and stage 96 after another 13. Stage 97 inherited 36--39% deterministic landing. The unchanged
+stage-94 control continues in parallel as the long-horizon comparison.
 
 ## Findings
 

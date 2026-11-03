@@ -13,6 +13,8 @@ ROOT = Path(__file__).resolve().parents[1]
 OUTPUT = ROOT / "docs" / "assets" / "salto-training-progress.svg"
 RANK_EXPERIMENT = ROOT / "logs" / "salto_stage92_count_hold_v1"
 SAFE_DECEL_EXPERIMENT = ROOT / "logs" / "salto_stage94_safe_decel_v1"
+CRITIC_EXTENSION_EXPERIMENT = ROOT / "logs" / "salto_stage94_critic_extension_v1"
+WARMSTART_EXPERIMENT = ROOT / "logs" / "salto_stage94_throttle_warmstart_v1"
 LINE = re.compile(r"eval landed\s+(?P<landed>\d+\.\d+).*stage\s+(?P<stage>\d+)")
 PROMOTED_DENSE = "promoted dense tail (58.75 to 42.5 m/s)"
 COUNT_COHERENT = "count-coherent promotions (stages 92-93)"
@@ -207,6 +209,18 @@ TRACES = (
         "#7c3aed",
         1,
     ),
+    Trace(
+        "corrected braking + throttle warm start (live)",
+        ROOT / "out/salto-stage94-throttle-warmstart-v1.log",
+        95,
+        "#db2777",
+    ),
+    Trace(
+        "corrected braking + throttle warm start (live)",
+        ROOT / "out/salto-stage94-throttle-warmstart-v1.log",
+        96,
+        "#db2777",
+    ),
 )
 
 
@@ -327,14 +341,36 @@ def rank_panel() -> list[str]:
     left, top, width, height = 72, 465, 742, 225
     control = EventAccumulator(str(latest_event_file(RANK_EXPERIMENT))).Reload()
     safe_decel = EventAccumulator(str(latest_event_file(SAFE_DECEL_EXPERIMENT))).Reload()
+    critic_extension = EventAccumulator(
+        str(latest_event_file(CRITIC_EXTENSION_EXPERIMENT))
+    ).Reload()
+    warmstart = EventAccumulator(str(latest_event_file(WARMSTART_EXPERIMENT))).Reload()
     tags = (
         (control, "plasticity/actor/features/effective_rank", "control actor rank", "#2563eb"),
         (control, "plasticity/critic/features/effective_rank", "control critic rank", "#7c3aed"),
         (
             safe_decel,
             "plasticity/critic/features/effective_rank",
-            "2 m/s² A/B critic rank",
+            "2 m/s² critic warmup rank",
             "#db2777",
+        ),
+        (
+            critic_extension,
+            "plasticity/critic/features/effective_rank",
+            "critic extension rank",
+            "#ea580c",
+        ),
+        (
+            warmstart,
+            "plasticity/actor/features/effective_rank",
+            "warm-start actor rank",
+            "#059669",
+        ),
+        (
+            warmstart,
+            "plasticity/critic/features/effective_rank",
+            "warm-start critic rank",
+            "#dc2626",
         ),
     )
     series = [
