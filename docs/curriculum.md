@@ -59,7 +59,12 @@ checkpoint loading reset the optimizer from the intended 1e-6 post-warmup rate t
 bootstrap rate. That resume bug is now regression-tested and fixed. Recovery from the protected
 stage-166 checkpoint runs at a TensorBoard-confirmed 1e-6, recovered live rollout landing from zero
 to 31% in four iterations, and passed the boundary after 16 iterations on consecutive 47% and 50%
-evaluations. Stage 167, step five of nine toward 20 m/s, is active. The historical path to that
+evaluations. Stage 167, step five of nine toward 20 m/s, inherited a 46.9% protected peak. Its first
+trajectory declined to 15--22% live landing, and a post-fix rollback correctly retained the 1e-6
+rate; the 100-update retry nevertheless reproduced 27--35% evaluation landing without a new best.
+That redundant control is retired. A protected restart now keeps the actor and healthy 0.94
+explained-variance critic, clears only stale actor Adam moments and halves the touchdown-adapter rate
+to 5e-7 for the long window. Its first evaluations are 34--40%. The historical path to that
 boundary starts from a protected 512-episode landing rate of 37.1%; among its crashes, 58% miss the
 pad, 47% exceed horizontal speed and 33% exceed vertical speed. The tighter step is therefore a
 balanced terminal-control problem rather than another critic-collapse or single-limit failure. The
