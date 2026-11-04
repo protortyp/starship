@@ -50,8 +50,10 @@ protected coordinate-descent continuation: the unified and throttle-only control
 1,500 actor updates each, and a lateral-only touchdown head now resumes the throttle branch's
 update-500 broad best. Its fixed probes recover from 31.4% at update 100 to 32.3% at 250 and a new
 33.4% stage-175 broad best at 500 while preserving part of the horizontal-speed gain, so it
-continues unchanged through the same long 1,000/1,500-update horizon. The campaign's unified policy
-completed the 51-step two-engine
+continues unchanged through the same long 1,500-update horizon. By update 1,000 it overshoots the
+coordinate direction: horizontal-speed and pad-miss failures improve sharply, but vertical-speed
+failures dominate and broad landing falls to 29.9%. Update 500 and a validated 2x extrapolation of
+its learned delta remain protected. The campaign's unified policy completed the 51-step two-engine
 braking/pad ladder, restored the exact 35 m/s vertical, 22 m/s horizontal and 450 m pad waypoint,
 passed the 34.583 m/s vertical half-step after eight more iterations, passed its pad/horizontal
 half-step after another 13, cleared the original 34.167 m/s boundary after five, and reached stage
@@ -486,7 +488,21 @@ misses are 49.4%. Successful touchdowns average 17.38 m/s vertical, 7.41 m/s hor
 miss. Live landing strengthens concurrently from 32.3% overall to 33.3%, 33.2% and 33.2% over the
 latest 20, 50 and 100 evaluations, with zero rollback. The localized coordinate descent has now
 combined enough of both constraints to exceed its source broadly, so update 500 is protected and
-the unchanged branch continues through update 1,000 and 1,500. A
+the unchanged branch continues through update 1,000 and 1,500. A deterministic line search along
+the update-500 lateral delta peaks sharply at 2x: 1x, 1.75x, 2x and 2.25x land 33.4%, 34.5%, 35.1%
+and 34.0% over the same 1,024 scenarios. A stronger 4,096-scenario comparison confirms a broad
+gain from 33.50% at 1x to 34.18% at 2x, with horizontal-speed failures improving from 43.9% to
+40.5%. Composing the 2x lateral correction with later throttle rows does not improve further: the
+best such combination lands 34.9%. The 2x policy and an optimizer-safe resumable checkpoint are
+therefore protected as the next coordinate-restart candidate. The live update-700 actor remains at
+33.3%, with horizontal-speed failures improving to 42.0% but vertical-speed failures rising to
+61.5%. At update 1,000 the tradeoff becomes decisive: broad landing retreats to 29.9%, horizontal-
+speed failures improve to 33.3% and pad misses to 43.9%, but vertical-speed failures rise to 70.3%.
+Successful touchdowns average 17.34 m/s vertical, 7.66 m/s horizontal and 201 m miss. The healthy
+actor and critic, zero rollback and monotonic lateral improvement identify coordinate overshoot
+rather than collapse. Update 500 remains the trained broad best while the unchanged control
+continues through update 1,500; the protected 2x candidate is reserved for the next vertical
+coordinate pass. A
 matched 512-episode
 zero-training sweep from update 755 rules
 out a positive static throttle warm start: the unchanged policy lands 30.7%, while a +0.10
