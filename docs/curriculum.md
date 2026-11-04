@@ -404,7 +404,12 @@ latest 20 and 31.7% over the latest 50, with zero rollback and actor/critic effe
 74/128 and 45/128. The long control therefore continues unchanged toward the 1,000- and
 1,500-update fixed comparisons, with the exact stage-174 promotion policy preserved as its rollback
 point and an optimizer-safe throttle-only touchdown head prepared if vertical failures remain
-dominant after the long horizon. The
+dominant after the long horizon. A matched 512-episode zero-training sweep from update 755 rules
+out a positive static throttle warm start: the unchanged policy lands 30.7%, while a +0.10
+touchdown residual lands 24.8%. The offset cuts vertical-speed failures from 54.6% to 25.7% but
+drives horizontal-speed failures from 45.9% to 89.6%; +0.20 and +0.30 both land 0%. Any later
+throttle-only branch must therefore start at the exact zero-offset checkpoint and learn
+state-dependent braking rather than imposing a constant increase. The
 refreshed progress plot separates the passed stage-173 and stage-174 traces from the live
 stage-175 continuation.
 The exact stage-173 promotion policy's seed-3
