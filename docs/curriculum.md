@@ -268,8 +268,12 @@ both throttle and steering move. The fixed update-100 probe lands 31.6%, essenti
 31.8% handoff best and remaining above the 30.4% source. Horizontal-speed failures improve from
 60.3% at handoff to 58.9%; vertical-speed failures remain nearby at 38.6% versus 37.4%, rather than
 drifting toward the steering-only endpoint's 46.2%. Actor/critic rank is healthy at 72/44 with zero
-rollback, so the branch continues unchanged to updates 250 and 500. Final broad strict-target
-acceptance remains unchanged.
+rollback. The fixed update-250 probe remains at 31.6%; horizontal-speed failures improve further to
+53.7%, but vertical-speed failures rise to 44.4% and pad misses are 50.7%. Live landing averages
+32.7% across the first 250 updates and 33.4%, 32.8% and 33.6% over the latest 50, 100 and 20. The
+extra throttle authority has slowed but not yet removed the opposing failure tradeoff, so the
+healthy 72/43-rank branch continues unchanged through the planned update-500 comparison. Final
+broad strict-target acceptance remains unchanged.
 The localized update-500 seed-3
 [41-second chase recording](assets/salto-stage172-touchdown-u500.mp4) and
 [nine-frame sequence](assets/salto-stage172-touchdown-u500-sequence.jpg) show the powered salto,
