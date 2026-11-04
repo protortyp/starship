@@ -359,8 +359,12 @@ and pad misses remain at 54.4%; successful touchdowns average 17.56 m/s vertical
 horizontal speed. Live landing averages 31.9% through update 490 and strengthens to 32.8% over the
 latest 20. The only changed tensors remain the touchdown adapter's final weight and bias, and all
 three engine-count rows are still bit-exact. The broad gain, healthy live window and zero rollback
-support continuing unchanged toward update 1,000. The refreshed progress plot separates the
-passed stage-173 trace from the live stage-174 continuation.
+support continuing unchanged toward update 1,000. The fixed update-728 probe improves again to
+33.3%, now 3.5 points above entry. Pad-miss failures fall to 52.9%; vertical- and horizontal-speed
+failures are 44.2% and 55.1%. Live landing strengthens concurrently to 34.0% over the latest 50 and
+34.7% over the latest 20, with a 43% high sample. Repeated improvement at every fixed checkpoint
+supports continuing the same branch through the requested 1,000- and 1,500-update horizons. The
+refreshed progress plot separates the passed stage-173 trace from the live stage-174 continuation.
 The exact stage-173 promotion policy's seed-3
 [42-second chase recording](assets/salto-stage173-vspeed2-passed.mp4) and
 [nine-frame sequence](assets/salto-stage173-vspeed2-passed-sequence.jpg) show the powered salto,
