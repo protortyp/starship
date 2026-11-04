@@ -48,9 +48,10 @@ roll and rotation beyond 360°.
 Current campaign: stages 0--174 are solved. Stage 175, the exact 20 m/s endpoint, is active in a
 protected coordinate-descent continuation: the unified and throttle-only controllers completed
 1,500 actor updates each, and a lateral-only touchdown head now resumes the throttle branch's
-update-500 broad best. Its fixed update-250 probe has recovered from 31.4% to 32.3% landing while
-preserving the early horizontal-speed gain, so it continues unchanged through the same long
-500/1,000/1,500-update horizon. The campaign's unified policy completed the 51-step two-engine
+update-500 broad best. Its fixed probes recover from 31.4% at update 100 to 32.3% at 250 and a new
+33.4% stage-175 broad best at 500 while preserving part of the horizontal-speed gain, so it
+continues unchanged through the same long 1,000/1,500-update horizon. The campaign's unified policy
+completed the 51-step two-engine
 braking/pad ladder, restored the exact 35 m/s vertical, 22 m/s horizontal and 450 m pad waypoint,
 passed the 34.583 m/s vertical half-step after eight more iterations, passed its pad/horizontal
 half-step after another 13, cleared the original 34.167 m/s boundary after five, and reached stage
@@ -477,7 +478,15 @@ below the throttle source. Horizontal-speed failures remain improved at 41.8%, w
 failures ease to 61.6% and pad misses are 49.9%; successful touchdowns average 17.46 m/s vertical,
 6.93 m/s horizontal and 211 m miss. Live landing is concurrently stable at 32.0% overall and 32.3%
 over the latest 50, with zero rollback. The repeated broad recovery supports continuing unchanged
-through update 500 rather than judging the coordinate branch from its early tradeoff. A
+through update 500 rather than judging the coordinate branch from its early tradeoff. The fixed
+update-500 probe then reaches a new 33.4% stage-175 broad best, 0.1 point above the throttle source
+and 2.0 points above lateral update 100. Horizontal-speed failures remain better than source at
+44.1% versus 47.1%, while vertical-speed failures recover from 62.5% at update 100 to 60.1%; pad
+misses are 49.4%. Successful touchdowns average 17.38 m/s vertical, 7.41 m/s horizontal and 210 m
+miss. Live landing strengthens concurrently from 32.3% overall to 33.3%, 33.2% and 33.2% over the
+latest 20, 50 and 100 evaluations, with zero rollback. The localized coordinate descent has now
+combined enough of both constraints to exceed its source broadly, so update 500 is protected and
+the unchanged branch continues through update 1,000 and 1,500. A
 matched 512-episode
 zero-training sweep from update 755 rules
 out a positive static throttle warm start: the unchanged policy lands 30.7%, while a +0.10
