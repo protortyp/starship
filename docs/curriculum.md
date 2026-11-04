@@ -446,6 +446,13 @@ throttle-only branch must therefore start at the exact zero-offset checkpoint an
 state-dependent braking rather than imposing a constant increase. The
 refreshed progress plot separates the passed stage-173 and stage-174 traces from the live
 stage-175 continuation.
+The protected stage-175 update-1,255 policy's seed-4
+[42.5-second chase recording](assets/salto-stage175-u1255-best.mp4) and
+[nine-frame sequence](assets/salto-stage175-u1255-best-sequence.jpg) show the powered salto,
+recovery, landing burn and touchdown at 13.23 m/s vertical speed, 10.84 m/s horizontal speed and
+about 297 m miss under the exact stage-175 limits. The trajectory still crosses the re-flip
+threshold, so this is current 20 m/s-endpoint evidence rather than the final clean-single-salto
+claim.
 The exact stage-173 promotion policy's seed-3
 [42-second chase recording](assets/salto-stage173-vspeed2-passed.mp4) and
 [nine-frame sequence](assets/salto-stage173-vspeed2-passed-sequence.jpg) show the powered salto,
