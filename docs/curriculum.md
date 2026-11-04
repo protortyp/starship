@@ -409,9 +409,15 @@ update 755 and 0.3 below entry. This is a stronger terminal tradeoff rather than
 horizontal-speed and pad-miss failures improve to 39.4% and 47.0%, but vertical-speed failures rise
 to 61.9%. Successful touchdowns remain stable at 17.25 m/s vertical, 7.71 m/s horizontal and 206 m
 miss; live landing is 30.7% overall and has recovered from 29.5% over the latest 100 to 31.4% over
-the latest 20. Update 755 is preserved as the stage-175 broad best while the unified controller
+the latest 20. Update 755 is preserved as the interim stage-175 broad best while the unified controller
 continues through update 1,500, matching the stage-174 protocol whose strongest policy also arrived
-after a mid-run retreat. A matched 512-episode zero-training sweep from update 755 rules
+after a mid-run retreat. The fixed update-1,255 probe then reverses the regression and reaches a new
+31.8% broad best, 2.2 points above update 1,005, 2.0 above entry and 0.3 above update 755.
+Vertical-speed failures ease from 61.9% to 60.3%; horizontal-speed and pad-miss failures are 42.1%
+and 48.6%. Successful touchdowns average 17.17 m/s vertical, 8.26 m/s horizontal and 208 m miss.
+This second long-horizon reversal supports leaving the unified controller untouched through the
+fixed update-1,505 comparison rather than activating the prepared fallback. A matched 512-episode
+zero-training sweep from update 755 rules
 out a positive static throttle warm start: the unchanged policy lands 30.7%, while a +0.10
 touchdown residual lands 24.8%. The offset cuts vertical-speed failures from 54.6% to 25.7% but
 drives horizontal-speed failures from 45.9% to 89.6%; +0.20 and +0.30 both land 0%. Any later
