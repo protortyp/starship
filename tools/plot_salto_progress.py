@@ -592,13 +592,13 @@ TRACES = (
         "#a855f7",
     ),
     Trace(
-        "localized vertical touchdown head, stage 175 (live)",
+        "localized vertical touchdown head, stage 175 (1,505 updates, retired)",
         ROOT / "out/salto-stage173-touchdown-vspeed2-touchdown-control-head-u500-4k-v1.log",
         175,
         "#c084fc",
     ),
     Trace(
-        "protected touchdown throttle head, stage 175 (live)",
+        "protected touchdown throttle head, stage 175 (1,500 updates, retired)",
         ROOT / "out/salto-stage175-touchdown-vspeed2-touchdown-throttle-head-u1255-4k-v1.log",
         175,
         "#db2777",

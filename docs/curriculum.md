@@ -48,7 +48,9 @@ roll and rotation beyond 360°.
 Current campaign: stages 0--174 are solved. Stage 175, the exact 20 m/s endpoint, is active in a
 protected coordinate-descent continuation: the unified and throttle-only controllers completed
 1,500 actor updates each, and a lateral-only touchdown head now resumes the throttle branch's
-update-500 broad best. The campaign's unified policy completed the 51-step two-engine
+update-500 broad best. Its fixed update-250 probe has recovered from 31.4% to 32.3% landing while
+preserving the early horizontal-speed gain, so it continues unchanged through the same long
+500/1,000/1,500-update horizon. The campaign's unified policy completed the 51-step two-engine
 braking/pad ladder, restored the exact 35 m/s vertical, 22 m/s horizontal and 450 m pad waypoint,
 passed the 34.583 m/s vertical half-step after eight more iterations, passed its pad/horizontal
 half-step after another 13, cleared the original 34.167 m/s boundary after five, and reached stage
@@ -468,7 +470,14 @@ only lateral rows 4--10 within them have moved. Its first 1,024-episode probe la
 points below the 33.3% source. Horizontal-speed and pad-miss failures immediately improve from
 47.1% to 42.2% and from 49.0% to 47.6%, but vertical-speed failures rise from 57.0% to 62.5%.
 This is the expected opposite early tradeoff rather than a reason to judge the coordinate branch
-after only 50 actor updates; it continues through the same long horizon. A
+after only 50 actor updates; it continues through the same long horizon. At update 100 it lands
+31.4%, with horizontal-speed failures improving again to 41.5%, vertical-speed failures holding at
+62.5% and pad misses at 49.1%. The fixed update-250 probe then recovers to 32.3%, only 1.0 point
+below the throttle source. Horizontal-speed failures remain improved at 41.8%, while vertical-speed
+failures ease to 61.6% and pad misses are 49.9%; successful touchdowns average 17.46 m/s vertical,
+6.93 m/s horizontal and 211 m miss. Live landing is concurrently stable at 32.0% overall and 32.3%
+over the latest 50, with zero rollback. The repeated broad recovery supports continuing unchanged
+through update 500 rather than judging the coordinate branch from its early tradeoff. A
 matched 512-episode
 zero-training sweep from update 755 rules
 out a positive static throttle warm start: the unchanged policy lands 30.7%, while a +0.10
