@@ -526,9 +526,16 @@ land 34.4%, 34.7%, 34.8%, 34.9%, 34.8%, 35.1%, 35.1%, 34.1%, 34.5%, 34.2%, 33.9%
 optimum. The latter lowers vertical-speed failures from 59.0% to 49.5%; horizontal-speed failures
 rise from 45.1% to 56.8%, while pad misses remain unchanged at 50.8%. The 2.75x standalone actor
 and an optimizer-safe resumable checkpoint are protected with only the two throttle-row Adam
-moments cleared and rollback history reset; the live unscaled branch continues its promised long
-horizon before this stronger coordinate is resumed. A matched 512-episode zero-training sweep from
-update 755 rules
+moments cleared and rollback history reset while the live unscaled branch continues. The long
+control then clears stage 175 at actor
+update 806 on consecutive 41% evaluations, before the planned update-1,000 probe is needed. This is
+the first exact 20 m/s endpoint promotion: stage 176 tightens pad radius from 300 m to 287.5 m,
+vertical speed from 20 m/s to 19 m/s, horizontal speed from 12 m/s to 11.5 m/s, tilt from 60 to
+56.25 degrees and angular rate from 90 to 82.5 deg/s. Its first evaluations land 23--30%, an
+expected boundary drop rather than a rollback; actor rank improves to 75/128, critic rank remains
+41/128 and the run has zero rollback. The protected throttle-only service continues uninterrupted
+on stage 176, while the stronger stage-175 2.75x candidate stays available if this boundary stalls.
+A matched 512-episode zero-training sweep from update 755 rules
 out a positive static throttle warm start: the unchanged policy lands 30.7%, while a +0.10
 touchdown residual lands 24.8%. The offset cuts vertical-speed failures from 54.6% to 25.7% but
 drives horizontal-speed failures from 45.9% to 89.6%; +0.20 and +0.30 both land 0%. Any later
