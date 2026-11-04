@@ -247,9 +247,14 @@ beats both the 30.4% source and 29.1% global-weight branch; horizontal-speed fai
 67% to 60% and pad misses from 51% to 50%, while vertical-speed failures rise moderately from 29%
 to 37% rather than the global branch's 51%. Deterministic landing averages 31.5% over all 500 live
 evaluations and 31.8%, 31.7% and 32.4% over its latest 250, 100 and 20. Actor/critic rank remains
-healthy at 73/44. This broad improvement is not yet statistically decisive, but every core metric
-supports continuing the same uninterrupted run through 1,000 and 1,500 actor updates rather than
-switching architecture early. Final broad strict-target acceptance remains unchanged.
+healthy at 73/44. The same fixed probe at actor update 1,000 lands 29.9%: horizontal-speed failures
+continue improving to 54% and pad misses to 48%, but vertical-speed failures worsen to 46%. Live
+landing still averages 31.9% across all 1,000 updates and 32.4%, 32.5%, 32.0% and 31.6% over the
+latest 500, 250, 100 and 20. Actor/critic rank remains healthy at 72/43. The update-500 gain was
+therefore not sustained broadly: localized shaping delays rather than removes the same opposing
+horizontal/vertical objective pressure seen in the global-weight control. The uninterrupted run
+still continues through the promised 1,500-update horizon before retirement or a new architecture
+A/B. Final broad strict-target acceptance remains unchanged.
 The localized update-500 seed-3
 [41-second chase recording](assets/salto-stage172-touchdown-u500.mp4) and
 [nine-frame sequence](assets/salto-stage172-touchdown-u500-sequence.jpg) show the powered salto,
