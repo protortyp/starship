@@ -72,6 +72,9 @@ STAGE171_MIDPOINT_LATERAL_EXPERIMENT = ROOT / "logs" / "salto_stage171_midpoint_
 STAGE171_MIDPOINT_PRIVATE_LATERAL_EXPERIMENT = (
     ROOT / "logs" / "salto_stage171_midpoint_private_lateral_1k_v1"
 )
+STAGE172_MIDPOINT_HSPEED4_EXPERIMENT = (
+    ROOT / "logs" / "salto_stage172_midpoint_hspeed4_lateral_head_4k_v1"
+)
 STAGE99_VERTICAL_TOUCHDOWN1000_EXPERIMENT = (
     ROOT / "logs" / "salto_stage99_vertical_touchdown1000_v1"
 )
@@ -541,10 +544,16 @@ TRACES = (
         "#65a30d",
     ),
     Trace(
-        "measured stage-172 midpoint (live)",
+        "measured stage-172 midpoint, 1,500 updates (retired)",
         ROOT / "out/salto-stage172-midpoint-lateral-head-4k-v1.log",
         172,
         "#4d7c0f",
+    ),
+    Trace(
+        "4x horizontal shaping + critic warm-up (live)",
+        ROOT / "out/salto-stage172-midpoint-hspeed4-lateral-head-4k-v1.log",
+        172,
+        "#c2410c",
     ),
     Trace(
         "private lateral adapter, 129 updates (retired)",
@@ -777,6 +786,9 @@ def rank_panel() -> list[str]:
     ).Reload()
     stage171_midpoint_private_lateral = EventAccumulator(
         str(latest_event_file(STAGE171_MIDPOINT_PRIVATE_LATERAL_EXPERIMENT))
+    ).Reload()
+    stage172_midpoint_hspeed4 = EventAccumulator(
+        str(latest_event_file(STAGE172_MIDPOINT_HSPEED4_EXPERIMENT))
     ).Reload()
     tags = (
         (control, "plasticity/actor/features/effective_rank", "control actor rank", "#2563eb"),
@@ -1123,6 +1135,18 @@ def rank_panel() -> list[str]:
             "private lateral critic rank",
             "#10b981",
         ),
+        (
+            stage172_midpoint_hspeed4,
+            "plasticity/actor/features/effective_rank",
+            "4x-shaping actor rank",
+            "#c2410c",
+        ),
+        (
+            stage172_midpoint_hspeed4,
+            "plasticity/critic/features/effective_rank",
+            "4x-shaping critic rank",
+            "#ea580c",
+        ),
     )
     series = [
         (label, color, [event.value for event in accumulator.Scalars(tag)])
@@ -1144,7 +1168,7 @@ def rank_panel() -> list[str]:
         x = left + tick / max(x_max, 1) * width
         lines.append(text(x, top + height + 23, str(tick), anchor="middle"))
     lines.append(text(left + width / 2, top + height + 48, "training update", anchor="middle"))
-    legend_x, legend_top = 455, 615
+    legend_x, legend_top, legend_step = 455, 615, 14
     legend_rows = (len(series) + 1) // 2
     for _, color, values in series:
         lines.append(
@@ -1163,12 +1187,12 @@ def rank_panel() -> list[str]:
         )
     lines.append(
         f'<rect x="{legend_x - 10}" y="{legend_top - 17}" width="420" '
-        f'height="{10 + 15 * legend_rows}" fill="white"/>'
+        f'height="{10 + legend_step * legend_rows}" fill="white"/>'
     )
     for index, (label, color, _) in enumerate(series):
         column, row = divmod(index, legend_rows)
         legend_item_x = legend_x + column * 205
-        legend_y = legend_top + row * 15
+        legend_y = legend_top + row * legend_step
         lines.append(
             f'<line x1="{legend_item_x}" y1="{legend_y}" x2="{legend_item_x + 22}" '
             f'y2="{legend_y}" stroke="{color}" stroke-width="3"/>'

@@ -38,7 +38,7 @@
 
 The `salto_land` curriculum first learns one powered end-over-end rotation and recovery, then keeps
 the same recurrent policy alive while tightening touchdown speed, pad radius, attitude and angular
-rate. It expands to 205 stages and has a 2,000-update default budget; promotion requires at least 45%
+rate. It expands to 209 stages and has a 2,000-update default budget; promotion requires at least 45%
 of 256 deterministic evaluation episodes twice in succession. Compact numeric interpolation blocks
 keep the long braking tail reviewable while limiting each post-60 transition to 1.25 m/s vertical
 speed, 0.75 m/s horizontal speed, 12.5 m pad radius, 5° tilt, and 10°/s angular rate. The final stage
@@ -206,7 +206,12 @@ vertical speed, 62% exceed horizontal speed and 48% miss the pad, with actor/cri
 healthy at 73/44. Through 1,013 live evaluations the midpoint averages 31.9% overall and over its
 latest 1,000, 32.0% latest-500, 32.5% latest-250, 32.3% latest-100 and 32.4% latest-20. The live
 window is slightly stronger but the broad fixed result remains flat, so the same uninterrupted run
-continues to 1,500 updates. Final broad strict-target acceptance remains unchanged.
+continues to 1,500 updates. The completed run still does not promote or roll back: deterministic
+landing averages 32.0% overall and 32.0%, 32.0%, 31.2%, 31.1% and 31.0% over its latest 1,000, 500,
+250, 100 and 20 evaluations. Its fixed update-1,500 probe lands 30.4%; 29% of crashes exceed vertical
+speed, 67% exceed horizontal speed and 51% miss the pad, with actor/critic rank still healthy at
+72/44. The unchanged fixed landing result at updates 100, 500, 1,000 and 1,500 rules out insufficient
+training time and makes lateral braking the measured bottleneck. The geometric midpoint is retired.
 A checkpoint-safe private post-loop steering adapter was then tested as a matched capacity A/B. It
 keeps engine logits and throttle exact while learning its own gimbal, flap and RCS features, but the
 live result falls to 26% over its latest 20 evaluations by update 129. Its fixed update-124 probe
@@ -214,6 +219,15 @@ lands only 25.8% versus 33.2% for the constrained-head control, and horizontal-s
 rise from 58% to 72% despite healthy 64/128 actor and 41/128 critic rank. The branch is retired: extra
 lateral feature capacity destabilizes the inherited steering schedule rather than solving the measured
 midpoint.
+A matched reward intervention now doubles horizontal-speed shaping from 2 to 4 while preserving the
+exact midpoint update-1,500 actor, critic and optimizer. Its first 100 updates train only the inherited
+critic at 1e-4 for the changed returns; the actor stays bit-exact, then only the protected post-loop
+gimbal, flap and roll-RCS output rows unfreeze at 1e-6. This avoids the critic collapse seen after
+earlier fresh-critic experiments while directly targeting the dominant failure. The warm-up completes
+with all 35 actor tensors bit-exact and all 14 critic tensors changed, 0.971 explained variance and
+healthy 72/38 actor/critic rank. The first post-warm-up diagnostic confirms the automatic 1e-6 rate
+and a small 6.6e-5 update ratio confined to the protected steering output. Actor training now runs
+for the same long horizon. Final broad strict-target acceptance remains unchanged.
 The original stage-172 boundary's update-1,013
 [40-second chase recording](assets/salto-stage172-u1013.mp4) and
 [nine-frame sequence](assets/salto-stage172-u1013-sequence.jpg) show seed 3 completing the powered
