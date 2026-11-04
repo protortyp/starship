@@ -46,14 +46,12 @@ additionally requires exactly one inverted-to-upright recovery with no re-flip a
 roll and rotation beyond 360°.
 
 Current campaign: stages 0--174 are solved. Stage 175, the exact 20 m/s endpoint, is active in a
-protected coordinate-descent continuation: the unified and throttle-only controllers completed
-1,500 actor updates each, and a lateral-only touchdown head now resumes the throttle branch's
-update-500 broad best. Its fixed probes recover from 31.4% at update 100 to 32.3% at 250 and a new
-33.4% stage-175 broad best at 500 while preserving part of the horizontal-speed gain, so it
-continues unchanged through the same long 1,500-update horizon. By update 1,000 it overshoots the
-coordinate direction: horizontal-speed and pad-miss failures improve sharply, but vertical-speed
-failures dominate and broad landing falls to 29.9%. Update 500 and a validated 2x extrapolation of
-its learned delta remain protected. The campaign's unified policy completed the 51-step two-engine
+protected coordinate-descent continuation: the unified, throttle-only and lateral-only controllers
+have each completed at least 1,500 actor updates. The lateral pass sets a 33.4% trained broad best
+at update 500, and a validated 2x extrapolation of its learned delta reaches 34.18% over 4,096
+scenarios. A new throttle-only pass now resumes that protected 2x checkpoint to recover vertical
+braking while preserving its lateral correction. The campaign's unified policy completed the
+51-step two-engine
 braking/pad ladder, restored the exact 35 m/s vertical, 22 m/s horizontal and 450 m pad waypoint,
 passed the 34.583 m/s vertical half-step after eight more iterations, passed its pad/horizontal
 half-step after another 13, cleared the original 34.167 m/s boundary after five, and reached stage
@@ -500,9 +498,16 @@ therefore protected as the next coordinate-restart candidate. The live update-70
 speed failures improve to 33.3% and pad misses to 43.9%, but vertical-speed failures rise to 70.3%.
 Successful touchdowns average 17.34 m/s vertical, 7.66 m/s horizontal and 201 m miss. The healthy
 actor and critic, zero rollback and monotonic lateral improvement identify coordinate overshoot
-rather than collapse. Update 500 remains the trained broad best while the unchanged control
-continues through update 1,500; the protected 2x candidate is reserved for the next vertical
-coordinate pass. A
+rather than collapse. The requested longer horizon produces a real reversal at update 1,250:
+broad landing recovers to 33.2%, horizontal-speed failures remain improved at 36.3% and pad misses
+fall to 40.8%, while vertical-speed failures remain dominant at 69.4%. The fixed update-1,500
+endpoint lands 30.9%; horizontal-speed failures improve further to 30.1% and pad misses to 38.7%,
+but vertical-speed failures rise to 74.6%. Successful touchdowns average 17.14 m/s vertical,
+8.10 m/s horizontal and 191 m miss. The branch is retired after its full horizon with zero rollback
+and update 500 remains its trained broad best. A new coordinate pass resumes the validated 2x
+policy, trains its critic alone for 100 updates, then unlocks only the touchdown throttle row while
+preserving the measured lateral correction and every other actor tensor. At critic update 50 all
+35 actor tensors remain bit-exact while all 14 critic tensors have changed. A
 matched 512-episode
 zero-training sweep from update 755 rules
 out a positive static throttle warm start: the unchanged policy lands 30.7%, while a +0.10
@@ -512,6 +517,12 @@ throttle-only branch must therefore start at the exact zero-offset checkpoint an
 state-dependent braking rather than imposing a constant increase. The
 refreshed progress plot separates the passed stage-173 and stage-174 traces from the live
 stage-175 continuation.
+The protected 2x lateral policy's seed-0
+[40.5-second chase recording](assets/salto-stage175-lateral2x-best.mp4) and
+[nine-frame sequence](assets/salto-stage175-lateral2x-best-sequence.jpg) show its powered rotation,
+recovery, descent and stage-175 touchdown at about 19.1 m/s vertical speed, 8.4 m/s horizontal speed
+and 286 m miss. It is the strongest measured stage-175 candidate but still crosses the re-flip
+threshold, so this is interim endpoint evidence rather than the final clean-single-salto claim.
 The protected stage-175 update-1,255 policy's seed-4
 [42.5-second chase recording](assets/salto-stage175-u1255-best.mp4) and
 [nine-frame sequence](assets/salto-stage175-u1255-best-sequence.jpg) show the powered salto,

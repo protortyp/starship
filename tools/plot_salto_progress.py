@@ -604,10 +604,16 @@ TRACES = (
         "#db2777",
     ),
     Trace(
-        "protected touchdown lateral head from throttle best, stage 175 (live)",
+        "protected touchdown lateral head from throttle best, stage 175 (1,500 updates, retired)",
         ROOT / "out/salto-stage175-touchdown-lateral-head-throttle-u500-4k-v1.log",
         175,
         "#e11d48",
+    ),
+    Trace(
+        "protected touchdown throttle head from lateral 2x, stage 175 (live)",
+        ROOT / "out/salto-stage175-touchdown-throttle-head-lateral2x-4k-v1.log",
+        175,
+        "#f97316",
     ),
     Trace(
         "private lateral adapter, 129 updates (retired)",
