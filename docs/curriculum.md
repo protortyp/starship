@@ -382,7 +382,13 @@ strengthens at the same time to 34.7%, 35.6%, 35.7% and 36.2% over the latest 25
 evaluations. Since the requested longer horizon produced the strongest broad policy at its endpoint
 with no rollback, the unified control continues unchanged beyond update 1,500; the lateral-only
 scope remains a protected fallback rather than replacing a branch that is still improving. The
-refreshed progress plot separates the passed stage-173 trace from the live stage-174 continuation.
+long control then earns the required stage-174 promotion at actor update 1,522 with no rollback and
+advances to the exact 20 m/s endpoint, stage 175. The exact promotion checkpoint is bit-exact to
+its exported policy and lands 34.7% over 1,024 fixed stage-174 scenarios; crash failures are 47.2%
+vertical speed, 51.9% horizontal speed and 47.4% pad miss. The unchanged policy enters stage 175 at
+29.9% broad landing, with 50.6% vertical-speed, 49.6% horizontal-speed and 47.4% pad-miss failures.
+Training continues uninterrupted on stage 175. The refreshed progress plot separates the passed
+stage-173 and stage-174 traces from the live stage-175 continuation.
 The exact stage-173 promotion policy's seed-3
 [42-second chase recording](assets/salto-stage173-vspeed2-passed.mp4) and
 [nine-frame sequence](assets/salto-stage173-vspeed2-passed-sequence.jpg) show the powered salto,

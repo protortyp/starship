@@ -586,10 +586,16 @@ TRACES = (
         "#7c3aed",
     ),
     Trace(
-        "localized vertical touchdown head, stage 174 (live)",
+        "localized vertical touchdown head, stage 174 passed",
         ROOT / "out/salto-stage173-touchdown-vspeed2-touchdown-control-head-u500-4k-v1.log",
         174,
         "#a855f7",
+    ),
+    Trace(
+        "localized vertical touchdown head, stage 175 (live)",
+        ROOT / "out/salto-stage173-touchdown-vspeed2-touchdown-control-head-u500-4k-v1.log",
+        175,
+        "#c084fc",
     ),
     Trace(
         "private lateral adapter, 129 updates (retired)",
