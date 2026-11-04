@@ -542,7 +542,14 @@ matched update-95 direction sweep confirms that its trained 1x actor is the loca
 0x, 0.5x, 1x, 1.5x, 2x, 3x and 4x land 24.2%, 24.4%, 24.5%, 24.2%, 24.2%, 23.2% and 23.6%.
 The protected stage-175 2.75x fallback also regresses to 23.3% under stage 176. This is a healthy
 throttle-versus-lateral tradeoff rather than collapse, so the unchanged live branch continues
-through at least 500 stage-specific updates before another coordinate decision.
+through its longer horizon. Its live-best update-195 checkpoint broad-probes at 24.6%, narrowly
+above update 95 and the promotion source. The fixed update-495 probe lands 23.7%; vertical-speed
+failures continue improving to 54.4%, horizontal-speed failures rise to 50.8%, and pad misses ease
+to 48.7%. Live landing remains stable at 24.8% overall and 25.6%, 24.4% and 24.4% over the latest
+20, 50 and 100 evaluations, with zero rollback. Actor and critic ranks remain healthy at 75/128
+and 46/128 with a strong touchdown-throttle gradient. Update 195 remains the protected broad best,
+and the unchanged branch continues toward fixed update-1,000 and update-1,500 evidence because the
+same long horizon unlocked stage 175 only at update 806.
 A matched 512-episode zero-training sweep from update 755 rules
 out a positive static throttle warm start: the unchanged policy lands 30.7%, while a +0.10
 touchdown residual lands 24.8%. The offset cuts vertical-speed failures from 54.6% to 25.7% but
