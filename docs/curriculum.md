@@ -506,17 +506,26 @@ but vertical-speed failures rise to 74.6%. Successful touchdowns average 17.14 m
 8.10 m/s horizontal and 191 m miss. The branch is retired after its full horizon with zero rollback
 and update 500 remains its trained broad best. A new coordinate pass resumes the validated 2x
 policy, trains its critic alone for 100 updates, then unlocks only the touchdown throttle row while
-preserving the measured lateral correction and every other actor tensor. At critic update 50 all
-35 actor tensors remain bit-exact while all 14 critic tensors have changed. A
-matched 512-episode
-zero-training sweep from update 755 rules
+preserving the measured lateral correction and every other actor tensor. At critic updates 50 and
+100 all 35 actor tensors remain bit-exact while all 14 critic tensors change. After 50 actor
+updates only the touchdown adapter's final weight and bias differ, and only throttle row 3 within
+them has moved. Fixed 1,024-episode probes land 34.6% at actor updates 50 and 100, then 34.2% at
+update 250. The update-500 probe reaches a new 34.7% stage-175 broad best, 0.5 points above its
+protected lateral-2x source. Vertical-speed failures improve from 62.4% at the source to 58.4%;
+horizontal-speed failures trade back from 40.5% to 45.0% and pad misses remain essentially flat at
+49.0%. Successful touchdowns average 17.38 m/s vertical, 7.08 m/s horizontal and 210 m miss. Live
+landing agrees at 34.2% overall and 35.4%, 35.6% and 35.0% over the latest 20, 50 and 100
+evaluations, with zero rollback. Actor and critic ranks remain healthy at 74/128 and 45/128; the
+diagnostic's frozen-actor warnings are expected from the protected update scope. The measured broad
+and vertical gain supports continuing unchanged through update 1,000 and the requested 1,500-update
+horizon while update 500 remains protected. A matched 512-episode zero-training sweep from update
+755 rules
 out a positive static throttle warm start: the unchanged policy lands 30.7%, while a +0.10
 touchdown residual lands 24.8%. The offset cuts vertical-speed failures from 54.6% to 25.7% but
 drives horizontal-speed failures from 45.9% to 89.6%; +0.20 and +0.30 both land 0%. Any later
 throttle-only branch must therefore start at the exact zero-offset checkpoint and learn
-state-dependent braking rather than imposing a constant increase. The
-refreshed progress plot separates the passed stage-173 and stage-174 traces from the live
-stage-175 continuation.
+state-dependent braking rather than imposing a constant increase. The refreshed progress plot
+separates the passed stage-173 and stage-174 traces from the live stage-175 continuation.
 The protected 2x lateral policy's seed-0
 [40.5-second chase recording](assets/salto-stage175-lateral2x-best.mp4) and
 [nine-frame sequence](assets/salto-stage175-lateral2x-best-sequence.jpg) show its powered rotation,
