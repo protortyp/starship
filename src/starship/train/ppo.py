@@ -74,12 +74,13 @@ class InstrumentedPPO(PPO):
             "post_loop_lateral_adapter",
             "touchdown_adapter",
             "touchdown_control_head",
+            "touchdown_lateral_head",
         ):
             raise ValueError(
                 "actor_update_scope must be 'all', 'continuous_head', 'continuous_adapter', "
                 "'hybrid_adapter', 'post_loop_adapter', 'post_loop_control_head', "
                 "'post_loop_lateral_head', 'post_loop_lateral_adapter', 'touchdown_adapter', "
-                "or 'touchdown_control_head'"
+                "'touchdown_control_head', or 'touchdown_lateral_head'"
             )
         super().__init__(*args, **kwargs)
         self.max_kl = max_kl
@@ -105,6 +106,8 @@ class InstrumentedPPO(PPO):
             self._freeze_actor_except_touchdown_adapter()
         elif actor_update_scope == "touchdown_control_head":
             self._freeze_actor_except_touchdown_control_head()
+        elif actor_update_scope == "touchdown_lateral_head":
+            self._freeze_actor_except_touchdown_lateral_head()
         # Every `diagnostics_interval` updates, log network health under plasticity/* (0 = off).
         self.diagnostics_interval = diagnostics_interval
         self._updates_done = 0
@@ -324,6 +327,39 @@ class InstrumentedPPO(PPO):
         bias_mask = torch.ones_like(output.bias)
         weight_mask[:ENGINE_HEADS] = 0
         bias_mask[:ENGINE_HEADS] = 0
+        self._register_parameter_mask(output.weight, weight_mask)
+        self._register_parameter_mask(output.bias, bias_mask)
+
+    def _freeze_actor_except_touchdown_lateral_head(self) -> None:
+        """Tune near-ground steering while preserving engine count, throttle and features."""
+        adapter = getattr(self.actor, "touchdown_adapter", None)
+        if adapter is None:
+            raise ValueError(
+                "actor_update_scope='touchdown_lateral_head' requires an actor with "
+                "touchdown_adapter"
+            )
+        output = next(
+            (
+                module
+                for module in reversed(list(adapter.modules()))
+                if isinstance(module, nn.Linear)
+            ),
+            None,
+        )
+        if output is None or output.bias is None:
+            raise ValueError("touchdown_adapter has no trainable output layer")
+        for parameter in self.actor.parameters():
+            parameter.requires_grad_(False)
+        output.weight.requires_grad_(True)
+        output.bias.requires_grad_(True)
+
+        # The protected update-728 policy already has the best measured vertical-speed balance.
+        # Preserve its engine-count and throttle rows while adapting only gimbals, flaps and RCS
+        # to the remaining horizontal-speed and pad-miss failures.
+        weight_mask = torch.ones_like(output.weight)
+        bias_mask = torch.ones_like(output.bias)
+        weight_mask[: ENGINE_HEADS + 1] = 0
+        bias_mask[: ENGINE_HEADS + 1] = 0
         self._register_parameter_mask(output.weight, weight_mask)
         self._register_parameter_mask(output.bias, bias_mask)
 

@@ -919,7 +919,11 @@ def test_touchdown_adapter_loads_exactly_and_trains_only_near_ground_residual(tm
             assert torch.equal(value, after[name]), name
 
 
-def test_touchdown_control_head_preserves_engine_count_and_shared_features(tmp_path):
+@pytest.mark.parametrize(
+    ("scope", "protected_rows"),
+    [("touchdown_control_head", ENGINE_HEADS), ("touchdown_lateral_head", ENGINE_HEADS + 1)],
+)
+def test_touchdown_head_preserves_control_rows_and_shared_features(tmp_path, scope, protected_rows):
     cfg = compose_cfg(
         "num_envs=8",
         "runner.actor.class_name=starship.train.models:ContinuousAdapterRNNModel",
@@ -928,7 +932,7 @@ def test_touchdown_control_head_preserves_engine_count_and_shared_features(tmp_p
         "+runner.actor.touchdown_adapter_hidden_dim=16",
         "+runner.actor.post_loop_progress_threshold=0.0",
         "+runner.actor.touchdown_altitude_threshold=100.0",
-        "+runner.algorithm.actor_update_scope=touchdown_control_head",
+        f"+runner.algorithm.actor_update_scope={scope}",
     )
     runner = make_runner(cfg, tmp_path)
     actor = runner.alg.actor
@@ -950,13 +954,17 @@ def test_touchdown_control_head_preserves_engine_count_and_shared_features(tmp_p
     after = dict(actor.named_parameters())
     for name, value in before.items():
         if name in output_names:
-            assert torch.equal(value[:ENGINE_HEADS], after[name][:ENGINE_HEADS]), name
-            assert not torch.equal(value[ENGINE_HEADS:], after[name][ENGINE_HEADS:]), name
+            assert torch.equal(value[:protected_rows], after[name][:protected_rows]), name
+            assert not torch.equal(value[protected_rows:], after[name][protected_rows:]), name
         else:
             assert torch.equal(value, after[name]), name
 
 
-def test_touchdown_control_head_preserves_rows_after_optimizer_resume(tmp_path):
+@pytest.mark.parametrize(
+    ("scope", "protected_rows"),
+    [("touchdown_control_head", ENGINE_HEADS), ("touchdown_lateral_head", ENGINE_HEADS + 1)],
+)
+def test_touchdown_head_preserves_rows_after_optimizer_resume(tmp_path, scope, protected_rows):
     base_cfg = compose_cfg(
         "num_envs=8",
         "runner.actor.class_name=starship.train.models:ContinuousAdapterRNNModel",
@@ -981,7 +989,7 @@ def test_touchdown_control_head_preserves_rows_after_optimizer_resume(tmp_path):
         "+runner.actor.touchdown_adapter_hidden_dim=16",
         "+runner.actor.post_loop_progress_threshold=0.0",
         "+runner.actor.touchdown_altitude_threshold=100.0",
-        "+runner.algorithm.actor_update_scope=touchdown_control_head",
+        f"+runner.algorithm.actor_update_scope={scope}",
     )
     runner = make_runner(cfg, tmp_path / "control")
     runner.load(str(checkpoint))
@@ -990,14 +998,14 @@ def test_touchdown_control_head_preserves_rows_after_optimizer_resume(tmp_path):
         for module in reversed(list(runner.alg.actor.touchdown_adapter.modules()))
         if isinstance(module, torch.nn.Linear)
     )
-    protected_weight = output.weight[:ENGINE_HEADS].detach().clone()
-    protected_bias = output.bias[:ENGINE_HEADS].detach().clone()
+    protected_weight = output.weight[:protected_rows].detach().clone()
+    protected_bias = output.bias[:protected_rows].detach().clone()
 
     collect(runner)
     runner.alg.update()
 
-    assert torch.equal(protected_weight, output.weight[:ENGINE_HEADS])
-    assert torch.equal(protected_bias, output.bias[:ENGINE_HEADS])
+    assert torch.equal(protected_weight, output.weight[:protected_rows])
+    assert torch.equal(protected_bias, output.bias[:protected_rows])
 
 
 def test_touchdown_adapter_is_phase_and_altitude_gated_and_jit_matches_policy(tmp_path):
