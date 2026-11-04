@@ -391,7 +391,13 @@ The first fixed stage-175 checkpoint at update 255 lands 28.6%; horizontal-speed
 failures improve to 43.6% and 46.0%, while vertical-speed failures rise to 56.4%. Live stage-175
 landing averages 31.0% overall and 30.2% over the latest 20 with no rollback. This repeats the
 early lateral-for-vertical tradeoff that the stage-174 long control later reversed, so training
-continues uninterrupted instead of judging the exact endpoint after only 255 updates. The
+continues uninterrupted instead of judging the exact endpoint after only 255 updates. The fixed
+update-505 probe confirms that decision: broad landing recovers to 31.3%, 2.7 points above update
+255 and 1.5 points above entry. Vertical-speed failures ease to 55.2% and horizontal-speed failures
+remain better than entry at 46.4% versus 49.6%; pad misses are effectively level with entry at
+47.7% versus 47.4%. Successful touchdowns average 17.22 m/s vertical and 8.07 m/s horizontal
+speed. The long control therefore continues unchanged toward the 1,000- and 1,500-update fixed
+comparisons, with the exact stage-174 promotion policy preserved as its rollback point. The
 refreshed progress plot separates the passed stage-173 and stage-174 traces from the live
 stage-175 continuation.
 The exact stage-173 promotion policy's seed-3
