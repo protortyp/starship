@@ -364,7 +364,13 @@ support continuing unchanged toward update 1,000. The fixed update-728 probe imp
 failures are 44.2% and 55.1%. Live landing strengthens concurrently to 34.0% over the latest 50 and
 34.7% over the latest 20, with a 43% high sample. Repeated improvement at every fixed checkpoint
 supports continuing the same branch through the requested 1,000- and 1,500-update horizons. The
-refreshed progress plot separates the passed stage-173 trace from the live stage-174 continuation.
+fixed update-978 probe then lands 32.1%, 1.2 points below update 728 but still 2.3 points above entry
+and 0.5 above update 478. Horizontal-speed and pad-miss failures improve to 51.4% and 51.7%, while
+vertical-speed failures rise to 47.1%. Live landing remains stable at 32.6% overall, 33.0% over the
+latest 50 and 33.2% over the latest 100, with no rollback. This is a terminal tradeoff rather than
+collapse: update 728 is preserved as the protected broad best and the unchanged control continues
+through update 1,500. The refreshed progress plot separates the passed stage-173 trace from the
+live stage-174 continuation.
 The exact stage-173 promotion policy's seed-3
 [42-second chase recording](assets/salto-stage173-vspeed2-passed.mp4) and
 [nine-frame sequence](assets/salto-stage173-vspeed2-passed-sequence.jpg) show the powered salto,
