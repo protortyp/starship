@@ -607,6 +607,13 @@ failures rise from 39.7% to 49.7%, while pad misses remain near 49.4%. Its stand
 optimizer-safe resumable model are protected with only throttle row 3 changed and only that row's
 Adam moments cleared. This is the strongest stage-176 policy so far and the prepared source for
 the next throttle-only coordinate pass after the long lateral control completes.
+The validated 3.25x actor's seed-0
+[42.5-second chase recording](assets/salto-stage176-u900-throttle325.mp4) and
+[nine-frame sequence](assets/salto-stage176-u900-throttle325-sequence.jpg) show its powered
+rotation, recovery, descent and stage-176 touchdown. It contacts at 14.00 m/s vertical speed,
+3.13 m/s horizontal speed and about 250 m miss, comfortably inside all three current limits. The
+sequence also makes the remaining extra recovery rotation visible, so this stays explicitly
+interim evidence rather than the final clean-single-salto claim.
 The stage-176 update-95 policy's seed-0
 [41.7-second chase recording](assets/salto-stage176-u95-interim.mp4) and
 [nine-frame sequence](assets/salto-stage176-u95-interim-sequence.jpg) show a landed episode at the
