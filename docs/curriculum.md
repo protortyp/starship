@@ -621,6 +621,23 @@ moved and only throttle row 3 changes within them. Its first fixed 1,024-scenari
 are 56.1%, 49.0% and 47.2%. Live landing is 28.8% overall and 28.5%, 28.7% and 28.7% over the
 latest 20, 50 and 100 evaluations with zero rollback. The exact mask audit and stable opening
 support continuing the throttle coordinate through update 250, 500, 1,000 and 1,500.
+The fixed update-250 probe lands 27.83%: vertical-speed failures improve from 56.1% to 53.7%,
+while horizontal-speed failures rise from 49.0% to 51.4% and pad misses ease to 46.3%. Live
+landing remains stronger at 29.1% overall and 31.1% over the latest 20 evaluations; actor and
+critic ranks are healthy at 73/128 and 47/128, the throttle gradient remains active and rollback
+count is zero. A matched direction sweep from the protected source through the update-250 delta
+maps 0x, 0.25x, 0.5x, 0.75x, 1x and 1.25x at 29.88%, 29.88%, 29.49%, 29.30%, 28.52% and 27.73%
+over 512 scenarios. The tied quarter-step broad-validates at only 28.93% over 4,096 scenarios
+versus 29.10% for the source, so it is not protected.
+
+Update 500 recovers slightly to 28.42% fixed landing, with vertical, horizontal and miss failure
+rates of 54.2%, 51.0% and 46.4%. Live landing stays stable at 29.1% overall; actor and critic ranks
+are healthy at 73/128 and 48/128, the throttle gradient remains active and rollback count is zero.
+Its small 9.3e-6 throttle update ratio indicates a plateau, but the fixed recovery supports the
+requested continuation through update 1,000 and 1,500. Its own 512-scenario direction sweep maps
+0x, 0.25x, 0.5x, 0.75x, 1x and 1.25x at 29.88%, 29.88%, 28.91%, 28.91%, 28.91% and 29.30%; the
+tied quarter-step again fails 4,096-scenario validation at 28.83%. The original 29.10% actor
+therefore remains the protected broad optimum while the long live control continues unchanged.
 The validated 3.25x actor's seed-0
 [42.5-second chase recording](assets/salto-stage176-u900-throttle325.mp4) and
 [nine-frame sequence](assets/salto-stage176-u900-throttle325-sequence.jpg) show its powered
