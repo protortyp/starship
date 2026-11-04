@@ -84,6 +84,7 @@ class InstrumentedPPO(PPO):
         self.critic_warmup_updates = critic_warmup_updates
         self.post_warmup_learning_rate = post_warmup_learning_rate
         self.actor_update_scope = actor_update_scope
+        self._parameter_masks: list[tuple[nn.Parameter, torch.Tensor]] = []
         if actor_update_scope == "continuous_head":
             self._freeze_actor_backbone_and_engine_head()
         elif actor_update_scope == "continuous_adapter":
@@ -128,8 +129,32 @@ class InstrumentedPPO(PPO):
         bias_mask = torch.ones_like(output.bias)
         weight_mask[:ENGINE_HEADS] = 0
         bias_mask[:ENGINE_HEADS] = 0
-        output.weight.register_hook(lambda grad: grad * weight_mask)
-        output.bias.register_hook(lambda grad: grad * bias_mask)
+        self._register_parameter_mask(output.weight, weight_mask)
+        self._register_parameter_mask(output.bias, bias_mask)
+
+    def _register_parameter_mask(self, parameter: nn.Parameter, mask: torch.Tensor) -> None:
+        """Mask gradients and remember rows that must remain exact across resumed Adam moments."""
+        parameter.register_hook(lambda grad, mask=mask: grad * mask)
+        self._parameter_masks.append((parameter, mask))
+
+    def _optimizer_step(self) -> None:
+        """Apply an optimizer step without allowing masked rows or their moments to drift."""
+        protected = []
+        with torch.no_grad():
+            for parameter, mask in self._parameter_masks:
+                frozen = mask == 0
+                protected.append((parameter, frozen, parameter[frozen].clone()))
+                for value in self.optimizer.state.get(parameter, {}).values():
+                    if isinstance(value, torch.Tensor) and value.shape == parameter.shape:
+                        value.mul_(mask)
+        self.optimizer.step()
+        with torch.no_grad():
+            for parameter, frozen, value in protected:
+                parameter[frozen] = value
+            for parameter, mask in self._parameter_masks:
+                for value in self.optimizer.state.get(parameter, {}).values():
+                    if isinstance(value, torch.Tensor) and value.shape == parameter.shape:
+                        value.mul_(mask)
 
     def _freeze_actor_except_continuous_adapter(self) -> None:
         """Train a continuous residual while keeping the complete deployed policy fixed."""
@@ -205,8 +230,8 @@ class InstrumentedPPO(PPO):
         bias_mask = torch.ones_like(output.bias)
         weight_mask[: ENGINE_HEADS + 1] = 0
         bias_mask[: ENGINE_HEADS + 1] = 0
-        output.weight.register_hook(lambda grad: grad * weight_mask)
-        output.bias.register_hook(lambda grad: grad * bias_mask)
+        self._register_parameter_mask(output.weight, weight_mask)
+        self._register_parameter_mask(output.bias, bias_mask)
 
     def _freeze_actor_except_post_loop_control_head(self) -> None:
         """Tune post-loop throttle and steering while preserving engine count and features."""
@@ -237,8 +262,8 @@ class InstrumentedPPO(PPO):
         bias_mask = torch.ones_like(output.bias)
         weight_mask[:ENGINE_HEADS] = 0
         bias_mask[:ENGINE_HEADS] = 0
-        output.weight.register_hook(lambda grad: grad * weight_mask)
-        output.bias.register_hook(lambda grad: grad * bias_mask)
+        self._register_parameter_mask(output.weight, weight_mask)
+        self._register_parameter_mask(output.bias, bias_mask)
 
     def _freeze_actor_except_post_loop_lateral_adapter(self) -> None:
         """Train a private steering residual while preserving engine count and throttle exactly."""
@@ -441,7 +466,7 @@ class InstrumentedPPO(PPO):
                 # policy step. Actor parameters keep grad None, so Adam leaves them untouched.
                 (self.value_loss_coef * value_loss).backward()
                 nn.utils.clip_grad_norm_(self.critic.parameters(), self.max_grad_norm)
-                self.optimizer.step()
+                self._optimizer_step()
                 critic_only_updates += 1
                 critic_only_loss += value_loss.item()
                 continue
@@ -455,7 +480,7 @@ class InstrumentedPPO(PPO):
             # clip_grad_norm_ returns the norm before clipping.
             actor_grad = nn.utils.clip_grad_norm_(self.actor.parameters(), self.max_grad_norm)
             critic_grad = nn.utils.clip_grad_norm_(self.critic.parameters(), self.max_grad_norm)
-            self.optimizer.step()
+            self._optimizer_step()
 
             with torch.no_grad():
                 w = ratio.detach().float()

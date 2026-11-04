@@ -727,6 +727,54 @@ def test_post_loop_control_head_preserves_engine_count_and_shared_features(tmp_p
             assert torch.equal(value, after[name]), name
 
 
+@pytest.mark.parametrize(
+    ("scope", "protected_rows"),
+    [("post_loop_control_head", ENGINE_HEADS), ("post_loop_lateral_head", ENGINE_HEADS + 1)],
+)
+def test_masked_post_loop_head_preserves_rows_after_optimizer_resume(
+    tmp_path, scope, protected_rows
+):
+    base_cfg = compose_cfg(
+        "num_envs=8",
+        "runner.actor.class_name=starship.train.models:ContinuousAdapterRNNModel",
+        "+runner.actor.continuous_adapter_hidden_dim=16",
+        "+runner.actor.engine_adapter_hidden_dim=8",
+        "+runner.actor.post_loop_adapter_hidden_dim=16",
+        "+runner.actor.post_loop_progress_threshold=0.0",
+        "+runner.algorithm.actor_update_scope=post_loop_adapter",
+    )
+    base = make_runner(base_cfg, tmp_path / "base")
+    collect(base)
+    base.alg.update()
+    checkpoint = tmp_path / "base" / "model.pt"
+    base.save(str(checkpoint))
+
+    cfg = compose_cfg(
+        "num_envs=8",
+        "runner.actor.class_name=starship.train.models:ContinuousAdapterRNNModel",
+        "+runner.actor.continuous_adapter_hidden_dim=16",
+        "+runner.actor.engine_adapter_hidden_dim=8",
+        "+runner.actor.post_loop_adapter_hidden_dim=16",
+        "+runner.actor.post_loop_progress_threshold=0.0",
+        f"+runner.algorithm.actor_update_scope={scope}",
+    )
+    runner = make_runner(cfg, tmp_path / "control")
+    runner.load(str(checkpoint))
+    output = next(
+        module
+        for module in reversed(list(runner.alg.actor.post_loop_adapter.modules()))
+        if isinstance(module, torch.nn.Linear)
+    )
+    protected_weight = output.weight[:protected_rows].detach().clone()
+    protected_bias = output.bias[:protected_rows].detach().clone()
+
+    collect(runner)
+    runner.alg.update()
+
+    assert torch.equal(protected_weight, output.weight[:protected_rows])
+    assert torch.equal(protected_bias, output.bias[:protected_rows])
+
+
 def test_private_post_loop_lateral_adapter_loads_exactly_and_preserves_protected_actions(
     tmp_path,
 ):
