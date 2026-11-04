@@ -589,6 +589,24 @@ measured broad gain protects update 500 and supports continuing unchanged throug
 trained checkpoint: 0x, 0.5x, 1x, 1.5x, 2x, 2.5x and 3x land 24.7%, 25.8%, 26.5%, 26.1%, 25.8%,
 24.9% and 24.8% over 1,024 matched scenarios. Larger scales keep improving horizontal failures but
 lose more episodes to vertical speed, so no static scaling replaces the protected 1x actor.
+The fixed update-900 probe reaches a new 26.7% trained broad best. Horizontal-speed and pad-miss
+failures improve further to 39.3% and 46.6%, while vertical-speed failures rise to 64.8%; successful
+touchdowns remain controlled at 16.73 m/s vertical speed, 6.46 m/s horizontal speed and 193 m
+miss. Update 1,000 lands 26.2% on the same 1,024 scenarios, with horizontal and miss failures down
+again to 36.6% and 43.8% but vertical failures up to 68.9%, so update 900 stays protected while the
+unchanged control continues to the promised update-1,500 endpoint. Live landing remains stronger
+at 26.5% overall and 27.8%, 27.8% and 27.3% over the latest 20, 50 and 100 evaluations. Actor and
+critic ranks remain healthy at 74/128 and 46/128 with zero rollback.
+
+The update-900 lateral actor also makes the earlier learned throttle direction useful again. A
+matched 512-scenario sweep of throttle scales 1.5x, 1.75x, 2x, 2.25x, 2.5x, 2.75x, 3x, 3.25x,
+3.5x and 4x lands 26.4%, 27.3%, 27.5%, 28.1%, 28.3%, 28.1%, 29.1%, 29.9%, 29.7% and 27.9%.
+A 4,096-scenario validation confirms 27.54% at the live 1.5x throttle versus 29.10% at the 3.25x
+optimum. The scaled candidate lowers vertical-speed failures from 64.3% to 56.5%; horizontal-speed
+failures rise from 39.7% to 49.7%, while pad misses remain near 49.4%. Its standalone actor and
+optimizer-safe resumable model are protected with only throttle row 3 changed and only that row's
+Adam moments cleared. This is the strongest stage-176 policy so far and the prepared source for
+the next throttle-only coordinate pass after the long lateral control completes.
 The stage-176 update-95 policy's seed-0
 [41.7-second chase recording](assets/salto-stage176-u95-interim.mp4) and
 [nine-frame sequence](assets/salto-stage176-u95-interim-sequence.jpg) show a landed episode at the
