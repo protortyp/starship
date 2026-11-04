@@ -547,9 +547,13 @@ above update 95 and the promotion source. The fixed update-495 probe lands 23.7%
 failures continue improving to 54.4%, horizontal-speed failures rise to 50.8%, and pad misses ease
 to 48.7%. Live landing remains stable at 24.8% overall and 25.6%, 24.4% and 24.4% over the latest
 20, 50 and 100 evaluations, with zero rollback. Actor and critic ranks remain healthy at 75/128
-and 46/128 with a strong touchdown-throttle gradient. Update 195 remains the protected broad best,
-and the unchanged branch continues toward fixed update-1,000 and update-1,500 evidence because the
-same long horizon unlocked stage 175 only at update 806.
+and 46/128 with a strong touchdown-throttle gradient. The fixed update-995 probe lands 22.6%:
+vertical-speed failures improve further to 50.9% and pad misses to 46.9%, but horizontal-speed
+failures rise to 54.5%. Live landing remains stable through that checkpoint at 24.8% overall and
+24.7%, 25.0% and 24.9% over the latest 20, 50 and 100 evaluations. Actor and critic ranks remain
+healthy at 74/128 and 47/128, with zero rollback and an active touchdown-throttle gradient. Update
+195 remains the protected broad best, and the unchanged branch continues to its promised fixed
+update-1,500 endpoint because the same long horizon unlocked stage 175 only at update 806.
 A finer direction sweep around update 195 maps 0x, 0.75x, 1x, 1.25x, 1.5x and 2x at 24.2%, 24.5%,
 24.6%, 24.3%, 24.7% and 23.3% over 1,024 matched scenarios. A 4,096-scenario validation confirms
 24.78% at trained 1x versus 25.00% at 1.5x. The scaled actor lowers vertical-speed failures from
