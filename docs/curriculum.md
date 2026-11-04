@@ -396,8 +396,15 @@ update-505 probe confirms that decision: broad landing recovers to 31.3%, 2.7 po
 255 and 1.5 points above entry. Vertical-speed failures ease to 55.2% and horizontal-speed failures
 remain better than entry at 46.4% versus 49.6%; pad misses are effectively level with entry at
 47.7% versus 47.4%. Successful touchdowns average 17.22 m/s vertical and 8.07 m/s horizontal
-speed. The long control therefore continues unchanged toward the 1,000- and 1,500-update fixed
-comparisons, with the exact stage-174 promotion policy preserved as its rollback point. The
+speed. The fixed update-755 probe holds the recovery at a new 31.5% broad best, 0.2 points above
+update 505 and 1.7 above entry. Vertical- and horizontal-speed failures ease again to 54.9% and
+45.9%, while pad misses rise to 50.2%; successful touchdowns average 17.22 m/s vertical, 7.64 m/s
+horizontal and 211 m miss. Live landing is concurrently stable at 30.9% overall, 32.1% over the
+latest 20 and 31.7% over the latest 50, with zero rollback and actor/critic effective ranks of
+74/128 and 45/128. The long control therefore continues unchanged toward the 1,000- and
+1,500-update fixed comparisons, with the exact stage-174 promotion policy preserved as its rollback
+point and an optimizer-safe throttle-only touchdown head prepared if vertical failures remain
+dominant after the long horizon. The
 refreshed progress plot separates the passed stage-173 and stage-174 traces from the live
 stage-175 continuation.
 The exact stage-173 promotion policy's seed-3
