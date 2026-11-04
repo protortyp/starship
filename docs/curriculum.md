@@ -570,7 +570,15 @@ actor, warms its critic alone for 100 updates, then trains only touchdown gimbal
 The exact throttle row, engine selection, shared touchdown features, salto and high-altitude descent
 remain protected. Its opening critic-only evaluations are 26--28%. At critic update 50, all 35
 actor tensors remain bit-exact while all 14 critic tensors have changed, confirming the intended
-protected warmup before the lateral actor unlocks.
+protected warmup before the lateral actor unlocks; critic update 100 repeats that exact result.
+After 50 actor updates, only the touchdown final weight/bias and only lateral rows 4--10 have moved.
+Its fixed probe lands 24.0% versus 24.7% at source: horizontal-speed failures improve from 51.5% to
+47.4% and pad misses from 50.1% to 49.4%, while vertical-speed failures rise from 52.9% to 57.1%.
+The fixed update-250 probe then recovers to a new 24.9% trained broad best, 0.2 points above its
+1,024-scenario source. Horizontal-speed failures improve further to 46.2%, pad misses stay at 49.4%
+and vertical-speed failures are 57.6%. Live landing agrees at 25.2% overall and 24.8%, 25.6% and
+25.4% over the latest 20, 50 and 100 evaluations, with zero rollback. The first broad recovery
+supports continuing unchanged through update 500, 1,000 and 1,500.
 The stage-176 update-95 policy's seed-0
 [41.7-second chase recording](assets/salto-stage176-u95-interim.mp4) and
 [nine-frame sequence](assets/salto-stage176-u95-interim-sequence.jpg) show a landed episode at the
