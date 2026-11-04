@@ -568,10 +568,22 @@ TRACES = (
         "#f59e0b",
     ),
     Trace(
-        "update-500 throttle + steering continuation (live)",
+        "throttle + steering continuation, stage 172 passed",
         ROOT / "out/salto-stage172-touchdown-hspeed2-control-head-u500-4k-v1.log",
         172,
         "#0ea5e9",
+    ),
+    Trace(
+        "stage 173 long control, 1,000 updates (retired)",
+        ROOT / "out/salto-stage172-touchdown-hspeed2-control-head-u500-4k-v1.log",
+        173,
+        "#0284c7",
+    ),
+    Trace(
+        "localized vertical touchdown head (live)",
+        ROOT / "out/salto-stage173-touchdown-vspeed2-touchdown-control-head-u500-4k-v1.log",
+        173,
+        "#7c3aed",
     ),
     Trace(
         "private lateral adapter, 129 updates (retired)",

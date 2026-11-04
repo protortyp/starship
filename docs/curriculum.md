@@ -300,6 +300,18 @@ landing averages 33.2% across all 500 stage-specific updates and strengthens to 
 and 34.0% over the latest 250, 100, 50 and 20. Actor/critic rank remains healthy at 73/43 with no
 rollback. Both broad and recent live metrics therefore support continuing the same branch beyond
 500 updates rather than changing reward at the first opposing failure movement.
+The longer stage-173 control does not sustain that gain. Fixed landing is 33.1% at update 650,
+32.1% at update 750 and 32.6% at update 1,000. The update-1,000 endpoint improves horizontal-speed
+crash failures from 54.9% at the protected update-500 best to 46.5%, but vertical-speed failures
+worsen from 45.2% to 56.4% and pad misses remain at 52.6%. Across the first 999 logged stage-specific
+evaluations, landing averages 32.8% overall and declines to 32.4%, 32.2%, 32.5%, 32.6% and 32.4%
+over the latest 500, 250, 100, 50 and 20. Actor/critic rank remains healthy at 74/42 with no
+rollback, so this is the same opposing objective pressure rather than a plasticity failure. The
+branch is retired after the promised update-1,000 measurement, for more than 1,650 uninterrupted
+actor updates across stages 172 and 173. A protected fallback resumes the exact update-500 best,
+adds weight 2 only to vertical-speed excess faded below 500 m, adapts the critic for 100 updates,
+then trains only the near-ground touchdown throttle and steering output rows at 1e-6. Engine-count
+logits, shared touchdown features, the salto and the learned high-altitude descent remain exact.
 The localized update-500 seed-3
 [41-second chase recording](assets/salto-stage172-touchdown-u500.mp4) and
 [nine-frame sequence](assets/salto-stage172-touchdown-u500-sequence.jpg) show the powered salto,
