@@ -447,7 +447,13 @@ Vertical-speed failures fall from 60.3% at source to 57.0%; horizontal-speed fai
 17.51 m/s vertical, 7.12 m/s horizontal and 213 m miss. Live landing is concurrently healthy at
 31.9% overall, 33.1% over the latest 50 and 32.8% over the latest 100, with zero rollback. The
 measured broad and vertical gain validates the localized architecture and continuing unchanged
-toward update 1,000 and 1,500. A matched 512-episode
+toward update 1,000 and 1,500. The fixed update-1,000 probe lands 32.4%, 0.9 points below update 500
+but still 0.6 above source. Vertical-speed failures improve strongly to 51.9% and pad misses to
+48.0%, while horizontal-speed failures rise to 52.5%. Successful touchdowns average 17.68 m/s
+vertical, 6.54 m/s horizontal and 213 m miss. Live landing remains stronger than the broad probe at
+32.5% overall, 33.7% over the latest 50 and 33.4% over the latest 100 with zero rollback. Update 500
+remains the protected stage-175 broad best; this is another terminal tradeoff rather than collapse,
+so the branch continues through the requested fixed update-1,500 comparison. A matched 512-episode
 zero-training sweep from update 755 rules
 out a positive static throttle warm start: the unchanged policy lands 30.7%, while a +0.10
 touchdown residual lands 24.8%. The offset cuts vertical-speed failures from 54.6% to 25.7% but
