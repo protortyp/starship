@@ -340,7 +340,14 @@ Vertical-speed failures stay improved at 43.7%, horizontal-speed failures are 53
 rise to 54.3%. Across 1,000 actor updates, live landing averages 34.4% and strengthens to 35.0%,
 35.3%, 35.0%, 35.5% and 35.2% over the latest 500, 250, 100, 50 and 20 evaluations. Actor/critic
 rank remains healthy at 73/44 with zero rollback. This durable broad gain and strengthening live
-window validate the requested longer horizon, so the unchanged branch continues to update 1,500.
+window validate the requested longer horizon, so the unchanged branch continues toward update
+1,500. Its fixed update-1,250 probe lands 34.7% as vertical-speed failures improve further to 39.6%
+but horizontal-speed failures rise to 54.6% and pad misses to 55.3%. Before the endpoint, the long
+run produces the required consecutive 40% and 42% evaluations and passes stage 173 at actor update
+1,372 with no rollback. The exact passed policy lands 35.2% over 1,024 fixed stage-173 scenarios;
+41.3% of crashes violate vertical speed, 54.7% violate horizontal speed and 53.9% miss the pad. It
+enters the tighter stage 174 at 29.8% broad landing, where horizontal-speed failures are 51.6%,
+vertical-speed failures 45.1% and pad misses 53.7%. Training continues uninterrupted on stage 174.
 The localized update-500 seed-3
 [41-second chase recording](assets/salto-stage172-touchdown-u500.mp4) and
 [nine-frame sequence](assets/salto-stage172-touchdown-u500-sequence.jpg) show the powered salto,
