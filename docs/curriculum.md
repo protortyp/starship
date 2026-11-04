@@ -353,8 +353,14 @@ level with the exact 29.8% entry policy rather than showing an early regression.
 remain balanced at 46.9% vertical speed, 50.0% horizontal speed and 54.2% pad miss, and the live
 stage-174 evaluations average 31.5% through this checkpoint with no rollback. The unchanged branch
 therefore continues toward the requested long horizon instead of being judged from this early
-plateau. The refreshed progress plot now separates the passed stage-173 trace from the live
-stage-174 continuation.
+plateau. Its fixed update-478 probe then improves to 31.6%, 1.8 points above update 228 and 1.9
+points above entry. Vertical-speed failures fall to 42.7%, horizontal-speed failures rise to 54.1%
+and pad misses remain at 54.4%; successful touchdowns average 17.56 m/s vertical and 7.02 m/s
+horizontal speed. Live landing averages 31.9% through update 490 and strengthens to 32.8% over the
+latest 20. The only changed tensors remain the touchdown adapter's final weight and bias, and all
+three engine-count rows are still bit-exact. The broad gain, healthy live window and zero rollback
+support continuing unchanged toward update 1,000. The refreshed progress plot separates the
+passed stage-173 trace from the live stage-174 continuation.
 The exact stage-173 promotion policy's seed-3
 [42-second chase recording](assets/salto-stage173-vspeed2-passed.mp4) and
 [nine-frame sequence](assets/salto-stage173-vspeed2-passed-sequence.jpg) show the powered salto,
