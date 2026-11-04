@@ -638,6 +638,14 @@ requested continuation through update 1,000 and 1,500. Its own 512-scenario dire
 0x, 0.25x, 0.5x, 0.75x, 1x and 1.25x at 29.88%, 29.88%, 28.91%, 28.91%, 28.91% and 29.30%; the
 tied quarter-step again fails 4,096-scenario validation at 28.83%. The original 29.10% actor
 therefore remains the protected broad optimum while the long live control continues unchanged.
+The fixed update-750 probe lands 28.52%. Vertical-speed failures improve to 48.9%, but horizontal-
+speed failures rise to 58.6%; pad misses ease to 45.6%. Update 1,000 also lands 28.52%, with the
+tradeoff settling at 51.1% vertical, 55.2% horizontal and 45.9% miss failures. Live landing remains
+stable at 29.6% overall and 30.5%, 30.2% and 30.0% over the latest 20, 50 and 100 evaluations.
+Actor and critic ranks are healthy at 74/128 and 48/128, the throttle gradient remains active and
+rollback count is zero. The critic's final-layer gradient has fallen to 8.9% of its start, but its
+rank and the actor's continued health support completing the requested update-1,500 endpoint with
+the original 29.10% actor protected.
 The validated 3.25x actor's seed-0
 [42.5-second chase recording](assets/salto-stage176-u900-throttle325.mp4) and
 [nine-frame sequence](assets/salto-stage176-u900-throttle325-sequence.jpg) show its powered
