@@ -919,6 +919,87 @@ def test_touchdown_adapter_loads_exactly_and_trains_only_near_ground_residual(tm
             assert torch.equal(value, after[name]), name
 
 
+def test_touchdown_control_head_preserves_engine_count_and_shared_features(tmp_path):
+    cfg = compose_cfg(
+        "num_envs=8",
+        "runner.actor.class_name=starship.train.models:ContinuousAdapterRNNModel",
+        "+runner.actor.continuous_adapter_hidden_dim=16",
+        "+runner.actor.engine_adapter_hidden_dim=8",
+        "+runner.actor.touchdown_adapter_hidden_dim=16",
+        "+runner.actor.post_loop_progress_threshold=0.0",
+        "+runner.actor.touchdown_altitude_threshold=100.0",
+        "+runner.algorithm.actor_update_scope=touchdown_control_head",
+    )
+    runner = make_runner(cfg, tmp_path)
+    actor = runner.alg.actor
+    output = next(
+        module
+        for module in reversed(list(actor.touchdown_adapter.modules()))
+        if isinstance(module, torch.nn.Linear)
+    )
+    output_names = {
+        name
+        for name, parameter in actor.named_parameters()
+        if parameter is output.weight or parameter is output.bias
+    }
+    before = {name: parameter.detach().clone() for name, parameter in actor.named_parameters()}
+
+    collect(runner)
+    runner.alg.update()
+
+    after = dict(actor.named_parameters())
+    for name, value in before.items():
+        if name in output_names:
+            assert torch.equal(value[:ENGINE_HEADS], after[name][:ENGINE_HEADS]), name
+            assert not torch.equal(value[ENGINE_HEADS:], after[name][ENGINE_HEADS:]), name
+        else:
+            assert torch.equal(value, after[name]), name
+
+
+def test_touchdown_control_head_preserves_rows_after_optimizer_resume(tmp_path):
+    base_cfg = compose_cfg(
+        "num_envs=8",
+        "runner.actor.class_name=starship.train.models:ContinuousAdapterRNNModel",
+        "+runner.actor.continuous_adapter_hidden_dim=16",
+        "+runner.actor.engine_adapter_hidden_dim=8",
+        "+runner.actor.touchdown_adapter_hidden_dim=16",
+        "+runner.actor.post_loop_progress_threshold=0.0",
+        "+runner.actor.touchdown_altitude_threshold=100.0",
+        "+runner.algorithm.actor_update_scope=touchdown_adapter",
+    )
+    base = make_runner(base_cfg, tmp_path / "base")
+    collect(base)
+    base.alg.update()
+    checkpoint = tmp_path / "base" / "model.pt"
+    base.save(str(checkpoint))
+
+    cfg = compose_cfg(
+        "num_envs=8",
+        "runner.actor.class_name=starship.train.models:ContinuousAdapterRNNModel",
+        "+runner.actor.continuous_adapter_hidden_dim=16",
+        "+runner.actor.engine_adapter_hidden_dim=8",
+        "+runner.actor.touchdown_adapter_hidden_dim=16",
+        "+runner.actor.post_loop_progress_threshold=0.0",
+        "+runner.actor.touchdown_altitude_threshold=100.0",
+        "+runner.algorithm.actor_update_scope=touchdown_control_head",
+    )
+    runner = make_runner(cfg, tmp_path / "control")
+    runner.load(str(checkpoint))
+    output = next(
+        module
+        for module in reversed(list(runner.alg.actor.touchdown_adapter.modules()))
+        if isinstance(module, torch.nn.Linear)
+    )
+    protected_weight = output.weight[:ENGINE_HEADS].detach().clone()
+    protected_bias = output.bias[:ENGINE_HEADS].detach().clone()
+
+    collect(runner)
+    runner.alg.update()
+
+    assert torch.equal(protected_weight, output.weight[:ENGINE_HEADS])
+    assert torch.equal(protected_bias, output.bias[:ENGINE_HEADS])
+
+
 def test_touchdown_adapter_is_phase_and_altitude_gated_and_jit_matches_policy(tmp_path):
     cfg = compose_cfg(
         "num_envs=1",

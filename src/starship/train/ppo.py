@@ -73,11 +73,13 @@ class InstrumentedPPO(PPO):
             "post_loop_lateral_head",
             "post_loop_lateral_adapter",
             "touchdown_adapter",
+            "touchdown_control_head",
         ):
             raise ValueError(
                 "actor_update_scope must be 'all', 'continuous_head', 'continuous_adapter', "
                 "'hybrid_adapter', 'post_loop_adapter', 'post_loop_control_head', "
-                "'post_loop_lateral_head', 'post_loop_lateral_adapter', or 'touchdown_adapter'"
+                "'post_loop_lateral_head', 'post_loop_lateral_adapter', 'touchdown_adapter', "
+                "or 'touchdown_control_head'"
             )
         super().__init__(*args, **kwargs)
         self.max_kl = max_kl
@@ -101,6 +103,8 @@ class InstrumentedPPO(PPO):
             self._freeze_actor_except_post_loop_lateral_adapter()
         elif actor_update_scope == "touchdown_adapter":
             self._freeze_actor_except_touchdown_adapter()
+        elif actor_update_scope == "touchdown_control_head":
+            self._freeze_actor_except_touchdown_control_head()
         # Every `diagnostics_interval` updates, log network health under plasticity/* (0 = off).
         self.diagnostics_interval = diagnostics_interval
         self._updates_done = 0
@@ -289,6 +293,39 @@ class InstrumentedPPO(PPO):
             parameter.requires_grad_(False)
         for parameter in adapter.parameters():
             parameter.requires_grad_(True)
+
+    def _freeze_actor_except_touchdown_control_head(self) -> None:
+        """Tune near-ground throttle and steering while preserving engine count and features."""
+        adapter = getattr(self.actor, "touchdown_adapter", None)
+        if adapter is None:
+            raise ValueError(
+                "actor_update_scope='touchdown_control_head' requires an actor with "
+                "touchdown_adapter"
+            )
+        output = next(
+            (
+                module
+                for module in reversed(list(adapter.modules()))
+                if isinstance(module, nn.Linear)
+            ),
+            None,
+        )
+        if output is None or output.bias is None:
+            raise ValueError("touchdown_adapter has no trainable output layer")
+        for parameter in self.actor.parameters():
+            parameter.requires_grad_(False)
+        output.weight.requires_grad_(True)
+        output.bias.requires_grad_(True)
+
+        # Preserve the persistent touchdown engine-count decision. The remaining rows can learn
+        # a precise suicide burn and lateral correction without changing the salto, high-altitude
+        # descent, shared touchdown features, or which engines are selected.
+        weight_mask = torch.ones_like(output.weight)
+        bias_mask = torch.ones_like(output.bias)
+        weight_mask[:ENGINE_HEADS] = 0
+        bias_mask[:ENGINE_HEADS] = 0
+        self._register_parameter_mask(output.weight, weight_mask)
+        self._register_parameter_mask(output.bias, bias_mask)
 
     def _activation_diagnostics(self, max_envs: int = 4096) -> dict[str, float]:
         """Unit, rank and gate diagnostics on a random rollout step and its stored hidden state."""
