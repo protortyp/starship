@@ -288,7 +288,12 @@ rollback. It also lands 31.9% broadly on stage 173 before any stage-specific upd
 stage-173 evaluations average 33.3% and 33.8% over the latest 40, so training continues unchanged
 instead of activating the fallback. The passed checkpoint still averages one later re-flip among
 landed episodes; the downstream cleanup stages remain responsible for the exact single-salto
-invariant.
+invariant. At 250 stage-specific updates, fixed stage-173 landing improves slightly to 32.3% and
+the live window averages 33.1% overall, 32.9% latest-100, 32.7% latest-50 and 32.4% latest-20.
+Horizontal-speed failures improve from 59.1% at entry to 51.1%, while vertical-speed failures rise
+from 39.7% to 48.3% and pad misses remain near 52%. Healthy 73/43 actor/critic rank and the modest
+broad landing gain support continuing this recently promoted branch through the same 500--650
+update horizon before activating the prepared vertical fallback.
 The localized update-500 seed-3
 [41-second chase recording](assets/salto-stage172-touchdown-u500.mp4) and
 [nine-frame sequence](assets/salto-stage172-touchdown-u500-sequence.jpg) show the powered salto,
