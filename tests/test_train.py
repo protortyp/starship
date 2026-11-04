@@ -722,6 +722,13 @@ def test_private_post_loop_lateral_adapter_loads_exactly_and_preserves_protected
     runner = make_runner(cfg, tmp_path / "lateral")
     runner.load(str(checkpoint))
     actor = runner.alg.actor
+    for layer in ("0", "2"):
+        for field in ("weight", "bias"):
+            source = actor.post_loop_adapter.state_dict()[f"{layer}.{field}"]
+            lateral = actor.post_loop_lateral_adapter.state_dict()[f"{layer}.{field}"]
+            assert torch.equal(source, lateral)
+    assert not actor.post_loop_lateral_adapter[4].weight.count_nonzero()
+    assert not actor.post_loop_lateral_adapter[4].bias.count_nonzero()
     actor.reset()
     actual = actor(obs, stochastic_output=False).detach()
     assert torch.equal(expected, actual)

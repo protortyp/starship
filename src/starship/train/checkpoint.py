@@ -33,7 +33,20 @@ def migrate_checkpoint(checkpoint: dict, actor: nn.Module, critic: nn.Module, op
             )
             and key not in actor_state
         ):
-            actor_state[key] = value.detach().clone()
+            # A new private lateral adapter should begin from useful post-loop features, not a
+            # random basis. Its smaller output layer cannot be copied and remains zero-initialized,
+            # so deployment actions are still exact at load time. Matching hidden layers get the
+            # trained post-loop representation and can specialize after the zero output starts
+            # moving.
+            source_key = key.replace("post_loop_lateral_adapter.", "post_loop_adapter.", 1)
+            source = actor_state.get(source_key)
+            actor_state[key] = (
+                source.detach().clone()
+                if key.startswith("post_loop_lateral_adapter.")
+                and source is not None
+                and source.shape == value.shape
+                else value.detach().clone()
+            )
             added_adapter = True
     if added_adapter and "optimizer_state_dict" in checkpoint:
         # Parameter ordering changes when the adapter is introduced. Start fresh optimizer
