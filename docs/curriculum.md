@@ -293,7 +293,13 @@ the live window averages 33.1% overall, 32.9% latest-100, 32.7% latest-50 and 32
 Horizontal-speed failures improve from 59.1% at entry to 51.1%, while vertical-speed failures rise
 from 39.7% to 48.3% and pad misses remain near 52%. Healthy 73/43 actor/critic rank and the modest
 broad landing gain support continuing this recently promoted branch through the same 500--650
-update horizon before activating the prepared vertical fallback.
+update horizon before activating the prepared vertical fallback. The fixed update-500 probe then
+improves to 33.5%, 1.6 points above stage entry and 1.2 points above update 250. Vertical-speed
+failures recover to 45.2%, horizontal-speed failures are 54.9% and pad misses are 52.1%. Live
+landing averages 33.2% across all 500 stage-specific updates and strengthens to 33.4%, 33.8%, 33.8%
+and 34.0% over the latest 250, 100, 50 and 20. Actor/critic rank remains healthy at 73/43 with no
+rollback. Both broad and recent live metrics therefore support continuing the same branch beyond
+500 updates rather than changing reward at the first opposing failure movement.
 The localized update-500 seed-3
 [41-second chase recording](assets/salto-stage172-touchdown-u500.mp4) and
 [nine-frame sequence](assets/salto-stage172-touchdown-u500-sequence.jpg) show the powered salto,
