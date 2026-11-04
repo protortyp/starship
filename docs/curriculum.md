@@ -279,7 +279,16 @@ are 56.8%, vertical-speed failures 41.3% and pad misses 50.7%; actor/critic rank
 34.9% over the latest 250, 100 and 20. The broad gain and strengthening live windows support the
 requested long horizon, so the same branch continues uninterrupted through updates 1,000 and 1,500
 rather than activating the prepared localized-vertical fallback. Final broad strict-target
-acceptance remains unchanged.
+acceptance remains unchanged. The longer horizon then produces the first real promotion in this
+stage-172 study: consecutive 41% deterministic evaluations at continuation update 651 pass the
+inserted 3/4 boundary and advance to the unchanged 7/9 boundary at stage 173. The exact passed
+checkpoint lands 33.1% over 1,024 fixed stage-172 scenarios, with 38% vertical-speed, 60%
+horizontal-speed and 51% pad-miss failures; actor/critic rank is healthy at 73/44 with zero
+rollback. It also lands 31.9% broadly on stage 173 before any stage-specific update. The first 62
+stage-173 evaluations average 33.3% and 33.8% over the latest 40, so training continues unchanged
+instead of activating the fallback. The passed checkpoint still averages one later re-flip among
+landed episodes; the downstream cleanup stages remain responsible for the exact single-salto
+invariant.
 The localized update-500 seed-3
 [41-second chase recording](assets/salto-stage172-touchdown-u500.mp4) and
 [nine-frame sequence](assets/salto-stage172-touchdown-u500-sequence.jpg) show the powered salto,
