@@ -550,6 +550,13 @@ to 48.7%. Live landing remains stable at 24.8% overall and 25.6%, 24.4% and 24.4
 and 46/128 with a strong touchdown-throttle gradient. Update 195 remains the protected broad best,
 and the unchanged branch continues toward fixed update-1,000 and update-1,500 evidence because the
 same long horizon unlocked stage 175 only at update 806.
+A finer direction sweep around update 195 maps 0x, 0.75x, 1x, 1.25x, 1.5x and 2x at 24.2%, 24.5%,
+24.6%, 24.3%, 24.7% and 23.3% over 1,024 matched scenarios. A 4,096-scenario validation confirms
+24.78% at trained 1x versus 25.00% at 1.5x. The scaled actor lowers vertical-speed failures from
+55.7% to 53.2%; horizontal-speed failures rise from 50.2% to 52.9%, while pad misses stay near
+52%. Its standalone actor and optimizer-safe resumable checkpoint are protected with only the two
+throttle-row Adam moments cleared. The 0.22-point gain is real but too small to interrupt the long
+live control.
 The stage-176 update-95 policy's seed-0
 [41.7-second chase recording](assets/salto-stage176-u95-interim.mp4) and
 [nine-frame sequence](assets/salto-stage176-u95-interim-sequence.jpg) show a landed episode at the
