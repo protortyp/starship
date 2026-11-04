@@ -323,7 +323,14 @@ Horizontal-speed failures improve to 52.9%; vertical-speed failures remain far b
 control at 47.1%, and pad misses are 53.0%. Live actor-phase landing averages 34.0% overall and
 strengthens to 34.4%, 34.6% and 34.7% over the latest 100, 50 and 20 evaluations. Only the same final
 touchdown weight and bias have changed, their engine-count rows remain exact, and the broad/live gain
-supports continuing the matched branch unchanged through update 500.
+supports continuing the matched branch unchanged through update 500. The fixed update-500 probe
+lands 34.8%, still 1.3 points above the source but 0.4 below update 250. Horizontal-speed failures
+improve strongly to 48.4%, vertical-speed failures rise to 50.6%, and pad misses improve to 52.1%.
+Across all 500 actor updates, live landing averages 33.9% and remains at 33.7%, 33.7%, 34.1% and
+33.5% over the latest 250, 100, 50 and 20. Actor/critic rank is healthy at 73/44 with no rollback;
+only the protected touchdown output rows still change. Since broad landing remains above source and
+the latest-50 window remains positive, the branch continues unchanged through updates 750 and 1,000
+instead of treating the first small retreat from its update-250 best as an endpoint.
 The localized update-500 seed-3
 [41-second chase recording](assets/salto-stage172-touchdown-u500.mp4) and
 [nine-frame sequence](assets/salto-stage172-touchdown-u500-sequence.jpg) show the powered salto,
