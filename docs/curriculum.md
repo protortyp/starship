@@ -331,6 +331,16 @@ Across all 500 actor updates, live landing averages 33.9% and remains at 33.7%, 
 only the protected touchdown output rows still change. Since broad landing remains above source and
 the latest-50 window remains positive, the branch continues unchanged through updates 750 and 1,000
 instead of treating the first small retreat from its update-250 best as an endpoint.
+The longer horizon then produces a new protected best at update 750: fixed landing reaches 35.5%,
+2.0 points above the source. Vertical-speed failures recover to 43.8%, better than the source,
+while pad misses remain at 52.1%; horizontal-speed failures are 53.9%. Live landing likewise
+strengthens to 34.7%, 35.0%, 34.9% and 35.5% over the latest 250, 100, 50 and 20 evaluations.
+The update-1,000 fixed probe remains at 35.4%, statistically level with the update-750 best.
+Vertical-speed failures stay improved at 43.7%, horizontal-speed failures are 53.0%, and pad misses
+rise to 54.3%. Across 1,000 actor updates, live landing averages 34.4% and strengthens to 35.0%,
+35.3%, 35.0%, 35.5% and 35.2% over the latest 500, 250, 100, 50 and 20 evaluations. Actor/critic
+rank remains healthy at 73/44 with zero rollback. This durable broad gain and strengthening live
+window validate the requested longer horizon, so the unchanged branch continues to update 1,500.
 The localized update-500 seed-3
 [41-second chase recording](assets/salto-stage172-touchdown-u500.mp4) and
 [nine-frame sequence](assets/salto-stage172-touchdown-u500-sequence.jpg) show the powered salto,
