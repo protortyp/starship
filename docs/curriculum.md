@@ -348,6 +348,20 @@ run produces the required consecutive 40% and 42% evaluations and passes stage 1
 41.3% of crashes violate vertical speed, 54.7% violate horizontal speed and 53.9% miss the pad. It
 enters the tighter stage 174 at 29.8% broad landing, where horizontal-speed failures are 51.6%,
 vertical-speed failures 45.1% and pad misses 53.7%. Training continues uninterrupted on stage 174.
+Its first fixed stage-174 checkpoint at actor update 228 lands 29.9% over 1,024 scenarios, effectively
+level with the exact 29.8% entry policy rather than showing an early regression. Crash failures
+remain balanced at 46.9% vertical speed, 50.0% horizontal speed and 54.2% pad miss, and the live
+stage-174 evaluations average 31.5% through this checkpoint with no rollback. The unchanged branch
+therefore continues toward the requested long horizon instead of being judged from this early
+plateau. The refreshed progress plot now separates the passed stage-173 trace from the live
+stage-174 continuation.
+The exact stage-173 promotion policy's seed-3
+[42-second chase recording](assets/salto-stage173-vspeed2-passed.mp4) and
+[nine-frame sequence](assets/salto-stage173-vspeed2-passed-sequence.jpg) show the powered salto,
+recovery and landed touchdown at 18.63 m/s vertical speed, 3.74 m/s horizontal speed and about
+262 m miss. The trajectory completes one recovery but later crosses the re-flip threshold once,
+so it is visual evidence for the stage-173 promotion rather than the final clean-single-salto
+claim.
 The localized update-500 seed-3
 [41-second chase recording](assets/salto-stage172-touchdown-u500.mp4) and
 [nine-frame sequence](assets/salto-stage172-touchdown-u500-sequence.jpg) show the powered salto,
