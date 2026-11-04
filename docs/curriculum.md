@@ -404,7 +404,14 @@ latest 20 and 31.7% over the latest 50, with zero rollback and actor/critic effe
 74/128 and 45/128. The long control therefore continues unchanged toward the 1,000- and
 1,500-update fixed comparisons, with the exact stage-174 promotion policy preserved as its rollback
 point and an optimizer-safe throttle-only touchdown head prepared if vertical failures remain
-dominant after the long horizon. A matched 512-episode zero-training sweep from update 755 rules
+dominant after the long horizon. The fixed update-1,005 probe retreats to 29.6%, 1.9 points below
+update 755 and 0.3 below entry. This is a stronger terminal tradeoff rather than general collapse:
+horizontal-speed and pad-miss failures improve to 39.4% and 47.0%, but vertical-speed failures rise
+to 61.9%. Successful touchdowns remain stable at 17.25 m/s vertical, 7.71 m/s horizontal and 206 m
+miss; live landing is 30.7% overall and has recovered from 29.5% over the latest 100 to 31.4% over
+the latest 20. Update 755 is preserved as the stage-175 broad best while the unified controller
+continues through update 1,500, matching the stage-174 protocol whose strongest policy also arrived
+after a mid-run retreat. A matched 512-episode zero-training sweep from update 755 rules
 out a positive static throttle warm start: the unchanged policy lands 30.7%, while a +0.10
 touchdown residual lands 24.8%. The offset cuts vertical-speed failures from 54.6% to 25.7% but
 drives horizontal-speed failures from 45.9% to 89.6%; +0.20 and +0.30 both land 0%. Any later
