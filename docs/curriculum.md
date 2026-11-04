@@ -437,7 +437,17 @@ failures. This is stable but not yet improved, so the protected branch continues
 judged after only 50 actor updates. At 100 actor updates it lands 31.5%, 0.2 points above update 50
 and only 0.3 below source; vertical-speed, horizontal-speed and pad-miss failures are 61.1%, 42.4%
 and 48.1%. The branch remains stable but has not yet improved vertical braking, so it continues
-toward fixed 500-, 1,000- and 1,500-update evidence. A matched 512-episode
+toward fixed 500-, 1,000- and 1,500-update evidence. At update 250 it holds 31.5%, exactly level
+with update 100 and still only 0.3 points below source. Vertical-speed failures ease slightly to
+60.1%, while horizontal-speed and pad-miss failures are 43.2% and 48.5%. The early branch is a
+healthy plateau rather than a broad gain or collapse. The fixed update-500 probe then improves to
+a new 33.3% stage-175 broad best, 1.8 points above update 250 and 1.5 above its protected source.
+Vertical-speed failures fall from 60.3% at source to 57.0%; horizontal-speed failures rise to
+47.1% and pad misses are 49.0%, but broad landing improves. Successful touchdowns average
+17.51 m/s vertical, 7.12 m/s horizontal and 213 m miss. Live landing is concurrently healthy at
+31.9% overall, 33.1% over the latest 50 and 32.8% over the latest 100, with zero rollback. The
+measured broad and vertical gain validates the localized architecture and continuing unchanged
+toward update 1,000 and 1,500. A matched 512-episode
 zero-training sweep from update 755 rules
 out a positive static throttle warm start: the unchanged policy lands 30.7%, while a +0.10
 touchdown residual lands 24.8%. The offset cuts vertical-speed failures from 54.6% to 25.7% but
