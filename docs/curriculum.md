@@ -271,9 +271,15 @@ drifting toward the steering-only endpoint's 46.2%. Actor/critic rank is healthy
 rollback. The fixed update-250 probe remains at 31.6%; horizontal-speed failures improve further to
 53.7%, but vertical-speed failures rise to 44.4% and pad misses are 50.7%. Live landing averages
 32.7% across the first 250 updates and 33.4%, 32.8% and 33.6% over the latest 50, 100 and 20. The
-extra throttle authority has slowed but not yet removed the opposing failure tradeoff, so the
-healthy 72/43-rank branch continues unchanged through the planned update-500 comparison. Final
-broad strict-target acceptance remains unchanged.
+extra throttle authority initially slows but does not remove the opposing failure tradeoff. By
+update 500, however, the fixed probe reaches 32.8%: the best checkpoint in this stage-172 study,
+2.4 points above the 30.4% source and 1.0 point above the 31.8% handoff. Horizontal-speed failures
+are 56.8%, vertical-speed failures 41.3% and pad misses 50.7%; actor/critic rank remains healthy at
+73/43 with zero rollback. Live landing averages 33.3% across all 500 updates and 34.0%, 33.8% and
+34.9% over the latest 250, 100 and 20. The broad gain and strengthening live windows support the
+requested long horizon, so the same branch continues uninterrupted through updates 1,000 and 1,500
+rather than activating the prepared localized-vertical fallback. Final broad strict-target
+acceptance remains unchanged.
 The localized update-500 seed-3
 [41-second chase recording](assets/salto-stage172-touchdown-u500.mp4) and
 [nine-frame sequence](assets/salto-stage172-touchdown-u500-sequence.jpg) show the powered salto,
