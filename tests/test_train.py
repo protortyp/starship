@@ -691,6 +691,42 @@ def test_post_loop_lateral_head_preserves_engine_throttle_and_shared_features(tm
             assert torch.equal(value, after[name]), name
 
 
+def test_post_loop_control_head_preserves_engine_count_and_shared_features(tmp_path):
+    cfg = compose_cfg(
+        "num_envs=8",
+        "runner.actor.class_name=starship.train.models:ContinuousAdapterRNNModel",
+        "+runner.actor.continuous_adapter_hidden_dim=16",
+        "+runner.actor.engine_adapter_hidden_dim=8",
+        "+runner.actor.post_loop_adapter_hidden_dim=16",
+        "+runner.actor.post_loop_progress_threshold=0.0",
+        "+runner.algorithm.actor_update_scope=post_loop_control_head",
+    )
+    runner = make_runner(cfg, tmp_path)
+    actor = runner.alg.actor
+    output = next(
+        module
+        for module in reversed(list(actor.post_loop_adapter.modules()))
+        if isinstance(module, torch.nn.Linear)
+    )
+    output_names = {
+        name
+        for name, parameter in actor.named_parameters()
+        if parameter is output.weight or parameter is output.bias
+    }
+    before = {name: parameter.detach().clone() for name, parameter in actor.named_parameters()}
+
+    collect(runner)
+    runner.alg.update()
+
+    after = dict(actor.named_parameters())
+    for name, value in before.items():
+        if name in output_names:
+            assert torch.equal(value[:ENGINE_HEADS], after[name][:ENGINE_HEADS]), name
+            assert not torch.equal(value[ENGINE_HEADS:], after[name][ENGINE_HEADS:]), name
+        else:
+            assert torch.equal(value, after[name]), name
+
+
 def test_private_post_loop_lateral_adapter_loads_exactly_and_preserves_protected_actions(
     tmp_path,
 ):

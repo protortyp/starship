@@ -69,14 +69,15 @@ class InstrumentedPPO(PPO):
             "continuous_adapter",
             "hybrid_adapter",
             "post_loop_adapter",
+            "post_loop_control_head",
             "post_loop_lateral_head",
             "post_loop_lateral_adapter",
             "touchdown_adapter",
         ):
             raise ValueError(
                 "actor_update_scope must be 'all', 'continuous_head', 'continuous_adapter', "
-                "'hybrid_adapter', 'post_loop_adapter', 'post_loop_lateral_head', "
-                "'post_loop_lateral_adapter', or 'touchdown_adapter'"
+                "'hybrid_adapter', 'post_loop_adapter', 'post_loop_control_head', "
+                "'post_loop_lateral_head', 'post_loop_lateral_adapter', or 'touchdown_adapter'"
             )
         super().__init__(*args, **kwargs)
         self.max_kl = max_kl
@@ -91,6 +92,8 @@ class InstrumentedPPO(PPO):
             self._freeze_actor_except_hybrid_adapters()
         elif actor_update_scope == "post_loop_adapter":
             self._freeze_actor_except_post_loop_adapter()
+        elif actor_update_scope == "post_loop_control_head":
+            self._freeze_actor_except_post_loop_control_head()
         elif actor_update_scope == "post_loop_lateral_head":
             self._freeze_actor_except_post_loop_lateral_head()
         elif actor_update_scope == "post_loop_lateral_adapter":
@@ -202,6 +205,38 @@ class InstrumentedPPO(PPO):
         bias_mask = torch.ones_like(output.bias)
         weight_mask[: ENGINE_HEADS + 1] = 0
         bias_mask[: ENGINE_HEADS + 1] = 0
+        output.weight.register_hook(lambda grad: grad * weight_mask)
+        output.bias.register_hook(lambda grad: grad * bias_mask)
+
+    def _freeze_actor_except_post_loop_control_head(self) -> None:
+        """Tune post-loop throttle and steering while preserving engine count and features."""
+        adapter = getattr(self.actor, "post_loop_adapter", None)
+        if adapter is None:
+            raise ValueError(
+                "actor_update_scope='post_loop_control_head' requires an actor with "
+                "post_loop_adapter"
+            )
+        output = next(
+            (
+                module
+                for module in reversed(list(adapter.modules()))
+                if isinstance(module, nn.Linear)
+            ),
+            None,
+        )
+        if output is None or output.bias is None:
+            raise ValueError("post_loop_adapter has no trainable output layer")
+        for parameter in self.actor.parameters():
+            parameter.requires_grad_(False)
+        output.weight.requires_grad_(True)
+        output.bias.requires_grad_(True)
+
+        # Preserve the persistent engine-count decision while allowing throttle to compensate for
+        # the vertical-speed loss observed when steering alone removes horizontal speed.
+        weight_mask = torch.ones_like(output.weight)
+        bias_mask = torch.ones_like(output.bias)
+        weight_mask[:ENGINE_HEADS] = 0
+        bias_mask[:ENGINE_HEADS] = 0
         output.weight.register_hook(lambda grad: grad * weight_mask)
         output.bias.register_hook(lambda grad: grad * bias_mask)
 
