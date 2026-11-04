@@ -369,8 +369,20 @@ and 0.5 above update 478. Horizontal-speed and pad-miss failures improve to 51.4
 vertical-speed failures rise to 47.1%. Live landing remains stable at 32.6% overall, 33.0% over the
 latest 50 and 33.2% over the latest 100, with no rollback. This is a terminal tradeoff rather than
 collapse: update 728 is preserved as the protected broad best and the unchanged control continues
-through update 1,500. The refreshed progress plot separates the passed stage-173 trace from the
-live stage-174 continuation.
+through update 1,500. The fixed update-1,228 probe lands 31.2%; horizontal-speed and pad-miss
+failures improve further to 46.8% and 46.5%, but vertical-speed failures rise to 51.6%. Live
+landing remains stable at 32.6% overall and 33.4% over the latest 20. The branch is traversing the
+same terminal tradeoff rather than approaching the 40% gate uniformly. A protected
+`touchdown_lateral_head` scope is now implemented and tested for the post-1,500 restart from update
+728: it freezes engine count, throttle and every shared feature while adapting only touchdown
+gimbals, flaps and RCS. The fixed update-1,478 endpoint then reverses the retreat and reaches a new
+34.6% broad best, 1.3 points above update 728 and 4.8 above entry. Vertical-speed failures recover
+to 48.1%, horizontal-speed failures are 51.6%, and pad misses improve to 47.5%. Live landing
+strengthens at the same time to 34.7%, 35.6%, 35.7% and 36.2% over the latest 250, 100, 50 and 20
+evaluations. Since the requested longer horizon produced the strongest broad policy at its endpoint
+with no rollback, the unified control continues unchanged beyond update 1,500; the lateral-only
+scope remains a protected fallback rather than replacing a branch that is still improving. The
+refreshed progress plot separates the passed stage-173 trace from the live stage-174 continuation.
 The exact stage-173 promotion policy's seed-3
 [42-second chase recording](assets/salto-stage173-vspeed2-passed.mp4) and
 [nine-frame sequence](assets/salto-stage173-vspeed2-passed-sequence.jpg) show the powered salto,
