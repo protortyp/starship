@@ -46,9 +46,9 @@ additionally requires exactly one inverted-to-upright recovery with no re-flip a
 roll and rotation beyond 360°.
 
 Current campaign: stages 0--174 are solved. Stage 175, the exact 20 m/s endpoint, is active in a
-zero-offset touchdown-throttle-only continuation from its protected update-1,255 broad best after
-the unified controller completed the requested 1,500-update minimum. The campaign's unified policy
-completed the 51-step two-engine
+protected coordinate-descent continuation: the unified and throttle-only controllers completed
+1,500 actor updates each, and a lateral-only touchdown head now resumes the throttle branch's
+update-500 broad best. The campaign's unified policy completed the 51-step two-engine
 braking/pad ladder, restored the exact 35 m/s vertical, 22 m/s horizontal and 450 m pad waypoint,
 passed the 34.583 m/s vertical half-step after eight more iterations, passed its pad/horizontal
 half-step after another 13, cleared the original 34.167 m/s boundary after five, and reached stage
@@ -453,7 +453,23 @@ but still 0.6 above source. Vertical-speed failures improve strongly to 51.9% an
 vertical, 6.54 m/s horizontal and 213 m miss. Live landing remains stronger than the broad probe at
 32.5% overall, 33.7% over the latest 50 and 33.4% over the latest 100 with zero rollback. Update 500
 remains the protected stage-175 broad best; this is another terminal tradeoff rather than collapse,
-so the branch continues through the requested fixed update-1,500 comparison. A matched 512-episode
+so the branch continues through the requested fixed update-1,500 comparison. That endpoint lands
+31.7%, 1.6 points below update 500 and 0.1 below source. Vertical-speed failures improve further to
+48.1% and pad misses are 48.2%, but horizontal-speed failures rise to 57.4%; successful touchdowns
+average 17.65 m/s vertical, 6.34 m/s horizontal and 215 m miss. Pure throttle has isolated and
+improved the vertical constraint but overshoots laterally after its update-500 broad best. It is
+retired after the requested 1,500 updates with zero rollback and update 500 protected. A
+coordinate-descent continuation resumes that exact actor, critic and optimizer, trains the critic
+alone for 100 updates, then unlocks only touchdown gimbals, flaps and RCS while keeping engine
+selection, the improved throttle row, shared features, salto and high-altitude descent exact.
+Checkpoint audits at critic updates 50 and 100 keep all 35 actor tensors bit-exact while all 14
+critic tensors change. After 50 actor updates only the touchdown output weight and bias differ, and
+only lateral rows 4--10 within them have moved. Its first 1,024-episode probe lands 31.5%, 1.8
+points below the 33.3% source. Horizontal-speed and pad-miss failures immediately improve from
+47.1% to 42.2% and from 49.0% to 47.6%, but vertical-speed failures rise from 57.0% to 62.5%.
+This is the expected opposite early tradeoff rather than a reason to judge the coordinate branch
+after only 50 actor updates; it continues through the same long horizon. A
+matched 512-episode
 zero-training sweep from update 755 rules
 out a positive static throttle warm start: the unchanged policy lands 30.7%, while a +0.10
 touchdown residual lands 24.8%. The offset cuts vertical-speed failures from 54.6% to 25.7% but
