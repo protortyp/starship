@@ -47,6 +47,10 @@ class RewardConfig:
     # Horizontal speed is nearly free under the descent profile alone; without this term policies
     # tip over and fly away sideways (2D needed the same lateral shaping, docs/curriculum.md).
     horizontal_speed_weight: float = 0.5  # per m/s, part of the speed term
+    # Optional extra braking pressure near touchdown. Keeping it additive preserves the global
+    # anti-flyaway term while avoiding a larger high-altitude penalty on cross-range corrections.
+    touchdown_horizontal_speed_weight: float = 0.0  # per m/s at ground level
+    horizontal_speed_height: float = 500.0  # m, exponential fade height for the extra term
     tilt_weight: float = 10.0  # per rad, faded out above tilt_height
     safe_deceleration: float = 10.0  # m/s^2 net, well inside the three-engine landing burn
     tilt_height: float = 1000.0  # m above ground contact
@@ -95,6 +99,8 @@ class RewardParams:
     speed_weight: float
     vertical_speed_weight: float
     horizontal_speed_weight: float
+    touchdown_horizontal_speed_weight: float
+    horizontal_speed_height: float
     tilt_weight: float
     safe_deceleration: float
     tilt_height: float
@@ -133,7 +139,12 @@ def make_reward_params(config: RewardConfig) -> RewardParams:
         value = getattr(config, field.name)
         if not math.isfinite(value) or value < 0:
             raise ValueError(f"reward {field.name} must be finite and nonnegative")
-    if config.gamma > 1 or config.tilt_height <= 0 or config.horizontal_distance_height <= 0:
+    if (
+        config.gamma > 1
+        or config.tilt_height <= 0
+        or config.horizontal_distance_height <= 0
+        or config.horizontal_speed_height <= 0
+    ):
         raise ValueError("gamma must be <= 1 and shaping fade heights must be positive")
     params = RewardParams()
     for field in fields(config):
@@ -156,12 +167,15 @@ def potential(p: Params, r: RewardParams, b: Body, tanks: wp.vec4) -> wp.vec3:
         distance = distance / (1.0 + distance / r.distance_saturation)
     horizontal_distance = wp.length(wp.vec2(b.pos[0], b.pos[1]))
     horizontal_distance_fade = wp.exp(-height / r.horizontal_distance_height)
+    horizontal_speed = wp.length(wp.vec2(b.vel[0], b.vel[1]))
+    horizontal_speed_fade = wp.exp(-height / r.horizontal_speed_height)
     return wp.vec3(
         -r.distance_weight * distance
         - r.horizontal_distance_weight * horizontal_distance * horizontal_distance_fade,
         -r.speed_weight * excess_speed
         - r.vertical_speed_weight * excess_vertical_speed
-        - r.horizontal_speed_weight * wp.length(wp.vec2(b.vel[0], b.vel[1])),
+        - r.horizontal_speed_weight * horizontal_speed
+        - r.touchdown_horizontal_speed_weight * horizontal_speed * horizontal_speed_fade,
         -r.tilt_weight * tilt * fade,
     )
 
