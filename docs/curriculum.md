@@ -578,7 +578,17 @@ The fixed update-250 probe then recovers to a new 24.9% trained broad best, 0.2 
 1,024-scenario source. Horizontal-speed failures improve further to 46.2%, pad misses stay at 49.4%
 and vertical-speed failures are 57.6%. Live landing agrees at 25.2% overall and 24.8%, 25.6% and
 25.4% over the latest 20, 50 and 100 evaluations, with zero rollback. The first broad recovery
-supports continuing unchanged through update 500, 1,000 and 1,500.
+supports continuing unchanged. The fixed update-500 probe then reaches a clear 26.5% trained broad
+best, 1.8 points above source and 1.6 above update 250. Horizontal-speed failures improve further to
+44.6% and successful horizontal speed falls to 6.08 m/s. Vertical-speed failures rise to 58.2% and
+pad misses remain near 50.3%, but broad landing improves decisively. Live landing agrees at 25.9%
+overall and 26.8%, 26.5% and 26.8% over the latest 20, 50 and 100 evaluations. Actor and critic
+ranks are healthy at 74/128 and 46/128 with a strong lateral-head gradient and zero rollback. The
+measured broad gain protects update 500 and supports continuing unchanged through update 1,000 and
+1,500. A deterministic line search along its learned lateral delta confirms a clean optimum at the
+trained checkpoint: 0x, 0.5x, 1x, 1.5x, 2x, 2.5x and 3x land 24.7%, 25.8%, 26.5%, 26.1%, 25.8%,
+24.9% and 24.8% over 1,024 matched scenarios. Larger scales keep improving horizontal failures but
+lose more episodes to vertical speed, so no static scaling replaces the protected 1x actor.
 The stage-176 update-95 policy's seed-0
 [41.7-second chase recording](assets/salto-stage176-u95-interim.mp4) and
 [nine-frame sequence](assets/salto-stage176-u95-interim-sequence.jpg) show a landed episode at the
