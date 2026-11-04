@@ -226,8 +226,21 @@ gimbal, flap and roll-RCS output rows unfreeze at 1e-6. This avoids the critic c
 earlier fresh-critic experiments while directly targeting the dominant failure. The warm-up completes
 with all 35 actor tensors bit-exact and all 14 critic tensors changed, 0.971 explained variance and
 healthy 72/38 actor/critic rank. The first post-warm-up diagnostic confirms the automatic 1e-6 rate
-and a small 6.6e-5 update ratio confined to the protected steering output. Actor training now runs
-for the same long horizon. Final broad strict-target acceptance remains unchanged.
+and a small 6.6e-5 update ratio confined to the protected steering output. The matched actor run then
+completes 500 updates without promotion or rollback. Deterministic landing averages 30.3% overall
+and 30.0%, 30.3% and 29.8% over its latest 250, 100 and 20 evaluations. Fixed 1,024-seed probes land
+30.7%, 30.0% and 29.1% at actor updates 100, 250 and 500 versus 30.4% for the source. Horizontal-speed
+crash failures improve monotonically from the source's 67% to 59%, 57% and 49%, but vertical-speed
+failures worsen from 29% to 37%, 40% and 51%; pad-miss failures finish at 49%. Actor/critic rank
+remains healthy at 73/40. The branch is retired: globally doubling the term learns lateral braking
+but trades away vertical braking rather than increasing landings.
+The next matched reward A/B retains global horizontal-speed weight 2 and adds only weight 2 faded
+exponentially below 500 m. It therefore reaches the same total weight 4 at touchdown without
+discouraging cross-range correction around the 1,230 m flip. The exact source actor, critic and
+optimizer restart with the same 100-update actor-preserving critic adaptation, followed by protected
+steering-only training at 1e-6. The unused private lateral path is also safer for a later capacity A/B:
+when introduced into an old checkpoint, its hidden layers now inherit the trained post-loop features
+while its output remains exactly zero. Final broad strict-target acceptance remains unchanged.
 The original stage-172 boundary's update-1,013
 [40-second chase recording](assets/salto-stage172-u1013.mp4) and
 [nine-frame sequence](assets/salto-stage172-u1013-sequence.jpg) show seed 3 completing the powered

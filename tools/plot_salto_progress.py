@@ -75,6 +75,9 @@ STAGE171_MIDPOINT_PRIVATE_LATERAL_EXPERIMENT = (
 STAGE172_MIDPOINT_HSPEED4_EXPERIMENT = (
     ROOT / "logs" / "salto_stage172_midpoint_hspeed4_lateral_head_4k_v1"
 )
+STAGE172_MIDPOINT_TOUCHDOWN_HSPEED2_EXPERIMENT = (
+    ROOT / "logs" / "salto_stage172_midpoint_touchdown_hspeed2_lateral_head_4k_v1"
+)
 STAGE99_VERTICAL_TOUCHDOWN1000_EXPERIMENT = (
     ROOT / "logs" / "salto_stage99_vertical_touchdown1000_v1"
 )
@@ -550,10 +553,16 @@ TRACES = (
         "#4d7c0f",
     ),
     Trace(
-        "4x horizontal shaping + critic warm-up (live)",
+        "4x horizontal shaping, 500 updates (retired)",
         ROOT / "out/salto-stage172-midpoint-hspeed4-lateral-head-4k-v1.log",
         172,
         "#c2410c",
+    ),
+    Trace(
+        "near-touchdown 2x shaping + critic warm-up (live)",
+        ROOT / "out/salto-stage172-midpoint-touchdown-hspeed2-lateral-head-4k-v1.log",
+        172,
+        "#f59e0b",
     ),
     Trace(
         "private lateral adapter, 129 updates (retired)",
@@ -789,6 +798,9 @@ def rank_panel() -> list[str]:
     ).Reload()
     stage172_midpoint_hspeed4 = EventAccumulator(
         str(latest_event_file(STAGE172_MIDPOINT_HSPEED4_EXPERIMENT))
+    ).Reload()
+    stage172_midpoint_touchdown_hspeed2 = EventAccumulator(
+        str(latest_event_file(STAGE172_MIDPOINT_TOUCHDOWN_HSPEED2_EXPERIMENT))
     ).Reload()
     tags = (
         (control, "plasticity/actor/features/effective_rank", "control actor rank", "#2563eb"),
@@ -1146,6 +1158,18 @@ def rank_panel() -> list[str]:
             "plasticity/critic/features/effective_rank",
             "4x-shaping critic rank",
             "#ea580c",
+        ),
+        (
+            stage172_midpoint_touchdown_hspeed2,
+            "plasticity/actor/features/effective_rank",
+            "touchdown-shaping actor rank",
+            "#d97706",
+        ),
+        (
+            stage172_midpoint_touchdown_hspeed2,
+            "plasticity/critic/features/effective_rank",
+            "touchdown-shaping critic rank",
+            "#f59e0b",
         ),
     )
     series = [
