@@ -550,6 +550,12 @@ to 48.7%. Live landing remains stable at 24.8% overall and 25.6%, 24.4% and 24.4
 and 46/128 with a strong touchdown-throttle gradient. Update 195 remains the protected broad best,
 and the unchanged branch continues toward fixed update-1,000 and update-1,500 evidence because the
 same long horizon unlocked stage 175 only at update 806.
+The stage-176 update-95 policy's seed-0
+[41.7-second chase recording](assets/salto-stage176-u95-interim.mp4) and
+[nine-frame sequence](assets/salto-stage176-u95-interim-sequence.jpg) show a landed episode at the
+new stricter boundary. It touches down at 15.97 m/s vertical speed, 4.83 m/s horizontal speed and
+272 m miss, inside the 19 m/s, 11.5 m/s and 287.5 m stage limits. The trajectory still re-flips, so
+this is explicitly interim curriculum evidence rather than the final clean-single-salto claim.
 A matched 512-episode zero-training sweep from update 755 rules
 out a positive static throttle warm start: the unchanged policy lands 30.7%, while a +0.10
 touchdown residual lands 24.8%. The offset cuts vertical-speed failures from 54.6% to 25.7% but
