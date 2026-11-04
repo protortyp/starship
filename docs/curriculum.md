@@ -518,8 +518,17 @@ landing agrees at 34.2% overall and 35.4%, 35.6% and 35.0% over the latest 20, 5
 evaluations, with zero rollback. Actor and critic ranks remain healthy at 74/128 and 45/128; the
 diagnostic's frozen-actor warnings are expected from the protected update scope. The measured broad
 and vertical gain supports continuing unchanged through update 1,000 and the requested 1,500-update
-horizon while update 500 remains protected. A matched 512-episode zero-training sweep from update
-755 rules
+horizon while update 500 remains protected. A deterministic line search scales only the learned
+update-500 throttle-row delta while keeping the lateral-2x source and every other actor value exact.
+Over 1,024 matched scenarios, 0.5x, 1x, 1.5x, 2x, 2.5x, 2.75x, 3x, 3.25x, 3.5x, 4x, 5x and 6x
+land 34.4%, 34.7%, 34.8%, 34.9%, 34.8%, 35.1%, 35.1%, 34.1%, 34.5%, 34.2%, 33.9% and
+31.2%. A 4,096-scenario validation confirms 34.86% at 1x versus 35.86% at the balanced 2.75x
+optimum. The latter lowers vertical-speed failures from 59.0% to 49.5%; horizontal-speed failures
+rise from 45.1% to 56.8%, while pad misses remain unchanged at 50.8%. The 2.75x standalone actor
+and an optimizer-safe resumable checkpoint are protected with only the two throttle-row Adam
+moments cleared and rollback history reset; the live unscaled branch continues its promised long
+horizon before this stronger coordinate is resumed. A matched 512-episode zero-training sweep from
+update 755 rules
 out a positive static throttle warm start: the unchanged policy lands 30.7%, while a +0.10
 touchdown residual lands 24.8%. The offset cuts vertical-speed failures from 54.6% to 25.7% but
 drives horizontal-speed failures from 45.9% to 89.6%; +0.20 and +0.30 both land 0%. Any later
