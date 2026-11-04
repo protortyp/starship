@@ -552,15 +552,25 @@ vertical-speed failures improve further to 50.9% and pad misses to 46.9%, but ho
 failures rise to 54.5%. Live landing remains stable through that checkpoint at 24.8% overall and
 24.7%, 25.0% and 24.9% over the latest 20, 50 and 100 evaluations. Actor and critic ranks remain
 healthy at 74/128 and 47/128, with zero rollback and an active touchdown-throttle gradient. Update
-195 remains the protected broad best, and the unchanged branch continues to its promised fixed
-update-1,500 endpoint because the same long horizon unlocked stage 175 only at update 806.
+195 remains the protected broad best. The fixed update-1,495 endpoint recovers from update 995 to
+23.7% broad landing. It maps a decisive terminal tradeoff: vertical-speed failures improve from
+60.1% at source to 43.3% and pad misses to 47.4%, but horizontal-speed failures rise from 44.2% to
+62.7%. Live landing stays stable at 24.8% overall and 24.7%, 25.0% and 24.7% over the latest 20, 50
+and 100 evaluations. Actor and critic ranks finish healthy at 74/128 and 46/128, with zero rollback
+and an active touchdown-throttle gradient. The branch is retired only after the full requested
+1,500-update horizon; update 195 remains its trained broad best.
 A finer direction sweep around update 195 maps 0x, 0.75x, 1x, 1.25x, 1.5x and 2x at 24.2%, 24.5%,
 24.6%, 24.3%, 24.7% and 23.3% over 1,024 matched scenarios. A 4,096-scenario validation confirms
 24.78% at trained 1x versus 25.00% at 1.5x. The scaled actor lowers vertical-speed failures from
 55.7% to 53.2%; horizontal-speed failures rise from 50.2% to 52.9%, while pad misses stay near
 52%. Its standalone actor and optimizer-safe resumable checkpoint are protected with only the two
 throttle-row Adam moments cleared. The 0.22-point gain is real but too small to interrupt the long
-live control.
+live control. After that control completes, a new coordinate pass resumes this validated 25.00%
+actor, warms its critic alone for 100 updates, then trains only touchdown gimbal, flap and RCS rows.
+The exact throttle row, engine selection, shared touchdown features, salto and high-altitude descent
+remain protected. Its opening critic-only evaluations are 26--28%. At critic update 50, all 35
+actor tensors remain bit-exact while all 14 critic tensors have changed, confirming the intended
+protected warmup before the lateral actor unlocks.
 The stage-176 update-95 policy's seed-0
 [41.7-second chase recording](assets/salto-stage176-u95-interim.mp4) and
 [nine-frame sequence](assets/salto-stage176-u95-interim-sequence.jpg) show a landed episode at the
