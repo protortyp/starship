@@ -282,6 +282,34 @@ def test_touchdown_horizontal_speed_shaping_fades_at_altitude(device):
     assert abs(near) > 4 * abs(high)
 
 
+def test_touchdown_vertical_speed_shaping_fades_at_altitude(device):
+    reward = RewardConfig(
+        distance_weight=0,
+        speed_weight=0,
+        vertical_speed_weight=0,
+        horizontal_speed_weight=0,
+        touchdown_vertical_speed_weight=2,
+        vertical_speed_height=500,
+        tilt_weight=0,
+        safe_deceleration=0,
+    )
+
+    def initial_speed_potential(altitude):
+        env = RocketEnv(
+            1,
+            config(altitude=altitude, vertical_speed=-20, horizontal_speed=0),
+            reward_config=reward,
+            device=device,
+        )
+        env.step(actions(1))
+        return env._potential_before.numpy()[0, 1]
+
+    near = initial_speed_potential(100)
+    high = initial_speed_potential(1000)
+    assert near < high < 0
+    assert abs(near) > 4 * abs(high)
+
+
 @pytest.mark.parametrize("status", [LANDED, CRASHED, TUMBLED, OUT_OF_BOUNDS, TIMEOUT])
 def test_terminal_rewards_and_final_observations(device, status):
     cfg = config()

@@ -49,7 +49,9 @@ class RewardConfig:
     horizontal_speed_weight: float = 0.5  # per m/s, part of the speed term
     # Optional extra braking pressure near touchdown. Keeping it additive preserves the global
     # anti-flyaway term while avoiding a larger high-altitude penalty on cross-range corrections.
+    touchdown_vertical_speed_weight: float = 0.0  # per m/s excess at ground level
     touchdown_horizontal_speed_weight: float = 0.0  # per m/s at ground level
+    vertical_speed_height: float = 500.0  # m, exponential fade height for the extra vertical term
     horizontal_speed_height: float = 500.0  # m, exponential fade height for the extra term
     tilt_weight: float = 10.0  # per rad, faded out above tilt_height
     safe_deceleration: float = 10.0  # m/s^2 net, well inside the three-engine landing burn
@@ -99,7 +101,9 @@ class RewardParams:
     speed_weight: float
     vertical_speed_weight: float
     horizontal_speed_weight: float
+    touchdown_vertical_speed_weight: float
     touchdown_horizontal_speed_weight: float
+    vertical_speed_height: float
     horizontal_speed_height: float
     tilt_weight: float
     safe_deceleration: float
@@ -143,6 +147,7 @@ def make_reward_params(config: RewardConfig) -> RewardParams:
         config.gamma > 1
         or config.tilt_height <= 0
         or config.horizontal_distance_height <= 0
+        or config.vertical_speed_height <= 0
         or config.horizontal_speed_height <= 0
     ):
         raise ValueError("gamma must be <= 1 and shaping fade heights must be positive")
@@ -168,6 +173,7 @@ def potential(p: Params, r: RewardParams, b: Body, tanks: wp.vec4) -> wp.vec3:
     horizontal_distance = wp.length(wp.vec2(b.pos[0], b.pos[1]))
     horizontal_distance_fade = wp.exp(-height / r.horizontal_distance_height)
     horizontal_speed = wp.length(wp.vec2(b.vel[0], b.vel[1]))
+    vertical_speed_fade = wp.exp(-height / r.vertical_speed_height)
     horizontal_speed_fade = wp.exp(-height / r.horizontal_speed_height)
     return wp.vec3(
         -r.distance_weight * distance
@@ -175,6 +181,7 @@ def potential(p: Params, r: RewardParams, b: Body, tanks: wp.vec4) -> wp.vec3:
         -r.speed_weight * excess_speed
         - r.vertical_speed_weight * excess_vertical_speed
         - r.horizontal_speed_weight * horizontal_speed
+        - r.touchdown_vertical_speed_weight * excess_vertical_speed * vertical_speed_fade
         - r.touchdown_horizontal_speed_weight * horizontal_speed * horizontal_speed_fade,
         -r.tilt_weight * tilt * fade,
     )
