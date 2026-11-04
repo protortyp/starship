@@ -597,6 +597,12 @@ again to 36.6% and 43.8% but vertical failures up to 68.9%, so update 900 stays 
 unchanged control continues to the promised update-1,500 endpoint. Live landing remains stronger
 at 26.5% overall and 27.8%, 27.8% and 27.3% over the latest 20, 50 and 100 evaluations. Actor and
 critic ranks remain healthy at 74/128 and 46/128 with zero rollback.
+The exact update-1,500 endpoint lands 25.0% on the fixed probe. Horizontal-speed and pad-miss
+failures improve again to 28.6% and 38.4%, but vertical-speed failures reach 75.5%; live landing
+ends at 24.5% over both the latest 20 and 50 evaluations. Actor and critic ranks finish healthy at
+74/128 and 46/128, the lateral-head gradient remains active and rollback count is zero. The branch
+is retired only after completing the full requested horizon, with update 900 protected as its
+trained broad optimum.
 
 The update-900 lateral actor also makes the earlier learned throttle direction useful again. A
 matched 512-scenario sweep of throttle scales 1.5x, 1.75x, 2x, 2.25x, 2.5x, 2.75x, 3x, 3.25x,
@@ -605,8 +611,16 @@ A 4,096-scenario validation confirms 27.54% at the live 1.5x throttle versus 29.
 optimum. The scaled candidate lowers vertical-speed failures from 64.3% to 56.5%; horizontal-speed
 failures rise from 39.7% to 49.7%, while pad misses remain near 49.4%. Its standalone actor and
 optimizer-safe resumable model are protected with only throttle row 3 changed and only that row's
-Adam moments cleared. This is the strongest stage-176 policy so far and the prepared source for
-the next throttle-only coordinate pass after the long lateral control completes.
+Adam moments cleared. This is the strongest stage-176 policy so far and now sources an active
+protected pass that warms its critic alone for 100 updates before training only throttle row 3.
+Its opening deterministic evaluations are 25--36%, including 29% on the first evaluation, while
+the actor remains frozen. At critic updates 50 and 100, all 35 actor tensors stay bit-exact while
+all 14 critic tensors change. After 50 actor updates, only the touchdown final weight and bias have
+moved and only throttle row 3 changes within them. Its first fixed 1,024-scenario probe lands
+29.10%, preserving the validated source; vertical-speed, horizontal-speed and pad-miss failures
+are 56.1%, 49.0% and 47.2%. Live landing is 28.8% overall and 28.5%, 28.7% and 28.7% over the
+latest 20, 50 and 100 evaluations with zero rollback. The exact mask audit and stable opening
+support continuing the throttle coordinate through update 250, 500, 1,000 and 1,500.
 The validated 3.25x actor's seed-0
 [42.5-second chase recording](assets/salto-stage176-u900-throttle325.mp4) and
 [nine-frame sequence](assets/salto-stage176-u900-throttle325-sequence.jpg) show its powered
