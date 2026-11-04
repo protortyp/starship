@@ -250,6 +250,13 @@ evaluations and 31.8%, 31.7% and 32.4% over its latest 250, 100 and 20. Actor/cr
 healthy at 73/44. This broad improvement is not yet statistically decisive, but every core metric
 supports continuing the same uninterrupted run through 1,000 and 1,500 actor updates rather than
 switching architecture early. Final broad strict-target acceptance remains unchanged.
+The localized update-500 seed-3
+[41-second chase recording](assets/salto-stage172-touchdown-u500.mp4) and
+[nine-frame sequence](assets/salto-stage172-touchdown-u500-sequence.jpg) show the powered salto,
+recovery, descent and a representative stage-172 landing. It contacts at 20.02 m/s vertical speed,
+1.67 m/s horizontal speed and about 243 m miss under the interim 21.25 m/s, 12.75 m/s and 312.5 m
+limits. This is evidence for the localized shaping result, not final strict acceptance: the broad
+policy must still demonstrate exactly one recovery, no re-flip and a safe landing before merge.
 The original stage-172 boundary's update-1,013
 [40-second chase recording](assets/salto-stage172-u1013.mp4) and
 [nine-frame sequence](assets/salto-stage172-u1013-sequence.jpg) show seed 3 completing the powered
