@@ -387,8 +387,13 @@ advances to the exact 20 m/s endpoint, stage 175. The exact promotion checkpoint
 its exported policy and lands 34.7% over 1,024 fixed stage-174 scenarios; crash failures are 47.2%
 vertical speed, 51.9% horizontal speed and 47.4% pad miss. The unchanged policy enters stage 175 at
 29.9% broad landing, with 50.6% vertical-speed, 49.6% horizontal-speed and 47.4% pad-miss failures.
-Training continues uninterrupted on stage 175. The refreshed progress plot separates the passed
-stage-173 and stage-174 traces from the live stage-175 continuation.
+The first fixed stage-175 checkpoint at update 255 lands 28.6%; horizontal-speed and pad-miss
+failures improve to 43.6% and 46.0%, while vertical-speed failures rise to 56.4%. Live stage-175
+landing averages 31.0% overall and 30.2% over the latest 20 with no rollback. This repeats the
+early lateral-for-vertical tradeoff that the stage-174 long control later reversed, so training
+continues uninterrupted instead of judging the exact endpoint after only 255 updates. The
+refreshed progress plot separates the passed stage-173 and stage-174 traces from the live
+stage-175 continuation.
 The exact stage-173 promotion policy's seed-3
 [42-second chase recording](assets/salto-stage173-vspeed2-passed.mp4) and
 [nine-frame sequence](assets/salto-stage173-vspeed2-passed-sequence.jpg) show the powered salto,
