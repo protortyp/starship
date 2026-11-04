@@ -517,8 +517,8 @@ horizontal-speed failures trade back from 40.5% to 45.0% and pad misses remain e
 landing agrees at 34.2% overall and 35.4%, 35.6% and 35.0% over the latest 20, 50 and 100
 evaluations, with zero rollback. Actor and critic ranks remain healthy at 74/128 and 45/128; the
 diagnostic's frozen-actor warnings are expected from the protected update scope. The measured broad
-and vertical gain supports continuing unchanged through update 1,000 and the requested 1,500-update
-horizon while update 500 remains protected. A deterministic line search scales only the learned
+and vertical gain supports continuing instead of judging the coordinate early while update 500
+remains protected. A deterministic line search scales only the learned
 update-500 throttle-row delta while keeping the lateral-2x source and every other actor value exact.
 Over 1,024 matched scenarios, 0.5x, 1x, 1.5x, 2x, 2.5x, 2.75x, 3x, 3.25x, 3.5x, 4x, 5x and 6x
 land 34.4%, 34.7%, 34.8%, 34.9%, 34.8%, 35.1%, 35.1%, 34.1%, 34.5%, 34.2%, 33.9% and
@@ -535,13 +535,21 @@ vertical speed from 20 m/s to 19 m/s, horizontal speed from 12 m/s to 11.5 m/s, 
 expected boundary drop rather than a rollback; actor rank improves to 75/128, critic rank remains
 41/128 and the run has zero rollback. The protected throttle-only service continues uninterrupted
 on stage 176, while the stronger stage-175 2.75x candidate stays available if this boundary stalls.
+Fixed 1,024-episode stage-176 probes at its promotion source, update 95 and update 245 land 24.2%,
+24.5% and 24.1%. Vertical-speed failures improve monotonically from 60.1% to 58.1% and 55.7%, but
+horizontal-speed failures trade from 44.2% to 46.6% and 49.5%; pad misses stay near 49--50%. A
+matched update-95 direction sweep confirms that its trained 1x actor is the local broad optimum:
+0x, 0.5x, 1x, 1.5x, 2x, 3x and 4x land 24.2%, 24.4%, 24.5%, 24.2%, 24.2%, 23.2% and 23.6%.
+The protected stage-175 2.75x fallback also regresses to 23.3% under stage 176. This is a healthy
+throttle-versus-lateral tradeoff rather than collapse, so the unchanged live branch continues
+through at least 500 stage-specific updates before another coordinate decision.
 A matched 512-episode zero-training sweep from update 755 rules
 out a positive static throttle warm start: the unchanged policy lands 30.7%, while a +0.10
 touchdown residual lands 24.8%. The offset cuts vertical-speed failures from 54.6% to 25.7% but
 drives horizontal-speed failures from 45.9% to 89.6%; +0.20 and +0.30 both land 0%. Any later
 throttle-only branch must therefore start at the exact zero-offset checkpoint and learn
 state-dependent braking rather than imposing a constant increase. The refreshed progress plot
-separates the passed stage-173 and stage-174 traces from the live stage-175 continuation.
+separates the passed stage-173--175 traces from the live stage-176 continuation.
 The protected 2x lateral policy's seed-0
 [40.5-second chase recording](assets/salto-stage175-lateral2x-best.mp4) and
 [nine-frame sequence](assets/salto-stage175-lateral2x-best-sequence.jpg) show its powered rotation,
