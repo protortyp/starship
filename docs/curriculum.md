@@ -312,6 +312,18 @@ actor updates across stages 172 and 173. A protected fallback resumes the exact 
 adds weight 2 only to vertical-speed excess faded below 500 m, adapts the critic for 100 updates,
 then trains only the near-ground touchdown throttle and steering output rows at 1e-6. Engine-count
 logits, shared touchdown features, the salto and the learned high-altitude descent remain exact.
+All 35 actor tensors stay bit-exact through the full critic warm-up. At actor update 50, only the
+touchdown adapter's final weight and bias have changed and their three engine-count rows are still
+bit-exact. Fixed 1,024-seed probes at actor updates 50 and 100 both land 33.9%, slightly above the
+33.5% source. Vertical-speed failures stay at 45.5%, horizontal-speed failures improve slightly to
+54.2%, and pad misses hold at 52.3--52.4%. This slow, stable early response supports the planned
+longer update-250 and update-500 measurements. At update 250, fixed landing improves materially to
+35.2%, 1.7 points above the protected source and 2.5 points above the retired update-1,000 control.
+Horizontal-speed failures improve to 52.9%; vertical-speed failures remain far below the retired
+control at 47.1%, and pad misses are 53.0%. Live actor-phase landing averages 34.0% overall and
+strengthens to 34.4%, 34.6% and 34.7% over the latest 100, 50 and 20 evaluations. Only the same final
+touchdown weight and bias have changed, their engine-count rows remain exact, and the broad/live gain
+supports continuing the matched branch unchanged through update 500.
 The localized update-500 seed-3
 [41-second chase recording](assets/salto-stage172-touchdown-u500.mp4) and
 [nine-frame sequence](assets/salto-stage172-touchdown-u500-sequence.jpg) show the powered salto,
