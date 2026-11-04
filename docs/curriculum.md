@@ -240,7 +240,16 @@ discouraging cross-range correction around the 1,230 m flip. The exact source ac
 optimizer restart with the same 100-update actor-preserving critic adaptation, followed by protected
 steering-only training at 1e-6. The unused private lateral path is also safer for a later capacity A/B:
 when introduced into an old checkpoint, its hidden layers now inherit the trained post-loop features
-while its output remains exactly zero. Final broad strict-target acceptance remains unchanged.
+while its output remains exactly zero. The localized critic warm-up preserves all 35 actor tensors,
+adapts all 14 critic tensors, reaches 0.963 explained variance and retains healthy 72/44 rank. Fixed
+1,024-seed landing is 30.6%, 30.5% and 31.8% at actor updates 100, 250 and 500. The update-500 probe
+beats both the 30.4% source and 29.1% global-weight branch; horizontal-speed failures improve from
+67% to 60% and pad misses from 51% to 50%, while vertical-speed failures rise moderately from 29%
+to 37% rather than the global branch's 51%. Deterministic landing averages 31.5% over all 500 live
+evaluations and 31.8%, 31.7% and 32.4% over its latest 250, 100 and 20. Actor/critic rank remains
+healthy at 73/44. This broad improvement is not yet statistically decisive, but every core metric
+supports continuing the same uninterrupted run through 1,000 and 1,500 actor updates rather than
+switching architecture early. Final broad strict-target acceptance remains unchanged.
 The original stage-172 boundary's update-1,013
 [40-second chase recording](assets/salto-stage172-u1013.mp4) and
 [nine-frame sequence](assets/salto-stage172-u1013-sequence.jpg) show seed 3 completing the powered
