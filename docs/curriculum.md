@@ -251,10 +251,25 @@ healthy at 73/44. The same fixed probe at actor update 1,000 lands 29.9%: horizo
 continue improving to 54% and pad misses to 48%, but vertical-speed failures worsen to 46%. Live
 landing still averages 31.9% across all 1,000 updates and 32.4%, 32.5%, 32.0% and 31.6% over the
 latest 500, 250, 100 and 20. Actor/critic rank remains healthy at 72/43. The update-500 gain was
-therefore not sustained broadly: localized shaping delays rather than removes the same opposing
-horizontal/vertical objective pressure seen in the global-weight control. The uninterrupted run
-still continues through the promised 1,500-update horizon before retirement or a new architecture
-A/B. Final broad strict-target acceptance remains unchanged.
+not sustained at update 1,000, but the exact update-1,500 endpoint recovers to 31.4% fixed-seed
+landing. Horizontal-speed failures remain improved at 55% and pad misses at 49%, while vertical-
+speed failures remain elevated at 46%; actor/critic rank is healthy at 73/43. Across the complete
+1,500-update run, live landing averages 31.8% overall and 31.7%, 31.7%, 31.7% and 32.7% over the
+latest 500, 250, 100 and 20. Localized shaping is therefore modestly positive but still delays
+rather than removes the same opposing horizontal/vertical objective pressure seen in the global-
+weight control. A direct checkpoint audit confirms that the protected engine-logit and throttle
+rows stay bit-exact throughout this run. A separate resumed-optimizer regression exposed that
+masked gradients alone do not protect rows carrying old Adam moments; masked rows and their moments
+are now restored exactly after every update. The next matched continuation resumes the 31.8%
+update-500 best, keeps all engine-count logits and shared features exact, and unlocks only throttle
+with steering so vertical thrust can compensate for lateral correction. Its update-50 tensor audit
+shows only the final post-loop weight and bias changing: every engine-logit row remains exact while
+both throttle and steering move. The fixed update-100 probe lands 31.6%, essentially preserving the
+31.8% handoff best and remaining above the 30.4% source. Horizontal-speed failures improve from
+60.3% at handoff to 58.9%; vertical-speed failures remain nearby at 38.6% versus 37.4%, rather than
+drifting toward the steering-only endpoint's 46.2%. Actor/critic rank is healthy at 72/44 with zero
+rollback, so the branch continues unchanged to updates 250 and 500. Final broad strict-target
+acceptance remains unchanged.
 The localized update-500 seed-3
 [41-second chase recording](assets/salto-stage172-touchdown-u500.mp4) and
 [nine-frame sequence](assets/salto-stage172-touchdown-u500-sequence.jpg) show the powered salto,

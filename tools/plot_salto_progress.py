@@ -78,6 +78,9 @@ STAGE172_MIDPOINT_HSPEED4_EXPERIMENT = (
 STAGE172_MIDPOINT_TOUCHDOWN_HSPEED2_EXPERIMENT = (
     ROOT / "logs" / "salto_stage172_midpoint_touchdown_hspeed2_lateral_head_4k_v1"
 )
+STAGE172_TOUCHDOWN_HSPEED2_CONTROL_HEAD_EXPERIMENT = (
+    ROOT / "logs" / "salto_stage172_touchdown_hspeed2_control_head_u500_4k_v1"
+)
 STAGE99_VERTICAL_TOUCHDOWN1000_EXPERIMENT = (
     ROOT / "logs" / "salto_stage99_vertical_touchdown1000_v1"
 )
@@ -559,10 +562,16 @@ TRACES = (
         "#c2410c",
     ),
     Trace(
-        "near-touchdown 2x shaping + critic warm-up (live)",
+        "near-touchdown 2x shaping, 1,500 updates (retired)",
         ROOT / "out/salto-stage172-midpoint-touchdown-hspeed2-lateral-head-4k-v1.log",
         172,
         "#f59e0b",
+    ),
+    Trace(
+        "update-500 throttle + steering continuation (live)",
+        ROOT / "out/salto-stage172-touchdown-hspeed2-control-head-u500-4k-v1.log",
+        172,
+        "#0ea5e9",
     ),
     Trace(
         "private lateral adapter, 129 updates (retired)",
@@ -801,6 +810,9 @@ def rank_panel() -> list[str]:
     ).Reload()
     stage172_midpoint_touchdown_hspeed2 = EventAccumulator(
         str(latest_event_file(STAGE172_MIDPOINT_TOUCHDOWN_HSPEED2_EXPERIMENT))
+    ).Reload()
+    stage172_touchdown_hspeed2_control_head = EventAccumulator(
+        str(latest_event_file(STAGE172_TOUCHDOWN_HSPEED2_CONTROL_HEAD_EXPERIMENT))
     ).Reload()
     tags = (
         (control, "plasticity/actor/features/effective_rank", "control actor rank", "#2563eb"),
@@ -1171,6 +1183,18 @@ def rank_panel() -> list[str]:
             "touchdown-shaping critic rank",
             "#f59e0b",
         ),
+        (
+            stage172_touchdown_hspeed2_control_head,
+            "plasticity/actor/features/effective_rank",
+            "throttle + steering actor rank",
+            "#0284c7",
+        ),
+        (
+            stage172_touchdown_hspeed2_control_head,
+            "plasticity/critic/features/effective_rank",
+            "throttle + steering critic rank",
+            "#0ea5e9",
+        ),
     )
     series = [
         (label, color, [event.value for event in accumulator.Scalars(tag)])
@@ -1228,9 +1252,9 @@ def rank_panel() -> list[str]:
 def main() -> None:
     OUTPUT.parent.mkdir(parents=True, exist_ok=True)
     elements = [
-        '<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="1050" '
-        'viewBox="0 0 1000 1050">',
-        '<rect width="1000" height="1050" fill="white"/>',
+        '<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="1080" '
+        'viewBox="0 0 1000 1080">',
+        '<rect width="1000" height="1080" fill="white"/>',
         '<g font-family="ui-sans-serif, system-ui, sans-serif">',
         *landing_panel(),
         *rank_panel(),
