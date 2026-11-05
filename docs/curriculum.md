@@ -718,6 +718,21 @@ control-axis tradeoff. This is not a collapse: actor and critic ranks are health
 47/128, the joint gradient remains active at 7.1 and rollback count is zero. The update-250 actor
 stays protected while the uninterrupted, plastic run continues through updates 1,000 and 1,500,
 the requested long horizon, to distinguish a temporary excursion from a lasting regression.
+At actor update 750, fixed landing declines further to 29.10%. Horizontal-speed failures improve
+to 27.0% and pad misses to 37.6%, while vertical-speed failures remain high at 74.1%. Actor and
+critic ranks stay healthy at 74/128 and 47/128, the joint gradient is active at 6.9 and rollback
+count remains zero. A 4.9e-6 critic output update-ratio warning joins the negative broad trend, but
+the value representation and actor remain plastic, so the run continues through the promised
+updates 1,000 and 1,500 with update 250 protected.
+Rollback 1 fires at actor update 788 and restores the iteration-31,877 live best. The fixed
+update-1,000 checkpoint then recovers to 35.35%, statistically close to update 250; vertical,
+horizontal and miss failure rates rebalance to 64.0%, 37.2% and 47.9%. Actor and critic ranks
+remain healthy at 74/128 and 47/128 with an active 7.3 joint gradient. The pinned iteration-31,877
+policy itself lands 36.04% over the fixed 1,024 scenarios, with 66.6% vertical, 37.3% horizontal
+and 47.5% miss failures, making it the current broad best by two episodes. It still averages one
+re-flip. Both actor and optimizer-safe model are pinned by iteration and checksum while the
+post-rollback run continues to update 1,500; matched 4,096-scenario selection follows at the
+endpoint.
 The validated scale-5 actor's seed-0
 [42.3-second chase recording](assets/salto-stage176-split-scale5.mp4) and
 [nine-frame sequence](assets/salto-stage176-split-scale5-sequence.jpg) show the selected paired
