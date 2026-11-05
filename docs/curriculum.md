@@ -50,7 +50,8 @@ the stunt. It copies the learned output controller exactly at load time, switche
 copy only after the monotonic loop-progress channel reaches one, and freezes the original salto path.
 Its default run adapts the critic for 100 updates, then gives the landing expert a 2,000-update
 horizon with re-flip shaping active. Independent optimizer groups keep the conservative expert
-actor rate from freezing the critic. Final claims use `starship-acceptance`: five held-out spawn
+actor rate from freezing the critic, and a private observation normalizer can adapt to landing
+states without changing the salto path. Final claims use `starship-acceptance`: five held-out spawn
 streams of 1,024 episodes on the exact last stage, each required to land at least 50% with one flip
 and zero re-flips.
 
@@ -858,6 +859,14 @@ shared post-warmup rate also reduced value learning to 2.5e-7. PPO now supports 
 scheduled actor and critic parameter groups, including migration of legacy joint-optimizer
 checkpoints. The next expert continuation retains the measured 2.5e-7 actor rate while keeping the
 critic at 1e-6.
+The historical 98--99% randomized landing checkpoint is no longer present locally or in repository
+artifacts, but its reproducible five-stage curriculum remains. `landing_expert_pretrain` transfers
+the frozen salto actor into that curriculum at stage 0, activates only the independent landing
+expert, and gives its direct-state controller private normalization. Checkpoint loading can now
+intentionally reset curriculum state without affecting ordinary resumes or rollback. Once the long
+4,096-environment control reaches its promised endpoint, this branch will relearn the known strict
+2 m/s vertical, 1 m/s horizontal and 15 m pad task directly, then return under the normal
+post-salto gate for stitching and held-out acceptance.
 The vertical-touchdown promotion policy's seed-0
 [42.1-second vertical-touchdown promotion recording](assets/salto-stage180-vtouch4-passed.mp4) and
 [nine-frame sequence](assets/salto-stage180-vtouch4-passed-sequence.jpg) show the exact passed actor

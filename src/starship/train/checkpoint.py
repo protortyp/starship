@@ -57,6 +57,7 @@ def migrate_checkpoint(checkpoint: dict, actor: nn.Module, critic: nn.Module, op
                     "landing_post_loop_adapter.",
                     "landing_post_loop_lateral_adapter.",
                     "landing_touchdown_adapter.",
+                    "landing_obs_normalizer.",
                 )
             )
             and key not in actor_state
@@ -77,6 +78,7 @@ def migrate_checkpoint(checkpoint: dict, actor: nn.Module, critic: nn.Module, op
                     "post_loop_lateral_adapter.",
                 ),
                 ("landing_touchdown_adapter.", "touchdown_adapter."),
+                ("landing_obs_normalizer.", "obs_normalizer."),
             ):
                 if key.startswith(landing_prefix):
                     source_key = key.replace(landing_prefix, source_prefix, 1)

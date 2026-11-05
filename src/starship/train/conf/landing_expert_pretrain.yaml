@@ -1,0 +1,36 @@
+defaults:
+  - train
+  - _self_
+
+# Transfer a frozen salto checkpoint into the landing curriculum. The phase expert is active for
+# every pretraining state, learns the previously solved strict landing task, then can be loaded back
+# under salto_land_expert where its normal progress gate protects the stunt.
+experiment: landing_expert_pretrain
+device: cuda:0
+iterations: 6000
+record_every: 0
+load_checkpoint_curriculum: false
+reset_critic: true
+reset_actor_optimizer: true
+
+runner:
+  algorithm:
+    critic_warmup_updates: 100
+    post_warmup_learning_rate: 3.0e-5
+    post_warmup_critic_learning_rate: 3.0e-5
+    actor_update_scope: landing_expert
+  actor:
+    class_name: starship.train.models:ContinuousAdapterRNNModel
+    continuous_adapter_hidden_dim: 64
+    engine_adapter_hidden_dim: 32
+    post_loop_adapter_hidden_dim: 128
+    touchdown_adapter_hidden_dim: 128
+    landing_expert: true
+    post_loop_progress_threshold: 0.0
+    touchdown_altitude_threshold: 0.3333333333333333
+    resample_engine_count_post_loop: false
+    resample_engine_count_touchdown: false
+    distribution_cfg:
+      deterministic_engine_selection: threshold
+      stochastic_engine_selection: independent
+      std_range: [0.05, 2.0]

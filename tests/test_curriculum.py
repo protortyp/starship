@@ -472,6 +472,37 @@ def test_salto_landing_expert_config_separates_stunt_and_landing_training():
     assert cfg.runner.actor.distribution_cfg.std_range_overrides.throttle == [0.005, 0.005]
 
 
+def test_landing_expert_pretrain_resets_curriculum_and_activates_only_expert():
+    with initialize_config_module("starship.train.conf", version_base=None):
+        cfg = compose("landing_expert_pretrain")
+    assert not cfg.load_checkpoint_curriculum
+    assert cfg.reset_critic
+    assert cfg.reset_actor_optimizer
+    assert cfg.curriculum.stages[0].name.startswith("0 landing burn")
+    assert cfg.runner.actor.landing_expert
+    assert cfg.runner.actor.post_loop_progress_threshold == 0
+    assert cfg.runner.algorithm.actor_update_scope == "landing_expert"
+    assert cfg.runner.algorithm.post_warmup_learning_rate == 3e-5
+    assert cfg.runner.algorithm.post_warmup_critic_learning_rate == 3e-5
+
+
+def test_checkpoint_can_transfer_into_a_fresh_curriculum(tmp_path):
+    cfg = compose_cfg("num_envs=8")
+    source = make_runner(cfg, tmp_path / "source")
+    source.curriculum.advance()
+    source._apply_stage()
+    source.best_eval = (1, 0.8, 10.0)
+    checkpoint = tmp_path / "source" / "model.pt"
+    source.save(str(checkpoint))
+
+    transferred = make_runner(cfg, tmp_path / "transferred")
+    transferred.load(str(checkpoint), load_curriculum=False)
+
+    assert transferred.curriculum.stage == 0
+    assert transferred.env.cfg.spawn.vertical_speed == -30
+    assert transferred.best_eval is None
+
+
 def test_initial_spawns_use_curriculum_stage(tmp_path):
     runner = make_runner(compose_cfg("num_envs=8"), tmp_path)
     assert runner.env.cfg.spawn.altitude == 60

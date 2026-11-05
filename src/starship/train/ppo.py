@@ -712,6 +712,8 @@ class InstrumentedPPO(PPO):
         obs = st.observations.flatten(0, 1)
         if not critic_warmup and self.actor_update_scope == "all":
             self.actor.update_normalization(obs)
+        elif not critic_warmup and self.actor_update_scope == "landing_expert":
+            self.actor.update_landing_normalization(obs)
         self.critic.update_normalization(obs)
         st.clear()
         return metrics

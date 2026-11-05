@@ -948,6 +948,7 @@ def test_landing_expert_loads_exactly_then_trains_without_changing_salto(tmp_pat
         ("landing_engine_adapter", "engine_adapter"),
         ("landing_post_loop_adapter", "post_loop_adapter"),
         ("landing_touchdown_adapter", "touchdown_adapter"),
+        ("landing_obs_normalizer", "obs_normalizer"),
     ):
         expert_state = getattr(actor, expert_name).state_dict()
         source_state = getattr(actor, source_name).state_dict()
@@ -966,6 +967,10 @@ def test_landing_expert_loads_exactly_then_trains_without_changing_salto(tmp_pat
         else:
             assert torch.equal(value, after[name]), name
     assert any(changed)
+    assert not torch.equal(
+        actor.landing_obs_normalizer._mean,
+        actor.obs_normalizer._mean,
+    )
 
     actor.post_loop_progress_threshold = 0.5
     pre_loop = runner.env.get_observations()
@@ -974,6 +979,7 @@ def test_landing_expert_loads_exactly_then_trains_without_changing_salto(tmp_pat
     protected_before = actor(pre_loop, stochastic_output=False).detach()
     with torch.no_grad():
         actor.landing_mlp[-1].bias.add_(1.0)
+        actor.landing_obs_normalizer._mean.add_(1.0)
     actor.reset()
     protected_after = actor(pre_loop, stochastic_output=False).detach()
     assert torch.equal(protected_before, protected_after)

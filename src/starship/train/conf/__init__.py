@@ -31,6 +31,9 @@ class TrainConfig:
     record_envs: int = 16
     # model_<it>.pt from an earlier run to continue from (weights, optimizer and normalizers).
     checkpoint: str | None = None
+    # False transfers model and optimizer state into a different curriculum at its configured
+    # start stage. Rollbacks inside the new run still restore their saved curriculum normally.
+    load_checkpoint_curriculum: bool = True
     # Preserve the learned actor but reinitialize a collapsed value network when resuming. Its
     # optimizer moments are discarded as well; actor weights and optimizer state stay untouched.
     reset_critic: bool = False

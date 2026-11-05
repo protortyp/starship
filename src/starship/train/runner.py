@@ -234,16 +234,23 @@ class StarshipRunner(OnPolicyRunner):
         self.save_all(self.current_learning_iteration)
         self.writer.flush()
 
-    def load(self, path: str, load_cfg=None, strict: bool = True, map_location=None) -> dict:
+    def load(
+        self,
+        path: str,
+        load_cfg=None,
+        strict: bool = True,
+        map_location=None,
+        load_curriculum: bool = True,
+    ) -> dict:
         checkpoint = torch.load(path, weights_only=False, map_location=map_location or self.device)
         migrate_checkpoint(checkpoint, self.alg.actor, self.alg.critic, self.alg.optimizer)
         if self.alg.load(checkpoint, load_cfg, strict):
             self.current_learning_iteration = checkpoint["iter"]
         infos = checkpoint["infos"]
-        if self.curriculum is not None and infos and "curriculum" in infos:
+        if load_curriculum and self.curriculum is not None and infos and "curriculum" in infos:
             self.curriculum.load_state_dict(infos["curriculum"])
             self._apply_stage()
-        best = (infos or {}).get("best_eval")
+        best = (infos or {}).get("best_eval") if load_curriculum else None
         self.best_eval = tuple(best) if best is not None else None
         self._below_best = 0
         self._reset_rollout()

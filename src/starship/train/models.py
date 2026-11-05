@@ -184,6 +184,15 @@ class ContinuousAdapterRNNModel(RNNModel):
             if landing_expert and self.touchdown_adapter is not None
             else None
         )
+        # Landing transfer sees a deliberately wider state distribution. Its private running
+        # statistics can adapt without changing the frozen normalization used by the salto path.
+        self.landing_obs_normalizer = copy.deepcopy(self.obs_normalizer) if landing_expert else None
+
+    def update_landing_normalization(self, obs: TensorDict) -> None:
+        normalizer = getattr(self, "landing_obs_normalizer", None)
+        if normalizer is not None and self.obs_normalization:
+            raw = torch.cat([obs[group] for group in self.obs_groups], dim=-1)
+            normalizer.update(raw)
 
     def forward(
         self,
@@ -243,6 +252,7 @@ class ContinuousAdapterRNNModel(RNNModel):
             output = output + gate.unsqueeze(-1) * touchdown_adapter(adapter_obs)
         landing_mlp = getattr(self, "landing_mlp", None)
         if landing_mlp is not None:
+            landing_normalized = self.landing_obs_normalizer(raw)
             landing_base = landing_mlp(latent)
             landing_engine = landing_base[..., :ENGINE_HEADS]
             landing_engine_adapter = getattr(self, "landing_engine_adapter", None)
@@ -252,7 +262,11 @@ class ContinuousAdapterRNNModel(RNNModel):
                 self.landing_continuous_adapter(latent)
             )
             landing_output = torch.cat((landing_engine, landing_continuous), dim=-1)
-            adapter_obs = unpad_trajectories(normalized, masks) if masks is not None else normalized
+            adapter_obs = (
+                unpad_trajectories(landing_normalized, masks)
+                if masks is not None
+                else landing_normalized
+            )
             landing_post_loop_adapter = getattr(self, "landing_post_loop_adapter", None)
             if landing_post_loop_adapter is not None:
                 landing_output = landing_output + landing_post_loop_adapter(adapter_obs)
@@ -439,6 +453,10 @@ class _TorchLSTMContinuousAdapter(nn.Module):
         )
         landing_mlp = getattr(model, "landing_mlp", None)
         self.landing_expert_enabled = landing_mlp is not None
+        landing_obs_normalizer = getattr(model, "landing_obs_normalizer", None)
+        self.landing_obs_normalizer = copy.deepcopy(
+            landing_obs_normalizer if landing_obs_normalizer is not None else model.obs_normalizer
+        )
         self.landing_mlp = copy.deepcopy(landing_mlp if landing_mlp is not None else model.mlp)
         landing_continuous_adapter = getattr(model, "landing_continuous_adapter", None)
         self.landing_continuous_adapter = copy.deepcopy(
@@ -519,16 +537,19 @@ class _TorchLSTMContinuousAdapter(nn.Module):
         )
         output = output + touchdown_gate.to(output.dtype).unsqueeze(-1) * self.touchdown_adapter(x)
         if self.landing_expert_enabled:
+            landing_x = self.landing_obs_normalizer(raw)
             landing_base = self.landing_mlp(latent)
             landing_engine = landing_base[..., :3] + self.landing_engine_adapter(latent)
             landing_continuous = landing_base[..., 3:] + self.landing_continuous_adapter(latent)
             landing_output = torch.cat((landing_engine, landing_continuous), dim=-1)
-            landing_output = landing_output + self.landing_post_loop_adapter(x)
-            landing_lateral = landing_output[..., 4:] + self.landing_post_loop_lateral_adapter(x)
+            landing_output = landing_output + self.landing_post_loop_adapter(landing_x)
+            landing_lateral = landing_output[..., 4:] + self.landing_post_loop_lateral_adapter(
+                landing_x
+            )
             landing_output = torch.cat((landing_output[..., :4], landing_lateral), dim=-1)
             landing_output = landing_output + touchdown_gate.to(landing_output.dtype).unsqueeze(
                 -1
-            ) * self.landing_touchdown_adapter(x)
+            ) * self.landing_touchdown_adapter(landing_x)
             output = torch.where(gate > 0.5, landing_output, output)
         actions = self.deterministic_output(output)
         if self.resample_engine_count_post_loop:

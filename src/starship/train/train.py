@@ -52,7 +52,7 @@ def main(cfg: DictConfig) -> None:
         record_envs=cfg.record_envs,
     )
     if cfg.checkpoint:
-        runner.load(cfg.checkpoint)
+        runner.load(cfg.checkpoint, load_curriculum=cfg.load_checkpoint_curriculum)
         if cfg.post_loop_engine_logit_bias_delta:
             runner.offset_post_loop_engine_logits(cfg.post_loop_engine_logit_bias_delta)
         if cfg.post_loop_throttle_bias_delta:
