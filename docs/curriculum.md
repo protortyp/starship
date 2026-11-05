@@ -845,8 +845,13 @@ intended first salto was therefore counted and penalized as a re-flip, making th
 arms only after the first inverted-to-upright recovery. Re-evaluating a saved stage-179 policy under
 the corrected kernel lands 38.7% over 256 fixed episodes with exactly 1.00 flip and 0.00 re-flips.
 The first expert process, which had been optimizing the erroneous penalty, is retired; its corrected
-replacement retains exact checkpoint initialization and now trains only genuine post-recovery
-departures while the two landing controls remain uninterrupted.
+replacement retains exact checkpoint initialization and trains only genuine post-recovery
+departures while the two landing controls remain uninterrupted. It reproduces all three measured
+bridge promotions during critic adaptation, but the first complete-expert 1e-6 calibration declines
+from about 40% to 26--34% evaluation landing over 68 actor updates despite healthy features and full
+PPO minibatch counts. That rate is retired rather than extrapolated. A continuation from the clean
+3/32 promotion checkpoint refreshes the already-healthy critic for 50 updates, then uses 2.5e-7 for
+the long expert horizon.
 The vertical-touchdown promotion policy's seed-0
 [42.1-second vertical-touchdown promotion recording](assets/salto-stage180-vtouch4-passed.mp4) and
 [nine-frame sequence](assets/salto-stage180-vtouch4-passed-sequence.jpg) show the exact passed actor

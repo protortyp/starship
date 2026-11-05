@@ -464,6 +464,7 @@ def test_salto_landing_expert_config_separates_stunt_and_landing_training():
     assert cfg.iterations == 2000
     assert cfg.reward.reflip_cost == 10
     assert cfg.runner.algorithm.critic_warmup_updates == 100
+    assert cfg.runner.algorithm.post_warmup_learning_rate == 2.5e-7
     assert cfg.runner.algorithm.actor_update_scope == "landing_expert"
     assert cfg.runner.actor.landing_expert
     assert cfg.runner.actor.distribution_cfg.std_range == [0.02, 0.02]

@@ -66,7 +66,7 @@ class Attitude:
     flips: int
     reflips: int
     sideslip: float
-    phase: int  # 0: neither threshold reached; 1: above 60 degrees; 2: below 30 degrees
+    phase: int  # 0: not yet inverted; 1: above 60 degrees; 2: recovered below 30 degrees
     peak_dynamic_pressure: float  # Pa, air-relative
     peak_mach: float
     peak_load: float  # non-gravitational acceleration, g
