@@ -791,7 +791,17 @@ doubles only the near-ground touchdown vertical-speed penalty from 2 to 4, prese
 actor, 100-update critic warmup, joint output rows, 1e-6 rate, minimum exploration noise and original
 45% promotion gate. Its opening critic-only evaluations are 40%, 35%, 34%, 38% and 35%; it continues
 to the same 1,500-actor-update horizon so terminal braking can improve without weakening the
-curriculum or repeating a short-window decision.
+curriculum or repeating a short-window decision. At saved actor update 22, exactly the touchdown
+output weight and bias change and only rows 3--10 move within them; engine-count rows 0--2 and the
+other 33 actor tensors remain bit-exact at the saved 1e-6 rate. Its fixed 1,024-scenario probe lands
+41.02% versus 41.80% for the source, statistically flat at this horizon. Vertical-speed,
+horizontal-speed and pad-miss failure rates are 64.6%, 38.1% and 47.0%; actor/critic ranks remain
+healthy at 73/128 and 46/128, the touchdown gradient is active at 6.4, output update ratio is
+3.6e-5 and rollback count is zero. Saved actor update 72 remains stable at 41.21% fixed landing;
+vertical-speed failures ease to 63.5%, while horizontal-speed and pad-miss failures are 38.9% and
+46.2%. Only the same final output rows move, the saved rate remains 1e-6, ranks are healthy and
+rollback count remains zero. The matched run therefore continues unchanged through updates 250 and
+500 before its long horizon is judged.
 The validated scale-5 actor's seed-0
 [42.3-second chase recording](assets/salto-stage176-split-scale5.mp4) and
 [nine-frame sequence](assets/salto-stage176-split-scale5-sequence.jpg) show the selected paired
