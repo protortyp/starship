@@ -697,6 +697,21 @@ optimizer-safe scale-5 model combines the selected actor with the healthy update
 moments for touchdown output rows 3--10 are cleared. A new 4,096-environment continuation warms
 that critic for 100 updates before resuming the same protected joint head at 1e-6; its opening
 deterministic evaluations land 32% and 35% on stage 176.
+Exact audits at critic updates 50 and 100 keep all 35 actor tensors bit-identical while all 14
+critic tensors change. At actor update 50, only the touchdown final weight and bias change and
+only output rows 3--10 move within them. The fixed 1,024-scenario probe preserves the selected
+35.74% landing rate; horizontal-speed, vertical-speed and pad-miss failure rates are 40.6%, 61.9%
+and 50.5%. Actor and critic ranks are healthy at 74/128 and 48/128, the joint-head gradient is
+strong at 9.8 and rollback count is zero. The continuation therefore proceeds unchanged through
+updates 250 and 500 before its longer horizon is judged.
+At actor update 250, fixed landing remains statistically flat at 35.84%. Horizontal-speed failures
+improve to 36.4% and pad misses to 47.0%, while vertical-speed failures rise to 67.3%. Actor and
+critic ranks remain healthy at 74/128 and 46/128, the joint gradient remains active at 5.6 and
+rollback count is zero. The critic output gradient is 4.3% of its initial spike, but the stable
+rank and active actor support continuing to update 500. A matched line sweep finds a shallow
+512-scenario peak at one quarter of the update-250 direction, 36.72% versus 36.33% for the seed;
+its larger 1,024-scenario validation lands only 35.74% versus 35.84% for the raw checkpoint, so
+the apparent gain is sampling noise and is rejected.
 The validated scale-5 actor's seed-0
 [42.3-second chase recording](assets/salto-stage176-split-scale5.mp4) and
 [nine-frame sequence](assets/salto-stage176-split-scale5-sequence.jpg) show the selected paired
