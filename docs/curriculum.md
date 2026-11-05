@@ -712,6 +712,12 @@ rank and active actor support continuing to update 500. A matched line sweep fin
 512-scenario peak at one quarter of the update-250 direction, 36.72% versus 36.33% for the seed;
 its larger 1,024-scenario validation lands only 35.74% versus 35.84% for the raw checkpoint, so
 the apparent gain is sampling noise and is rejected.
+At actor update 500, fixed landing declines to 31.25%. Horizontal-speed failures improve sharply
+to 28.0% and pad misses to 40.2%, but vertical-speed failures rise to 74.7%, reproducing the same
+control-axis tradeoff. This is not a collapse: actor and critic ranks are healthy at 74/128 and
+47/128, the joint gradient remains active at 7.1 and rollback count is zero. The update-250 actor
+stays protected while the uninterrupted, plastic run continues through updates 1,000 and 1,500,
+the requested long horizon, to distinguish a temporary excursion from a lasting regression.
 The validated scale-5 actor's seed-0
 [42.3-second chase recording](assets/salto-stage176-split-scale5.mp4) and
 [nine-frame sequence](assets/salto-stage176-split-scale5-sequence.jpg) show the selected paired
