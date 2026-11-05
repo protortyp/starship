@@ -774,6 +774,14 @@ alone appears tied over 512, but larger 1,024-scenario validation maps the sourc
 at 41.80%, 41.80%, 41.50% and 41.70%. The apparent gain is rejected as sampling noise. With the
 source protected and core health intact, the unchanged run continues toward updates 1,000 and
 1,500 rather than being judged at five hundred.
+Rollback 1 fires at actor update 896 and restores the iteration-32,616 live best. That policy lands
+only 38.28% over the fixed scenarios, so its isolated 48.4% live evaluation is rejected in favor of
+the protected 41.80% source. Saved actor update 1,022 lands 34.08%; horizontal-speed and pad-miss
+failures improve to 28% and 35%, but vertical-speed failures remain high at 72%. Actor and critic
+ranks are still healthy at 74/128 and 47/128, the joint gradient is active at 8.5 and the output
+update ratio is 3.8e-5. A low 8.4e-6 critic-output update ratio is the first new health warning.
+The source remains protected while the post-rollback run completes the requested 1,500-update
+horizon.
 The validated scale-5 actor's seed-0
 [42.3-second chase recording](assets/salto-stage176-split-scale5.mp4) and
 [nine-frame sequence](assets/salto-stage176-split-scale5-sequence.jpg) show the selected paired
