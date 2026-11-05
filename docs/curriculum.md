@@ -55,6 +55,12 @@ pretraining without changing the salto path. Final claims use `starship-acceptan
 spawn streams of 1,024 episodes on the exact last stage, each required to land at least 50% with one
 flip and zero re-flips.
 
+`landing_expert_pretrain` keeps the upright 150--450 m spawn distribution fixed while a dedicated
+25-stage curriculum tightens only the touchdown envelope from 100 m pad / 10 m/s vertical / 5 m/s
+horizontal to the strict 15 m / 2 m/s / 1 m/s endpoint. Twenty-four equal interpolated steps limit
+each promotion to 3.54 m, 0.33 m/s and 0.17 m/s respectively; two 90% evaluations are required at
+every stage, so the strict endpoint needs at least 1,200 updates even under immediate promotion.
+
 Current campaign: stages 0--179 are solved. The original stage-176 boundary stalls below promotion
 after full 1,500-update lateral-only, throttle-only and joint-control horizons. Decomposing the
 learned directions produces a robust scale-5 controller that lands 34.03% over 4,096 fixed
@@ -954,16 +960,22 @@ during warmup; after 100 pad-shaped actor updates, stochastic landing remains 1-
 miss improves modestly from 37.8 to 34.8 m. A deliberately long 3,000-actor-update control raises
 best fixed landing to 12.5% at update 2,500, but its recent-20 mean falls to 1.4% by the endpoint and
 miss remains 38.5 m. Actor/critic ranks remain healthy at 123/256 and 31/128, so 0.05 is retired as
-too weak rather than collapsed. The protected 12.5% actor now continues with only the centering
-weight doubled to 0.10 and another fresh-critic warmup. Its first 100 actor updates retain 9--10%
-stochastic landing and produce 6--17% fixed batches with actor/critic ranks 129/256 and 22/128. It
-remains on the long horizon and will
-relearn the known strict 2 m/s vertical, 1 m/s horizontal and 15 m pad task directly, then return
-under the normal
-post-salto gate at solved stage 179 through `salto_land_expert_transfer` for stitching and held-out
-acceptance. Runtime smoke tests cover the full checkpoint migration, and the direct expert is
-regression-tested for completed-loop observation semantics, invariance to salto hidden state and
-sequential JIT parity.
+too weak rather than collapsed. The protected 12.5% actor then continued with only the centering
+weight doubled to 0.10 and another fresh-critic warmup. It reached a 17.2% best fixed batch early,
+but seven rollbacks followed; at the requested 1,500-actor-update endpoint its fixed landing is
+6.25%, recent-20 mean 3.52%, and strict target landing 0%. Actor rank remains about 120/256 while
+critic rank contracts to 25/128, so this long control rules out simply extending the strict sparse
+objective. Its protected 17.2% checkpoint now starts the dedicated 25-stage loose-to-strict
+touchdown curriculum with another fresh critic. Its opening loose-gate fixed evaluations are
+85.9--90.6% (87.3% mean across the first four), while the simultaneous untouched strict target is
+15.6%; the actor remains frozen during the 100-update critic warmup. Once unlocked, it reaches
+stage 6/24 by actor update 325 with 94--98% gate evaluations. Strict-target success temporarily
+falls to 0% as the policy adapts to the loose objective, so target recovery—not stage speed—is the
+important endpoint check. After this curriculum reaches and retains the strict endpoint, the expert
+returns under the normal post-salto gate at solved stage 179 through
+`salto_land_expert_transfer` for stitching and held-out acceptance. Runtime smoke tests cover the
+full checkpoint migration, and the direct expert is regression-tested for completed-loop
+observation semantics, invariance to salto hidden state and sequential JIT parity.
 The vertical-touchdown promotion policy's seed-0
 [42.1-second vertical-touchdown promotion recording](assets/salto-stage180-vtouch4-passed.mp4) and
 [nine-frame sequence](assets/salto-stage180-vtouch4-passed-sequence.jpg) show the exact passed actor
