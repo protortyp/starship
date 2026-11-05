@@ -221,6 +221,23 @@ def test_post_warmup_critic_learning_rate_is_independent_and_resumes_legacy_chec
     assert metrics["optim/lr/group_1"] == pytest.approx(1e-6)
 
 
+def test_value_normalization_can_resume_a_legacy_critic(tmp_path):
+    old_cfg = compose_cfg(*SHORT_EPISODES)
+    old = make_runner(old_cfg, tmp_path / "old")
+    old.learn(1)
+
+    cfg = compose_cfg(*SHORT_EPISODES, "runner.algorithm.value_normalization=true")
+    resumed = make_runner(cfg, tmp_path / "normalized")
+    resumed.load(str(tmp_path / "old" / "model_0.pt"))
+
+    assert resumed.alg.value_norm is resumed.alg.critic.value_norm
+    assert resumed.alg.value_norm.count == 0
+    collect(resumed)
+    metrics = resumed.alg.update()
+    assert metrics["value/norm_std"] > 0
+    assert resumed.alg.value_norm.count > 0
+
+
 def test_reset_critic_preserves_actor_and_its_optimizer_state(tmp_path):
     cfg = compose_cfg(*SHORT_EPISODES)
     first = make_runner(cfg, tmp_path / "a")

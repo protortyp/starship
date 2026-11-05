@@ -30,7 +30,10 @@ runner:
   algorithm:
     critic_warmup_updates: 100
     post_warmup_learning_rate: 3.0e-5
-    post_warmup_critic_learning_rate: 3.0e-5
+    # The stage-shifting recurrent critic saturates when its rate jumps to 3e-5 after warmup.
+    # Normalized targets plus the stable warmup rate preserve its feature rank across promotions.
+    post_warmup_critic_learning_rate: 1.0e-5
+    value_normalization: true
     actor_update_scope: landing_expert
   actor:
     class_name: starship.train.models:ContinuousAdapterRNNModel

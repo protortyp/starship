@@ -513,7 +513,8 @@ def test_landing_expert_pretrain_resets_curriculum_and_activates_only_expert():
     assert cfg.runner.actor.distribution_cfg.deterministic_engine_selection == "round_expected"
     assert cfg.runner.algorithm.actor_update_scope == "landing_expert"
     assert cfg.runner.algorithm.post_warmup_learning_rate == 3e-5
-    assert cfg.runner.algorithm.post_warmup_critic_learning_rate == 3e-5
+    assert cfg.runner.algorithm.post_warmup_critic_learning_rate == 1e-5
+    assert cfg.runner.algorithm.value_normalization
 
 
 def test_landing_expert_transfer_starts_at_solved_salto_boundary():

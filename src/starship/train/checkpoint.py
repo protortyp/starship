@@ -97,6 +97,13 @@ def migrate_checkpoint(checkpoint: dict, actor: nn.Module, critic: nn.Module, op
         # Parameter ordering changes when the adapter is introduced. Start fresh optimizer
         # moments rather than attaching old moments to the wrong tensors.
         checkpoint["optimizer_state_dict"] = optimizer.state_dict()
+    # Value normalization has only scalar buffers and no trainable parameters. A legacy critic can
+    # therefore opt into it without invalidating either network or the optimizer; start its running
+    # moments fresh and let the resumed critic warmup calibrate them on the new task.
+    critic_state = checkpoint["critic_state_dict"]
+    for key, value in critic.state_dict().items():
+        if key.startswith("value_norm.") and key not in critic_state:
+            critic_state[key] = value.detach().clone()
     _migrate_optimizer_groups(checkpoint, optimizer)
     for name, model in (("actor", actor), ("critic", critic)):
         state = checkpoint[f"{name}_state_dict"]
