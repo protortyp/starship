@@ -76,13 +76,14 @@ class InstrumentedPPO(PPO):
             "touchdown_control_head",
             "touchdown_throttle_head",
             "touchdown_lateral_head",
+            "landing_expert",
         ):
             raise ValueError(
                 "actor_update_scope must be 'all', 'continuous_head', 'continuous_adapter', "
                 "'hybrid_adapter', 'post_loop_adapter', 'post_loop_control_head', "
                 "'post_loop_lateral_head', 'post_loop_lateral_adapter', 'touchdown_adapter', "
                 "'touchdown_control_head', 'touchdown_throttle_head', or "
-                "'touchdown_lateral_head'"
+                "'touchdown_lateral_head', or 'landing_expert'"
             )
         super().__init__(*args, **kwargs)
         self.max_kl = max_kl
@@ -112,6 +113,8 @@ class InstrumentedPPO(PPO):
             self._freeze_actor_except_touchdown_throttle_head()
         elif actor_update_scope == "touchdown_lateral_head":
             self._freeze_actor_except_touchdown_lateral_head()
+        elif actor_update_scope == "landing_expert":
+            self._freeze_actor_except_landing_expert()
         # Every `diagnostics_interval` updates, log network health under plasticity/* (0 = off).
         self.diagnostics_interval = diagnostics_interval
         self._updates_done = 0
@@ -399,6 +402,23 @@ class InstrumentedPPO(PPO):
         bias_mask[: ENGINE_HEADS + 1] = 0
         self._register_parameter_mask(output.weight, weight_mask)
         self._register_parameter_mask(output.bias, bias_mask)
+
+    def _freeze_actor_except_landing_expert(self) -> None:
+        """Train the complete post-recovery controller while preserving the salto exactly."""
+        expert = [
+            module
+            for name, module in self.actor.named_children()
+            if name.startswith("landing_") and module is not None
+        ]
+        if not expert:
+            raise ValueError(
+                "actor_update_scope='landing_expert' requires an actor with landing_expert=true"
+            )
+        for parameter in self.actor.parameters():
+            parameter.requires_grad_(False)
+        for module in expert:
+            for parameter in module.parameters():
+                parameter.requires_grad_(True)
 
     def _activation_diagnostics(self, max_envs: int = 4096) -> dict[str, float]:
         """Unit, rank and gate diagnostics on a random rollout step and its stored hidden state."""

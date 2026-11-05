@@ -29,6 +29,12 @@ def migrate_checkpoint(checkpoint: dict, actor: nn.Module, critic: nn.Module, op
                     "post_loop_adapter.",
                     "post_loop_lateral_adapter.",
                     "touchdown_adapter.",
+                    "landing_mlp.",
+                    "landing_continuous_adapter.",
+                    "landing_engine_adapter.",
+                    "landing_post_loop_adapter.",
+                    "landing_post_loop_lateral_adapter.",
+                    "landing_touchdown_adapter.",
                 )
             )
             and key not in actor_state
@@ -39,10 +45,24 @@ def migrate_checkpoint(checkpoint: dict, actor: nn.Module, critic: nn.Module, op
             # trained post-loop representation and can specialize after the zero output starts
             # moving.
             source_key = key.replace("post_loop_lateral_adapter.", "post_loop_adapter.", 1)
+            for landing_prefix, source_prefix in (
+                ("landing_mlp.", "mlp."),
+                ("landing_continuous_adapter.", "continuous_adapter."),
+                ("landing_engine_adapter.", "engine_adapter."),
+                ("landing_post_loop_adapter.", "post_loop_adapter."),
+                (
+                    "landing_post_loop_lateral_adapter.",
+                    "post_loop_lateral_adapter.",
+                ),
+                ("landing_touchdown_adapter.", "touchdown_adapter."),
+            ):
+                if key.startswith(landing_prefix):
+                    source_key = key.replace(landing_prefix, source_prefix, 1)
+                    break
             source = actor_state.get(source_key)
             actor_state[key] = (
                 source.detach().clone()
-                if key.startswith("post_loop_lateral_adapter.")
+                if (key.startswith("post_loop_lateral_adapter.") or key.startswith("landing_"))
                 and source is not None
                 and source.shape == value.shape
                 else value.detach().clone()

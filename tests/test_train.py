@@ -876,6 +876,90 @@ def test_post_loop_adapter_is_gated_and_jit_matches_policy(tmp_path):
     torch.testing.assert_close(actual, expected)
 
 
+def test_landing_expert_loads_exactly_then_trains_without_changing_salto(tmp_path):
+    base_cfg = compose_cfg(
+        "num_envs=8",
+        "runner.actor.class_name=starship.train.models:ContinuousAdapterRNNModel",
+        "+runner.actor.continuous_adapter_hidden_dim=16",
+        "+runner.actor.engine_adapter_hidden_dim=8",
+        "+runner.actor.post_loop_adapter_hidden_dim=16",
+        "+runner.actor.touchdown_adapter_hidden_dim=16",
+        "+runner.actor.post_loop_progress_threshold=0.0",
+        "+runner.actor.touchdown_altitude_threshold=100.0",
+    )
+    base = make_runner(base_cfg, tmp_path / "base")
+    collect(base)
+    base.alg.update()
+    checkpoint = tmp_path / "base" / "model.pt"
+    base.save(str(checkpoint))
+    obs = base.env.get_observations()
+    base.alg.actor.reset()
+    expected = base.alg.actor(obs, stochastic_output=False).detach()
+
+    expert_cfg = compose_cfg(
+        "num_envs=8",
+        "runner.actor.class_name=starship.train.models:ContinuousAdapterRNNModel",
+        "+runner.actor.continuous_adapter_hidden_dim=16",
+        "+runner.actor.engine_adapter_hidden_dim=8",
+        "+runner.actor.post_loop_adapter_hidden_dim=16",
+        "+runner.actor.touchdown_adapter_hidden_dim=16",
+        "+runner.actor.landing_expert=true",
+        "+runner.actor.post_loop_progress_threshold=0.0",
+        "+runner.actor.touchdown_altitude_threshold=100.0",
+        "+runner.algorithm.actor_update_scope=landing_expert",
+    )
+    runner = make_runner(expert_cfg, tmp_path / "expert")
+    runner.load(str(checkpoint))
+    actor = runner.alg.actor
+    actor.reset()
+    actual = actor(obs, stochastic_output=False).detach()
+    assert torch.equal(expected, actual)
+    for expert_name, source_name in (
+        ("landing_mlp", "mlp"),
+        ("landing_continuous_adapter", "continuous_adapter"),
+        ("landing_engine_adapter", "engine_adapter"),
+        ("landing_post_loop_adapter", "post_loop_adapter"),
+        ("landing_touchdown_adapter", "touchdown_adapter"),
+    ):
+        expert_state = getattr(actor, expert_name).state_dict()
+        source_state = getattr(actor, source_name).state_dict()
+        assert expert_state.keys() == source_state.keys()
+        for key in expert_state:
+            assert torch.equal(expert_state[key], source_state[key]), (expert_name, key)
+
+    before = {name: parameter.detach().clone() for name, parameter in actor.named_parameters()}
+    collect(runner)
+    runner.alg.update()
+    after = dict(actor.named_parameters())
+    changed = []
+    for name, value in before.items():
+        if name.startswith("landing_"):
+            changed.append(not torch.equal(value, after[name]))
+        else:
+            assert torch.equal(value, after[name]), name
+    assert any(changed)
+
+    actor.post_loop_progress_threshold = 0.5
+    pre_loop = runner.env.get_observations()
+    pre_loop["policy"][:, 27] = 0.0
+    actor.reset()
+    protected_before = actor(pre_loop, stochastic_output=False).detach()
+    with torch.no_grad():
+        actor.landing_mlp[-1].bias.add_(1.0)
+    actor.reset()
+    protected_after = actor(pre_loop, stochastic_output=False).detach()
+    assert torch.equal(protected_before, protected_after)
+
+    post_loop = pre_loop.clone()
+    post_loop["policy"][:, 27] = 1.0
+    actor.reset()
+    expected_export = actor(post_loop[:1], stochastic_output=False)
+    actor.reset()
+    with pytest.warns(FutureWarning, match="torch.jit.script"):
+        exported = torch.jit.script(actor.as_jit().eval())
+    torch.testing.assert_close(exported(post_loop["policy"][:1]), expected_export)
+
+
 def test_touchdown_adapter_loads_exactly_and_trains_only_near_ground_residual(tmp_path):
     base_cfg = compose_cfg(
         "num_envs=8",
