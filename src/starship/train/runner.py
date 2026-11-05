@@ -292,6 +292,11 @@ class StarshipRunner(OnPolicyRunner):
                 reset()
         for parameter in critic_params:
             self.alg.optimizer.state.pop(parameter, None)
+        value_norm = getattr(self.alg.critic, "value_norm", None)
+        if value_norm is not None:
+            value_norm.mean.zero_()
+            value_norm.var.fill_(1.0)
+            value_norm.count.zero_()
         self.alg.critic.reset()
         self.alg.storage.saved_hidden_state_c = None
 

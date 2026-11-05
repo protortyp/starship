@@ -239,7 +239,7 @@ def test_value_normalization_can_resume_a_legacy_critic(tmp_path):
 
 
 def test_reset_critic_preserves_actor_and_its_optimizer_state(tmp_path):
-    cfg = compose_cfg(*SHORT_EPISODES)
+    cfg = compose_cfg(*SHORT_EPISODES, "runner.algorithm.value_normalization=true")
     first = make_runner(cfg, tmp_path / "a")
     first.learn(2)
     resumed = make_runner(cfg, tmp_path / "b")
@@ -254,6 +254,7 @@ def test_reset_critic_preserves_actor_and_its_optimizer_state(tmp_path):
         for p, state in resumed.alg.optimizer.state.items()
         if p in set(resumed.alg.actor.parameters())
     }
+    assert resumed.alg.value_norm.count > 0
 
     resumed.reset_critic()
 
@@ -265,6 +266,9 @@ def test_reset_critic_preserves_actor_and_its_optimizer_state(tmp_path):
         for a, p in zip(critic_before, resumed.alg.critic.parameters(), strict=True)
     )
     assert not set(resumed.alg.critic.parameters()) & set(resumed.alg.optimizer.state)
+    assert resumed.alg.value_norm.count == 0
+    assert resumed.alg.value_norm.mean == 0
+    assert resumed.alg.value_norm.var == 1
     for parameter, state in actor_state.items():
         for key, value in state.items():
             actual = resumed.alg.optimizer.state[parameter][key]

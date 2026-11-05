@@ -485,6 +485,7 @@ def test_landing_expert_pretrain_resets_curriculum_and_activates_only_expert():
     assert cfg.reward.fuel_cost == 0
     assert cfg.reward.fuel_bonus == 0
     assert cfg.reward.horizontal_distance_weight == 0.10
+    assert cfg.reward.crash_miss_weight == 1
     assert cfg.curriculum.stages[0].name == "0 loose touchdown gate"
     curriculum = Curriculum(cfg, cfg.curriculum)
     assert len(curriculum.stages) == 25
