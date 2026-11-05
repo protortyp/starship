@@ -634,10 +634,16 @@ TRACES = (
         "#0369a1",
     ),
     Trace(
-        "protected joint-control head, stage 176 (live)",
+        "protected joint-control head, stage 176 (500 updates, paused)",
         ROOT / "out/salto-stage176-touchdown-control-head-lateral-u900-throttle325-4k-v1.log",
         176,
         "#1d4ed8",
+    ),
+    Trace(
+        "split-direction scale-5 joint-control continuation, stage 176 (live)",
+        ROOT / "out/salto-stage176-split-scale5-control-head-4k-v1.log",
+        176,
+        "#6d28d9",
     ),
     Trace(
         "private lateral adapter, 129 updates (retired)",

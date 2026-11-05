@@ -668,6 +668,35 @@ rise to 57.9% and pad misses are 48.1%. Live landing is 29.3% overall; actor and
 healthy at 73/128 and 47/128, the joint-control gradient is active and rollback count is zero. The
 exact mask and stable opening support continuing through update 250 and 500 before judging the
 joint architecture.
+At actor update 250, its fixed 1,024-scenario probe lands 29.49%, recovering from update 50 and
+edging the protected source's 29.10% by four episodes. Horizontal-speed failures improve further
+to 44.2%, while vertical-speed failures rise to 59.1% and pad misses remain 47.2%; landed episodes
+touch down at 16.88 m/s vertical and 6.29 m/s horizontal speed with a 195 m mean miss. The broad
+gain is therefore encouraging but not yet decisive, and the trajectory audit still reports one
+extra recovery rotation on landed episodes. The checkpoint is protected while the unchanged,
+healthy pass continues to update 500.
+A controlled direction decomposition then combines only the joint checkpoint's lateral-control
+rows 4--10 with the completed throttle-only pass's braking row 3, always relative to the protected
+source. Neither direction helps alone, but scaling both together raises fixed 512-scenario landing
+monotonically from 29.88% at scale 0 to 36.33% at scale 5, before declining at scales 6--15. The
+selected scale-5 combination confirms at 35.74% over 1,024 scenarios, 6.64 points above the
+protected source. Its matched 4,096-scenario validation lands 34.03%, a robust 4.93-point gain over
+the source's 29.10%. Horizontal-speed failures fall to 40.0%; vertical-speed failures are 61.5%
+and pad misses 53.2%, yet the balanced controller converts substantially more scenarios into valid
+landings. Successful contacts average 16.68 m/s vertical speed, 6.58 m/s horizontal speed,
+7.94 degrees tilt and 14.80 degrees/s angular rate, inside every stage-176 limit. Landed episodes
+still average one re-flip, so this is an improved curriculum seed rather than the final policy.
+
+The uninterrupted joint pass reaches its planned update-500 comparison boundary with zero rollback.
+Its raw fixed 1,024-scenario checkpoint falls to 28.32%; horizontal-speed failures improve to
+40.1%, but vertical-speed failures rise to 64.9%. Repeating the split-direction sweep from this
+later actor is strictly worse than the protected source, selecting the earlier update-250
+direction unambiguously. The raw branch is paused at this reproducible checkpoint. An
+optimizer-safe scale-5 model combines the selected actor with the healthy update-500 critic: all
+35 actor tensors match the validated policy, all 14 critic tensors are preserved, and only Adam
+moments for touchdown output rows 3--10 are cleared. A new 4,096-environment continuation warms
+that critic for 100 updates before resuming the same protected joint head at 1e-6; its opening
+deterministic evaluations land 32% and 35% on stage 176.
 The validated 3.25x actor's seed-0
 [42.5-second chase recording](assets/salto-stage176-u900-throttle325.mp4) and
 [nine-frame sequence](assets/salto-stage176-u900-throttle325-sequence.jpg) show its powered
