@@ -840,7 +840,10 @@ second zero-training sweep maps its exact 1/8 promotion actor across fractions 1
 measured post-1/8 bridge targets if the long quarter-step control finishes below the unchanged gate.
 The measured post-1/8 residual branch uses 512 environments and the same 100-update critic
 adaptation. Its early isolated 47% and 46% evaluations did not form a promotion pair, but the longer
-horizon did: it passes 5/32 after 185 actor updates and continues on 3/16. A phase-state audit then
+horizon did: it passes 5/32 after 185 actor updates, then passes 3/16 after 675 actor updates without
+rollback and advances to 7/32. Its actor/critic feature ranks remain healthy at 63/128 and 46/128,
+with the intended touchdown output active and all frozen-layer warnings expected from its narrow
+update scope. A phase-state audit then
 found that an upright spawn was marked recovered before it ever inverted. The outbound half of the
 intended first salto was therefore counted and penalized as a re-flip, making the configured final
 `flips == 1 && reflips == 0` check unreachable from the upright salto spawn. Re-flip tracking now

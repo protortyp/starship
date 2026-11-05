@@ -670,10 +670,16 @@ TRACES = (
         "#f97316",
     ),
     Trace(
-        "fine residual, 3/16 bridge (live)",
+        "fine residual, 3/16 bridge (passed at actor update 675)",
         ROOT / "out/salto-stage176-postbridge-vtouch4-control-head-512-v1.log",
         177,
         "#ea580c",
+    ),
+    Trace(
+        "fine residual, 7/32 bridge (live)",
+        ROOT / "out/salto-stage176-postbridge-vtouch4-control-head-512-v1.log",
+        178,
+        "#c2410c",
     ),
     Trace(
         "phase expert, shared-rate baseline (250 updates, retired)",
