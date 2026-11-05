@@ -468,6 +468,7 @@ def test_salto_landing_expert_config_separates_stunt_and_landing_training():
     assert cfg.runner.algorithm.post_warmup_critic_learning_rate == 1e-6
     assert cfg.runner.algorithm.actor_update_scope == "landing_expert"
     assert cfg.runner.actor.landing_expert
+    assert not cfg.runner.actor.update_landing_normalization
     assert cfg.runner.actor.class_name == "starship.train.models:ContinuousAdapterRNNModel"
     assert cfg.runner.actor.resample_engine_count_post_loop
     assert cfg.runner.actor.resample_engine_count_touchdown
@@ -483,6 +484,7 @@ def test_landing_expert_pretrain_resets_curriculum_and_activates_only_expert():
     assert cfg.reset_actor_optimizer
     assert cfg.curriculum.stages[0].name.startswith("0 landing burn")
     assert cfg.runner.actor.landing_expert
+    assert cfg.runner.actor.update_landing_normalization
     assert cfg.runner.actor.post_loop_progress_threshold == 0
     assert cfg.runner.actor.resample_engine_count_post_loop
     assert cfg.runner.actor.resample_engine_count_touchdown

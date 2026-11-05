@@ -26,6 +26,7 @@ runner:
     post_loop_adapter_hidden_dim: 128
     touchdown_adapter_hidden_dim: 128
     landing_expert: true
+    update_landing_normalization: true
     post_loop_progress_threshold: 0.0
     touchdown_altitude_threshold: 0.3333333333333333
     resample_engine_count_post_loop: true

@@ -50,10 +50,10 @@ the stunt. It copies the learned output controller exactly at load time, switche
 copy only after the monotonic loop-progress channel reaches one, and freezes the original salto path.
 Its default run adapts the critic for 100 updates, then gives the landing expert a 2,000-update
 horizon with re-flip shaping active. Independent optimizer groups keep the conservative expert
-actor rate from freezing the critic, and a private observation normalizer can adapt to landing
-states without changing the salto path. Final claims use `starship-acceptance`: five held-out spawn
-streams of 1,024 episodes on the exact last stage, each required to land at least 50% with one flip
-and zero re-flips.
+actor rate from freezing the critic, and a private observation normalizer can adapt during landing
+pretraining without changing the salto path. Final claims use `starship-acceptance`: five held-out
+spawn streams of 1,024 episodes on the exact last stage, each required to land at least 50% with one
+flip and zero re-flips.
 
 Current campaign: stages 0--179 are solved. The original stage-176 boundary stalls below promotion
 after full 1,500-update lateral-only, throttle-only and joint-control horizons. Decomposing the
@@ -864,7 +864,12 @@ because the shared post-warmup rate also reduced value learning to 2.5e-7. PPO n
 independently scheduled actor and critic parameter groups, including migration of legacy joint-
 optimizer checkpoints. The baseline is retired at its planned endpoint. Its matched successor
 retains the measured 2.5e-7 actor rate, keeps the critic at 1e-6, and gives landing states private
-normalization while starting from the same clean checkpoint and seed.
+normalization while starting from the same clean checkpoint and seed. The first split-rate process
+also updated those new running coordinates online; its deterministic landing fell from 40--48% to
+2% by actor update 8 and 0% by update 9 even though the weights moved conservatively. It is retired
+immediately as an input-coordinate failure. Private-normalizer updates are now disabled for an
+already-trained expert and enabled only in the dedicated pretraining task, where the controller
+relearns under those coordinates; a regression covers both modes before the matched restart.
 The historical 98--99% randomized landing checkpoint is no longer present locally or in repository
 artifacts, but its reproducible five-stage curriculum remains. `landing_expert_pretrain` transfers
 the frozen salto actor into that curriculum at stage 0, activates only the independent landing

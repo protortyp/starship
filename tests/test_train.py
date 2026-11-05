@@ -904,7 +904,10 @@ def test_post_loop_adapter_is_gated_and_jit_matches_policy(tmp_path):
     torch.testing.assert_close(actual, expected)
 
 
-def test_landing_expert_loads_exactly_then_trains_without_changing_salto(tmp_path):
+@pytest.mark.parametrize("update_landing_normalization", [False, True])
+def test_landing_expert_loads_exactly_then_trains_without_changing_salto(
+    tmp_path, update_landing_normalization
+):
     base_cfg = compose_cfg(
         "num_envs=8",
         "runner.actor.class_name=starship.train.models:ContinuousAdapterRNNModel",
@@ -932,6 +935,7 @@ def test_landing_expert_loads_exactly_then_trains_without_changing_salto(tmp_pat
         "+runner.actor.post_loop_adapter_hidden_dim=16",
         "+runner.actor.touchdown_adapter_hidden_dim=16",
         "+runner.actor.landing_expert=true",
+        f"+runner.actor.update_landing_normalization={str(update_landing_normalization).lower()}",
         "+runner.actor.post_loop_progress_threshold=0.0",
         "+runner.actor.touchdown_altitude_threshold=100.0",
         "+runner.algorithm.actor_update_scope=landing_expert",
@@ -967,10 +971,10 @@ def test_landing_expert_loads_exactly_then_trains_without_changing_salto(tmp_pat
         else:
             assert torch.equal(value, after[name]), name
     assert any(changed)
-    assert not torch.equal(
-        actor.landing_obs_normalizer._mean,
-        actor.obs_normalizer._mean,
+    normalizer_changed = not torch.equal(
+        actor.landing_obs_normalizer._mean, actor.obs_normalizer._mean
     )
+    assert normalizer_changed == update_landing_normalization
 
     actor.post_loop_progress_threshold = 0.5
     pre_loop = runner.env.get_observations()

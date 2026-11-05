@@ -34,6 +34,7 @@ class ContinuousAdapterRNNModel(RNNModel):
         post_loop_lateral_adapter_hidden_dim: int = 0,
         touchdown_adapter_hidden_dim: int = 0,
         landing_expert: bool = False,
+        update_landing_normalization: bool = False,
         post_loop_progress_index: int = 27,
         post_loop_progress_threshold: float = 0.999999,
         touchdown_altitude_index: int = 12,
@@ -187,10 +188,15 @@ class ContinuousAdapterRNNModel(RNNModel):
         # Landing transfer sees a deliberately wider state distribution. Its private running
         # statistics can adapt without changing the frozen normalization used by the salto path.
         self.landing_obs_normalizer = copy.deepcopy(self.obs_normalizer) if landing_expert else None
+        self.update_landing_normalization_enabled = update_landing_normalization
 
     def update_landing_normalization(self, obs: TensorDict) -> None:
         normalizer = getattr(self, "landing_obs_normalizer", None)
-        if normalizer is not None and self.obs_normalization:
+        if (
+            normalizer is not None
+            and self.obs_normalization
+            and self.update_landing_normalization_enabled
+        ):
             raw = torch.cat([obs[group] for group in self.obs_groups], dim=-1)
             normalizer.update(raw)
 
