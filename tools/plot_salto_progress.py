@@ -664,6 +664,30 @@ TRACES = (
         "#b91c1c",
     ),
     Trace(
+        "phase landing expert, 3/32 bridge (passed)",
+        ROOT / "out/salto-stage176-landing-expert-reflip10-512-v1.log",
+        178,
+        "#059669",
+    ),
+    Trace(
+        "phase landing expert, 1/8 bridge (live)",
+        ROOT / "out/salto-stage176-landing-expert-reflip10-512-v1.log",
+        179,
+        "#047857",
+    ),
+    Trace(
+        "fine residual, 5/32 bridge (passed at actor update 185)",
+        ROOT / "out/salto-stage176-postbridge-vtouch4-control-head-512-v1.log",
+        176,
+        "#f97316",
+    ),
+    Trace(
+        "fine residual, 3/16 bridge (live)",
+        ROOT / "out/salto-stage176-postbridge-vtouch4-control-head-512-v1.log",
+        177,
+        "#ea580c",
+    ),
+    Trace(
         "fine-bridge transfer to 1/8 (retired after validation)",
         ROOT / "out/salto-stage176-fine-bridge-control-head-1k-v1.log",
         179,

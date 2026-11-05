@@ -836,6 +836,15 @@ environment reward A/B stays uninterrupted so its full long-horizon comparison r
 second zero-training sweep maps its exact 1/8 promotion actor across fractions 1/8, 5/32, 3/16,
 7/32 and 1/4 at 41.11%, 40.33%, 38.57%, 37.01% and 35.94%. The smooth local decline provides
 measured post-1/8 bridge targets if the long quarter-step control finishes below the unchanged gate.
+The measured post-1/8 residual branch uses 512 environments and the same 100-update critic
+adaptation. Its early isolated 47% and 46% evaluations did not form a promotion pair, but the longer
+horizon did: it passes 5/32 after 185 actor updates and continues on 3/16. In parallel, the
+phase-separated landing expert copies the whole learned output controller at the monotonic recovery
+handoff and freezes the salto path. It passes 1/32 and 1/16 during critic-only adaptation, then
+passes 3/32 after eight actor updates and reaches the preserved 1/8 boundary. A fixed 256-episode
+3/32 baseline lands 40.6%; every landed episode still has exactly one re-flip and about 874 degrees
+of horizontal travel, giving the expert phase a clean invariant target rather than treating bridge
+promotion as evidence that cleanup is solved.
 The vertical-touchdown promotion policy's seed-0
 [42.1-second vertical-touchdown promotion recording](assets/salto-stage180-vtouch4-passed.mp4) and
 [nine-frame sequence](assets/salto-stage180-vtouch4-passed-sequence.jpg) show the exact passed actor
