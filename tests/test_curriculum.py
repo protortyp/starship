@@ -534,6 +534,21 @@ def test_landing_expert_transfer_starts_at_solved_salto_boundary():
     assert cfg.runner.actor.post_loop_progress_threshold > 0.99
 
 
+def test_landing_expert_finetune_preserves_features_and_uses_low_noise():
+    with initialize_config_module("starship.train.conf", version_base=None):
+        cfg = compose("landing_expert_finetune")
+    assert cfg.reset_critic
+    assert cfg.reset_actor_optimizer
+    assert cfg.reward.crash_miss_weight == 1
+    assert cfg.runner.algorithm.value_normalization
+    assert cfg.runner.algorithm.learning_rate == 1e-5
+    assert cfg.runner.algorithm.post_warmup_learning_rate == 1e-5
+    assert cfg.runner.algorithm.post_warmup_critic_learning_rate == 1e-5
+    assert cfg.runner.algorithm.actor_update_scope == "landing_direct_control_head"
+    assert not cfg.runner.actor.update_landing_normalization
+    assert cfg.runner.actor.distribution_cfg.std_range == [0.05, 0.05]
+
+
 def test_checkpoint_can_transfer_into_a_fresh_curriculum(tmp_path):
     cfg = compose_cfg("num_envs=8")
     source = make_runner(cfg, tmp_path / "source")

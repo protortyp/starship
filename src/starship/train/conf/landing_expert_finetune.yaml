@@ -1,0 +1,21 @@
+defaults:
+  - landing_expert_pretrain
+  - _self_
+
+# Continue a trained direct landing expert across the tight half of its touchdown curriculum.
+# Broad 0.5 actuator noise was useful for learning the burn from scratch, but makes the deterministic
+# controller drift when successive gates differ by only metres and tenths of a metre per second.
+experiment: landing_expert_finetune
+reset_critic: true
+reset_actor_optimizer: true
+
+runner:
+  algorithm:
+    learning_rate: 1.0e-5
+    post_warmup_learning_rate: 1.0e-5
+    post_warmup_critic_learning_rate: 1.0e-5
+    actor_update_scope: landing_direct_control_head
+  actor:
+    update_landing_normalization: false
+    distribution_cfg:
+      std_range: [0.05, 0.05]
