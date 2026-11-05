@@ -81,6 +81,7 @@ class InstrumentedPPO(PPO):
             "touchdown_lateral_head",
             "landing_expert",
             "landing_direct_lateral_head",
+            "landing_direct_control_head",
         ):
             raise ValueError(
                 "actor_update_scope must be 'all', 'continuous_head', 'continuous_adapter', "
@@ -89,6 +90,7 @@ class InstrumentedPPO(PPO):
                 "'touchdown_control_head', 'touchdown_throttle_head', or "
                 "'touchdown_lateral_head', or 'landing_expert'"
                 ", or 'landing_direct_lateral_head'"
+                ", or 'landing_direct_control_head'"
             )
         super().__init__(*args, **kwargs)
         self.max_kl = max_kl
@@ -126,6 +128,8 @@ class InstrumentedPPO(PPO):
             self._freeze_actor_except_landing_expert()
         elif actor_update_scope == "landing_direct_lateral_head":
             self._freeze_actor_except_landing_direct_lateral_head()
+        elif actor_update_scope == "landing_direct_control_head":
+            self._freeze_actor_except_landing_direct_control_head()
         # Every `diagnostics_interval` updates, log network health under plasticity/* (0 = off).
         self.diagnostics_interval = diagnostics_interval
         self._updates_done = 0
@@ -480,6 +484,37 @@ class InstrumentedPPO(PPO):
         bias_mask = torch.ones_like(output.bias)
         weight_mask[: ENGINE_HEADS + 1] = 0
         bias_mask[: ENGINE_HEADS + 1] = 0
+        self._register_parameter_mask(output.weight, weight_mask)
+        self._register_parameter_mask(output.bias, bias_mask)
+
+    def _freeze_actor_except_landing_direct_control_head(self) -> None:
+        """Tune direct-expert throttle and steering while preserving features and engine count."""
+        direct = getattr(self.actor, "landing_direct_mlp", None)
+        if direct is None:
+            raise ValueError(
+                "actor_update_scope='landing_direct_control_head' requires landing_direct_mlp"
+            )
+        output = next(
+            (
+                module
+                for module in reversed(list(direct.modules()))
+                if isinstance(module, nn.Linear)
+            ),
+            None,
+        )
+        if output is None or output.bias is None:
+            raise ValueError("landing_direct_mlp has no trainable output layer")
+        for parameter in self.actor.parameters():
+            parameter.requires_grad_(False)
+        output.weight.requires_grad_(True)
+        output.bias.requires_grad_(True)
+
+        # Steering-only tuning improves miss and horizontal speed but loses vertical thrust. Let
+        # throttle compensate without changing the learned representation or coherent engine count.
+        weight_mask = torch.ones_like(output.weight)
+        bias_mask = torch.ones_like(output.bias)
+        weight_mask[:ENGINE_HEADS] = 0
+        bias_mask[:ENGINE_HEADS] = 0
         self._register_parameter_mask(output.weight, weight_mask)
         self._register_parameter_mask(output.bias, bias_mask)
 

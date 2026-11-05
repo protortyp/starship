@@ -1215,7 +1215,16 @@ def test_touchdown_head_preserves_rows_after_optimizer_resume(tmp_path, scope, t
     assert torch.equal(protected_bias, output.bias[protected])
 
 
-def test_direct_landing_lateral_head_preserves_features_burn_and_optimizer_rows(tmp_path):
+@pytest.mark.parametrize(
+    ("scope", "protected_rows"),
+    [
+        ("landing_direct_lateral_head", ENGINE_HEADS + 1),
+        ("landing_direct_control_head", ENGINE_HEADS),
+    ],
+)
+def test_direct_landing_head_preserves_features_and_masked_optimizer_rows(
+    tmp_path, scope, protected_rows
+):
     cfg = compose_cfg(
         "num_envs=8",
         "runner.actor.class_name=starship.train.models:ContinuousAdapterRNNModel",
@@ -1224,7 +1233,7 @@ def test_direct_landing_lateral_head_preserves_features_burn_and_optimizer_rows(
         "+runner.actor.landing_expert=true",
         "+runner.actor.landing_direct_hidden_dim=16",
         "+runner.actor.landing_progress_override=1.0",
-        "+runner.algorithm.actor_update_scope=landing_direct_lateral_head",
+        f"+runner.algorithm.actor_update_scope={scope}",
     )
     runner = make_runner(cfg, tmp_path)
     direct = runner.alg.actor.landing_direct_mlp
@@ -1242,11 +1251,9 @@ def test_direct_landing_lateral_head_preserves_features_burn_and_optimizer_rows(
     assert torch.equal(before["0.bias"], after["0.bias"])
     assert torch.equal(before["2.weight"], after["2.weight"])
     assert torch.equal(before["2.bias"], after["2.bias"])
-    assert torch.equal(before["4.weight"][: ENGINE_HEADS + 1], output.weight[: ENGINE_HEADS + 1])
-    assert torch.equal(before["4.bias"][: ENGINE_HEADS + 1], output.bias[: ENGINE_HEADS + 1])
-    assert not torch.equal(
-        before["4.weight"][ENGINE_HEADS + 1 :], output.weight[ENGINE_HEADS + 1 :]
-    )
+    assert torch.equal(before["4.weight"][:protected_rows], output.weight[:protected_rows])
+    assert torch.equal(before["4.bias"][:protected_rows], output.bias[:protected_rows])
+    assert not torch.equal(before["4.weight"][protected_rows:], output.weight[protected_rows:])
 
 
 def test_touchdown_adapter_is_phase_and_altitude_gated_and_jit_matches_policy(tmp_path):
