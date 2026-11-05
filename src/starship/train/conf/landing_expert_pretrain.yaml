@@ -28,9 +28,11 @@ runner:
     landing_expert: true
     post_loop_progress_threshold: 0.0
     touchdown_altitude_threshold: 0.3333333333333333
-    resample_engine_count_post_loop: false
-    resample_engine_count_touchdown: false
+    resample_engine_count_post_loop: true
+    resample_engine_count_touchdown: true
     distribution_cfg:
-      deterministic_engine_selection: threshold
-      stochastic_engine_selection: independent
+      deterministic_engine_selection: floor_expected
+      stochastic_engine_selection: ranked_count
+      ranked_count_temperature: 0.55
+      ranked_count_hold_steps: 1000
       std_range: [0.05, 2.0]

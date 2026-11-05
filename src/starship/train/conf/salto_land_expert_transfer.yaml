@@ -1,0 +1,14 @@
+defaults:
+  - salto_land_expert
+  - _self_
+
+# Load the landing-pretrained expert back beside the frozen salto controller. Curriculum and best
+# state belong to the landing task, so begin at the already-solved 1/8 salto boundary with a fresh
+# critic; the expert remains gated off until the monotonic loop-progress signal reaches one.
+experiment: salto_land_expert_transfer
+load_checkpoint_curriculum: false
+reset_critic: true
+reset_actor_optimizer: true
+
+curriculum:
+  start_stage: 179

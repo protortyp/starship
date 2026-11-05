@@ -468,6 +468,9 @@ def test_salto_landing_expert_config_separates_stunt_and_landing_training():
     assert cfg.runner.algorithm.post_warmup_critic_learning_rate == 1e-6
     assert cfg.runner.algorithm.actor_update_scope == "landing_expert"
     assert cfg.runner.actor.landing_expert
+    assert cfg.runner.actor.class_name == "starship.train.models:ContinuousAdapterRNNModel"
+    assert cfg.runner.actor.resample_engine_count_post_loop
+    assert cfg.runner.actor.resample_engine_count_touchdown
     assert cfg.runner.actor.distribution_cfg.std_range == [0.02, 0.02]
     assert cfg.runner.actor.distribution_cfg.std_range_overrides.throttle == [0.005, 0.005]
 
@@ -481,9 +484,25 @@ def test_landing_expert_pretrain_resets_curriculum_and_activates_only_expert():
     assert cfg.curriculum.stages[0].name.startswith("0 landing burn")
     assert cfg.runner.actor.landing_expert
     assert cfg.runner.actor.post_loop_progress_threshold == 0
+    assert cfg.runner.actor.resample_engine_count_post_loop
+    assert cfg.runner.actor.resample_engine_count_touchdown
+    assert cfg.runner.actor.distribution_cfg.stochastic_engine_selection == "ranked_count"
     assert cfg.runner.algorithm.actor_update_scope == "landing_expert"
     assert cfg.runner.algorithm.post_warmup_learning_rate == 3e-5
     assert cfg.runner.algorithm.post_warmup_critic_learning_rate == 3e-5
+
+
+def test_landing_expert_transfer_starts_at_solved_salto_boundary():
+    with initialize_config_module("starship.train.conf", version_base=None):
+        cfg = compose("salto_land_expert_transfer")
+    assert not cfg.load_checkpoint_curriculum
+    assert cfg.reset_critic
+    assert cfg.reset_actor_optimizer
+    assert cfg.curriculum.start_stage == 179
+    curriculum = Curriculum(cfg, cfg.curriculum)
+    assert curriculum.stage == 179
+    assert curriculum.name.endswith("(4/8)")
+    assert cfg.runner.actor.post_loop_progress_threshold > 0.99
 
 
 def test_checkpoint_can_transfer_into_a_fresh_curriculum(tmp_path):

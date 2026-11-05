@@ -868,11 +868,15 @@ normalization while starting from the same clean checkpoint and seed.
 The historical 98--99% randomized landing checkpoint is no longer present locally or in repository
 artifacts, but its reproducible five-stage curriculum remains. `landing_expert_pretrain` transfers
 the frozen salto actor into that curriculum at stage 0, activates only the independent landing
-expert, and gives its direct-state controller private normalization. Checkpoint loading can now
+expert, and gives its direct-state controller private normalization. Pretraining retains the exact
+ranked, phase-coherent engine-count decoder used after the salto, including a separate touchdown
+decision, so stitching does not introduce an action-semantic shift. Checkpoint loading can now
 intentionally reset curriculum state without affecting ordinary resumes or rollback. Once the long
 4,096-environment control reaches its promised endpoint, this branch will relearn the known strict
 2 m/s vertical, 1 m/s horizontal and 15 m pad task directly, then return under the normal
-post-salto gate for stitching and held-out acceptance.
+post-salto gate at solved stage 179 through `salto_land_expert_transfer` for stitching and held-out
+acceptance. Both standalone transfer configs are smoke-tested without the live runs' former CLI-only
+model overrides.
 The vertical-touchdown promotion policy's seed-0
 [42.1-second vertical-touchdown promotion recording](assets/salto-stage180-vtouch4-passed.mp4) and
 [nine-frame sequence](assets/salto-stage180-vtouch4-passed-sequence.jpg) show the exact passed actor

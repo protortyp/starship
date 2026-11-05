@@ -24,10 +24,22 @@ runner:
     critic_warmup_updates: 100
     actor_update_scope: landing_expert
   actor:
+    class_name: starship.train.models:ContinuousAdapterRNNModel
+    continuous_adapter_hidden_dim: 64
+    engine_adapter_hidden_dim: 32
+    post_loop_adapter_hidden_dim: 128
+    touchdown_adapter_hidden_dim: 128
+    post_loop_progress_threshold: 0.999999
+    touchdown_altitude_threshold: 0.3333333333333333
     landing_expert: true
+    resample_engine_count_post_loop: true
+    resample_engine_count_touchdown: true
     distribution_cfg:
       # Explore steering enough to remove the systematic recovery rotation while leaving the
       # already-sensitive landing-burn throttle schedule nearly deterministic.
       std_range: [0.02, 0.02]
       std_range_overrides:
         throttle: [0.005, 0.005]
+      stochastic_engine_selection: ranked_count
+      ranked_count_temperature: 0.55
+      ranked_count_hold_steps: 1000
