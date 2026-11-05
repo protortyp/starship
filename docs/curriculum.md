@@ -869,7 +869,12 @@ also updated those new running coordinates online; its deterministic landing fel
 2% by actor update 8 and 0% by update 9 even though the weights moved conservatively. It is retired
 immediately as an input-coordinate failure. Private-normalizer updates are now disabled for an
 already-trained expert and enabled only in the dedicated pretraining task, where the controller
-relearns under those coordinates; a regression covers both modes before the matched restart.
+relearns under those coordinates; a regression covers both modes before the matched restart. The
+corrected restart averages 39.2% landing across its first 11 actor evaluations and stays within
+32--42%, while the failed arm had reached 2% by actor update 8 and 0% by update 9. Its actor/critic
+feature ranks are healthy at 65/128 and 45/128, the expert output is active, and the critic output
+update ratio is 5.7e-5 versus 4.9e-6 at the shared-rate baseline endpoint. The causal fix is
+validated and the run continues on its long horizon.
 The historical 98--99% randomized landing checkpoint is no longer present locally or in repository
 artifacts, but its reproducible five-stage curriculum remains. `landing_expert_pretrain` transfers
 the frozen salto actor into that curriculum at stage 0, activates only the independent landing
