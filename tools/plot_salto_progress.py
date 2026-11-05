@@ -676,7 +676,7 @@ TRACES = (
         "#ea580c",
     ),
     Trace(
-        "phase expert, 2.5e-7 baseline (live)",
+        "phase expert, shared-rate baseline (250 updates, retired)",
         ROOT / "out/salto-stage178-landing-expert-lr025-512-v3.log",
         179,
         "#0284c7",

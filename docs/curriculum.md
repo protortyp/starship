@@ -853,12 +853,15 @@ bridge promotions during critic adaptation, but the first complete-expert 1e-6 c
 from about 40% to 26--34% evaluation landing over 68 actor updates despite healthy features and full
 PPO minibatch counts. That rate is retired rather than extrapolated. A continuation from the clean
 3/32 promotion checkpoint refreshes the already-healthy critic for 50 updates, then uses 2.5e-7 for
-the long expert horizon. Its first 47 actor updates hold a 40.1% mean across the latest eight
-evaluations, but diagnostics show the critic output update ratio falling to 1.8e-6 because the
-shared post-warmup rate also reduced value learning to 2.5e-7. PPO now supports independently
-scheduled actor and critic parameter groups, including migration of legacy joint-optimizer
-checkpoints. The next expert continuation retains the measured 2.5e-7 actor rate while keeping the
-critic at 1e-6.
+the long expert horizon. It completes a controlled 250-actor-update baseline without promotion or
+rollback, averaging 38.5% landing overall and 39.3% over its latest 100 evaluations; its 48% best
+remains from critic-only adaptation. Actor and critic feature ranks stay healthy at 66/128 and
+44/128, and the expert output remains plastic, but the critic output update ratio falls to 4.9e-6
+because the shared post-warmup rate also reduced value learning to 2.5e-7. PPO now supports
+independently scheduled actor and critic parameter groups, including migration of legacy joint-
+optimizer checkpoints. The baseline is retired at its planned endpoint. Its matched successor
+retains the measured 2.5e-7 actor rate, keeps the critic at 1e-6, and gives landing states private
+normalization while starting from the same clean checkpoint and seed.
 The historical 98--99% randomized landing checkpoint is no longer present locally or in repository
 artifacts, but its reproducible five-stage curriculum remains. `landing_expert_pretrain` transfers
 the frozen salto actor into that curriculum at stage 0, activates only the independent landing
