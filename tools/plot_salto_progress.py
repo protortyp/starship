@@ -676,6 +676,12 @@ TRACES = (
         "#ea580c",
     ),
     Trace(
+        "phase expert, 2.5e-7 baseline (live)",
+        ROOT / "out/salto-stage178-landing-expert-lr025-512-v3.log",
+        179,
+        "#0284c7",
+    ),
+    Trace(
         "fine-bridge transfer to 1/8 (retired after validation)",
         ROOT / "out/salto-stage176-fine-bridge-control-head-1k-v1.log",
         179,
