@@ -733,6 +733,11 @@ and 47.5% miss failures, making it the current broad best by two episodes. It st
 re-flip. Both actor and optimizer-safe model are pinned by iteration and checksum while the
 post-rollback run continues to update 1,500; matched 4,096-scenario selection follows at the
 endpoint.
+At actor update 1,250, fixed landing is 33.59%, above update 750 but below update 1,000 and the
+pinned 36.04% best. Vertical, horizontal and miss failure rates are 69.9%, 31.9% and 41.9%.
+Actor and critic ranks remain healthy at 74/128 and 47/128, the joint gradient is strong at 8.7
+and no second rollback has fired. The uninterrupted post-rollback branch therefore completes the
+remaining 250 updates to the promised 1,500 endpoint.
 The validated scale-5 actor's seed-0
 [42.3-second chase recording](assets/salto-stage176-split-scale5.mp4) and
 [nine-frame sequence](assets/salto-stage176-split-scale5-sequence.jpg) show the selected paired
