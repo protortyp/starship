@@ -760,7 +760,20 @@ tensors stay bit-exact. Its fixed 1,024-scenario probe lands 41.41%, statistical
 is active at 6.5 and the optimizer rate is exactly 1e-6. Saved actor update 72 remains stable at
 41.60% fixed landing, with 64% vertical-speed, 39% horizontal-speed and 47% pad-miss crash
 failures. The healthy midpoint run therefore continues unchanged through updates 250 and 500
-before the long horizon is judged.
+before the long horizon is judged. Saved actor update 272 lands 40.23% over the fixed scenarios.
+Horizontal-speed and pad-miss failures improve to 36% and 44%, while vertical-speed failures rise
+to 67%, reproducing the coupling without collapse. Actor and critic ranks remain healthy at 74/128
+and 47/128, the joint gradient is active at 9.1 and the touchdown output update ratio is 2.9e-5.
+The stronger source remains protected while the unchanged run continues to update 500.
+Saved actor update 522 lands 38.87% over the fixed scenarios. Horizontal-speed and pad-miss
+failures improve further to 30% and 37%, but vertical-speed failures rise to 73%. This remains a
+healthy tradeoff: actor and critic ranks are 74/128 and 48/128, the joint gradient is active at
+5.1 and the output update ratio is 3.1e-5. A matched 512-scenario decomposition finds every
+lateral-only scale from 0.25x through 2x worse than the source. The update-522 throttle direction
+alone appears tied over 512, but larger 1,024-scenario validation maps the source, 0.5x, 1x and 1.5x
+at 41.80%, 41.80%, 41.50% and 41.70%. The apparent gain is rejected as sampling noise. With the
+source protected and core health intact, the unchanged run continues toward updates 1,000 and
+1,500 rather than being judged at five hundred.
 The validated scale-5 actor's seed-0
 [42.3-second chase recording](assets/salto-stage176-split-scale5.mp4) and
 [nine-frame sequence](assets/salto-stage176-split-scale5-sequence.jpg) show the selected paired
