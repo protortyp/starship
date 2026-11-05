@@ -736,10 +736,16 @@ TRACES = (
         "#16a34a",
     ),
     Trace(
-        "Markov pretrain, pad-shaped continuation (live)",
+        "Markov pretrain, 0.05 pad shaping (3,000 updates, retired)",
         ROOT / "out/salto-landing-direct-padshape-2k-v11.log",
         0,
         "#15803d",
+    ),
+    Trace(
+        "Markov pretrain, 0.10 pad shaping (live)",
+        ROOT / "out/salto-landing-direct-padshape10-2k-v12.log",
+        0,
+        "#166534",
     ),
     Trace(
         "fine-bridge transfer to 1/8 (retired after validation)",

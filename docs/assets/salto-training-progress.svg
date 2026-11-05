@@ -130,10 +130,11 @@
 <polyline points="72.0,587.0 72.3,587.0" fill="none" stroke="#4d7c0f" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/>
 <polyline points="72.0,587.0 72.3,587.0 72.6,587.0 72.9,587.0 73.2,587.0 73.5,587.0 73.8,587.0" fill="none" stroke="#22c55e" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/>
 <polyline points="72.0,587.0 72.3,587.0 72.6,587.0 72.9,587.0 73.2,587.0 73.5,587.0 73.8,587.0 74.1,587.0 74.4,587.0 74.7,587.0 75.0,587.0 75.3,587.0 75.6,587.0 75.9,587.0 76.2,587.0 76.5,587.0 76.7,587.0 77.0,587.0 77.3,587.0 77.6,587.0 77.9,587.0 78.2,587.0 78.5,587.0 78.8,587.0 79.1,587.0 79.4,587.0 79.7,587.0 80.0,587.0 80.3,587.0 80.6,587.0 80.9,587.0 81.2,587.0 81.5,587.0 81.8,587.0 82.1,587.0 82.4,587.0 82.7,587.0 83.0,587.0 83.3,587.0 83.6,587.0 83.9,587.0 84.2,587.0 84.5,587.0 84.8,587.0 85.1,587.0 85.4,587.0 85.7,587.0 85.9,587.0 86.2,587.0 86.5,587.0 86.8,587.0 87.1,587.0 87.4,587.0 87.7,587.0 88.0,587.0 88.3,586.6 88.6,586.6 88.9,586.6 89.2,586.6 89.5,586.6 89.8,586.3 90.1,585.9 90.4,585.2 90.7,584.5 91.0,584.5 91.3,584.5" fill="none" stroke="#16a34a" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/>
-<polyline points="72.0,578.0 72.3,578.0 72.6,575.0 72.9,573.5 73.2,576.2 73.5,576.5 73.8,576.7 74.1,578.0 74.4,577.0" fill="none" stroke="#15803d" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="72.0,578.0 72.3,578.0 72.6,575.0 72.9,573.5 73.2,576.2 73.5,576.5 73.8,576.7 74.1,578.0 74.4,577.0 74.7,576.2 75.0,576.4 75.3,576.5 75.6,575.9 75.9,576.1 76.2,575.6 76.5,575.8 76.7,576.4 77.0,576.0 77.3,575.6 77.6,575.3 77.9,575.4 78.2,576.0 78.5,576.4 78.8,576.9 79.1,577.3 79.4,577.6 79.7,577.3 80.0,577.3 80.3,577.6 80.6,577.3 80.9,577.6 81.2,578.0 81.5,578.0 81.8,578.4 82.1,579.1 82.4,579.4 82.7,579.4 83.0,580.2 83.3,580.5 83.6,580.9 83.9,580.9 84.2,580.9 84.5,581.2 84.8,581.6 85.1,581.6 85.4,580.2 85.7,579.1 85.9,576.9 86.2,576.2 86.5,575.1 86.8,574.8 87.1,574.4 87.4,574.4 87.7,573.0 88.0,572.2 88.3,570.4 88.6,567.2 88.9,565.0 89.2,562.9 89.5,562.2 89.8,560.0 90.1,557.5 90.4,554.6 90.7,553.2 91.0,551.7 91.3,549.9 91.6,548.5 91.9,546.0 92.2,544.5 92.5,543.4 92.8,543.8 93.1,544.2 93.4,546.3 93.7,546.0 94.0,545.2 94.3,542.7 94.6,540.2 94.9,539.5 95.2,540.9 95.4,541.6 95.7,543.1 96.0,544.2 96.3,545.6 96.6,548.1 96.9,548.8 97.2,551.0 97.5,553.5 97.8,556.4 98.1,556.4 98.4,555.3 98.7,556.8 99.0,557.8 99.3,560.7 99.6,562.5 99.9,564.3 100.2,562.5 100.5,562.9 100.8,562.9 101.1,563.6 101.4,565.4 101.7,567.6 102.0,570.4 102.3,571.2 102.6,567.2 102.9,567.2 103.2,567.2 103.5,569.4 103.8,570.1 104.1,570.1 104.4,570.1 104.6,567.9 104.9,568.3 105.2,567.6 105.5,567.6 105.8,570.4 106.1,570.8 106.4,571.2 106.7,570.1 107.0,569.0 107.3,568.3 107.6,571.5 107.9,571.5 108.2,571.5 108.5,570.8 108.8,570.1" fill="none" stroke="#15803d" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="72.0,515.0 72.3,510.5 72.6,506.0 72.9,512.8 73.2,506.0 73.5,494.0 73.8,488.0 74.1,493.6 74.4,500.0" fill="none" stroke="#166534" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/>
 <polyline points="72.0,173.0 72.3,209.0 72.6,215.0 72.9,227.0 73.2,219.8 73.5,219.5 73.8,221.9 74.1,225.9 74.4,227.0 74.7,225.2 75.0,226.2 75.3,227.0 75.6,229.1 75.9,228.3 76.2,227.0 76.5,230.9 76.7,228.6 77.0,228.0 77.3,228.4 77.6,227.9 77.9,228.3 78.2,226.2 78.5,227.8 78.8,228.9 79.1,228.4 79.4,230.6 79.7,231.0 80.0,231.7 80.3,231.0 80.6,232.8 80.9,232.0 81.2,234.2 81.5,234.9 81.8,233.5 82.1,235.3 82.4,235.6 82.7,237.1 83.0,236.7 83.3,237.8 83.6,238.2 83.9,237.4 84.2,238.5 84.5,237.1 84.8,235.6 85.1,234.6 85.4,232.0 85.7,234.2 85.9,232.8" fill="none" stroke="#ea580c" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/>
 <polyline points="72.0,272.0 72.3,285.5 72.6,296.0 72.9,292.2 73.2,290.0 73.5,285.5 73.8,288.7 74.1,287.8 74.4,293.0 74.7,296.3 75.0,299.0 75.3,299.8 75.6,301.8 75.9,305.4 76.2,303.2 76.5,304.1 76.7,303.8 77.0,301.5 77.3,300.4 77.6,300.4 77.9,299.4 78.2,300.6 78.5,299.8 78.8,300.1 79.1,299.7 79.4,300.8 79.7,301.9 80.0,300.4 80.3,301.2 80.6,303.3 80.9,304.0 81.2,303.0 81.5,305.1 81.8,304.0 82.1,303.7 82.4,301.5 82.7,299.4 83.0,297.9 83.3,296.5 83.6,296.8 83.9,296.8 84.2,297.2 84.5,299.4 84.8,298.6 85.1,298.6 85.4,299.7 85.7,299.4 85.9,300.8 86.2,299.7 86.5,302.6 86.8,303.7 87.1,301.9 87.4,303.7 87.7,302.6 88.0,301.2 88.3,301.5 88.6,303.0 88.9,301.5 89.2,303.0 89.5,303.0 89.8,304.0 90.1,306.6 90.4,309.1 90.7,310.2 91.0,312.0 91.3,309.8 91.6,310.2 91.9,309.1 92.2,311.6 92.5,311.6 92.8,312.3 93.1,311.6 93.4,312.0 93.7,312.0 94.0,310.5 94.3,309.1 94.6,309.4 94.9,311.2 95.2,312.7 95.4,315.6 95.7,316.6 96.0,318.1 96.3,321.3 96.6,319.9 96.9,321.3 97.2,322.4 97.5,323.5 97.8,323.8 98.1,321.3 98.4,320.6 98.7,321.7 99.0,324.6 99.3,326.0 99.6,327.8 99.9,329.6 100.2,330.0 100.5,331.8 100.8,332.1 101.1,334.6 101.4,334.6 101.7,336.1 102.0,338.6 102.3,336.1 102.6,339.3 102.9,338.6 103.2,339.0 103.5,338.6 103.8,337.9 104.1,340.4 104.4,339.3 104.6,340.0 104.9,342.2 105.2,342.2 105.5,345.4 105.8,346.2 106.1,349.8 106.4,347.2 106.7,347.6 107.0,347.2 107.3,347.2 107.6,346.2 107.9,346.2 108.2,347.2 108.5,346.9 108.8,347.2 109.1,347.6 109.4,349.4 109.7,351.9" fill="none" stroke="#10b981" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/>
-<rect x="425" y="30" width="440" height="654" fill="white"/>
+<rect x="425" y="30" width="440" height="668" fill="white"/>
 <line x1="450" y1="43" x2="472" y2="43" stroke="#9ca3af" stroke-width="3"/>
 <text x="479" y="47" font-size="8" text-anchor="start" fill="#374151">3D distance only</text>
 <line x1="450" y1="57" x2="472" y2="57" stroke="#10b981" stroke-width="3"/>
@@ -226,94 +227,96 @@
 <text x="479" y="663" font-size="8" text-anchor="start" fill="#374151">22.5 m/s measured midpoint (retired)</text>
 <line x1="450" y1="673" x2="472" y2="673" stroke="#0891b2" stroke-width="3"/>
 <text x="479" y="677" font-size="8" text-anchor="start" fill="#374151">22.5 m/s midpoint, low throttle noise (retired)</text>
-<line x1="655" y1="43" x2="677" y2="43" stroke="#0369a1" stroke-width="3"/>
-<text x="684" y="47" font-size="8" text-anchor="start" fill="#374151">22.5 m/s midpoint, minimum noise (retired)</text>
-<line x1="655" y1="57" x2="677" y2="57" stroke="#9333ea" stroke-width="3"/>
-<text x="684" y="61" font-size="8" text-anchor="start" fill="#374151">minimum noise + 2x horizontal shaping (passed midpoint)</text>
-<line x1="655" y1="71" x2="677" y2="71" stroke="#7e22ce" stroke-width="3"/>
-<text x="684" y="75" font-size="8" text-anchor="start" fill="#374151">2x horizontal shaping at original boundary (retired)</text>
-<line x1="655" y1="85" x2="677" y2="85" stroke="#a21caf" stroke-width="3"/>
-<text x="684" y="89" font-size="8" text-anchor="start" fill="#374151">40% intermediate gate at stage 169 (retired)</text>
-<line x1="655" y1="99" x2="677" y2="99" stroke="#db2777" stroke-width="3"/>
-<text x="684" y="103" font-size="8" text-anchor="start" fill="#374151">touchdown-only 1,500-update control (retired)</text>
-<line x1="655" y1="113" x2="677" y2="113" stroke="#f97316" stroke-width="3"/>
-<text x="684" y="117" font-size="8" text-anchor="start" fill="#374151">second measured midpoint (passed)</text>
-<line x1="655" y1="127" x2="677" y2="127" stroke="#ef4444" stroke-width="3"/>
-<text x="684" y="131" font-size="8" text-anchor="start" fill="#374151">source actor + boundary critic (retired)</text>
-<line x1="655" y1="141" x2="677" y2="141" stroke="#16a34a" stroke-width="3"/>
-<text x="684" y="145" font-size="8" text-anchor="start" fill="#374151">full post-loop adapter (retired at 500)</text>
-<line x1="655" y1="155" x2="677" y2="155" stroke="#65a30d" stroke-width="3"/>
-<text x="684" y="159" font-size="8" text-anchor="start" fill="#374151">post-loop lateral output head (live)</text>
-<line x1="655" y1="169" x2="677" y2="169" stroke="#3f6212" stroke-width="3"/>
-<text x="684" y="173" font-size="8" text-anchor="start" fill="#374151">lateral head at stage 171, 1,500 updates (retired)</text>
-<line x1="655" y1="183" x2="677" y2="183" stroke="#84cc16" stroke-width="3"/>
-<text x="684" y="187" font-size="8" text-anchor="start" fill="#374151">measured stage-171 midpoint (passed)</text>
-<line x1="655" y1="197" x2="677" y2="197" stroke="#65a30d" stroke-width="3"/>
-<text x="684" y="201" font-size="8" text-anchor="start" fill="#374151">original stage-172 boundary, 1,500 updates (retired)</text>
-<line x1="655" y1="211" x2="677" y2="211" stroke="#4d7c0f" stroke-width="3"/>
-<text x="684" y="215" font-size="8" text-anchor="start" fill="#374151">measured stage-172 midpoint, 1,500 updates (retired)</text>
-<line x1="655" y1="225" x2="677" y2="225" stroke="#c2410c" stroke-width="3"/>
-<text x="684" y="229" font-size="8" text-anchor="start" fill="#374151">4x horizontal shaping, 500 updates (retired)</text>
-<line x1="655" y1="239" x2="677" y2="239" stroke="#f59e0b" stroke-width="3"/>
-<text x="684" y="243" font-size="8" text-anchor="start" fill="#374151">near-touchdown 2x shaping, 1,500 updates (retired)</text>
-<line x1="655" y1="253" x2="677" y2="253" stroke="#0ea5e9" stroke-width="3"/>
-<text x="684" y="257" font-size="8" text-anchor="start" fill="#374151">throttle + steering continuation, stage 172 passed</text>
-<line x1="655" y1="267" x2="677" y2="267" stroke="#0284c7" stroke-width="3"/>
-<text x="684" y="271" font-size="8" text-anchor="start" fill="#374151">stage 173 long control, 1,000 updates (retired)</text>
-<line x1="655" y1="281" x2="677" y2="281" stroke="#7c3aed" stroke-width="3"/>
-<text x="684" y="285" font-size="8" text-anchor="start" fill="#374151">localized vertical touchdown head, stage 173 passed</text>
-<line x1="655" y1="295" x2="677" y2="295" stroke="#a855f7" stroke-width="3"/>
-<text x="684" y="299" font-size="8" text-anchor="start" fill="#374151">localized vertical touchdown head, stage 174 passed</text>
-<line x1="655" y1="309" x2="677" y2="309" stroke="#c084fc" stroke-width="3"/>
-<text x="684" y="313" font-size="8" text-anchor="start" fill="#374151">localized vertical touchdown head, stage 175 (1,505 updates, retired)</text>
-<line x1="655" y1="323" x2="677" y2="323" stroke="#db2777" stroke-width="3"/>
-<text x="684" y="327" font-size="8" text-anchor="start" fill="#374151">protected touchdown throttle head, stage 175 (1,500 updates, retired)</text>
-<line x1="655" y1="337" x2="677" y2="337" stroke="#e11d48" stroke-width="3"/>
-<text x="684" y="341" font-size="8" text-anchor="start" fill="#374151">protected touchdown lateral head from throttle best, stage 175 (1,500 updates, retired)</text>
-<line x1="655" y1="351" x2="677" y2="351" stroke="#f97316" stroke-width="3"/>
-<text x="684" y="355" font-size="8" text-anchor="start" fill="#374151">protected touchdown throttle head from lateral 2x, stage 175 (passed at update 806)</text>
-<line x1="655" y1="365" x2="677" y2="365" stroke="#fb923c" stroke-width="3"/>
-<text x="684" y="369" font-size="8" text-anchor="start" fill="#374151">protected touchdown throttle head, stage 176 (1,500 updates, retired)</text>
-<line x1="655" y1="379" x2="677" y2="379" stroke="#0ea5e9" stroke-width="3"/>
-<text x="684" y="383" font-size="8" text-anchor="start" fill="#374151">protected touchdown lateral head from throttle 1.5x, stage 176 (1,500 updates, retired)</text>
-<line x1="655" y1="393" x2="677" y2="393" stroke="#0369a1" stroke-width="3"/>
-<text x="684" y="397" font-size="8" text-anchor="start" fill="#374151">protected throttle-only head, stage 176 (1,500 updates, retired)</text>
-<line x1="655" y1="407" x2="677" y2="407" stroke="#1d4ed8" stroke-width="3"/>
-<text x="684" y="411" font-size="8" text-anchor="start" fill="#374151">protected joint-control head, stage 176 (500 updates, paused)</text>
-<line x1="655" y1="421" x2="677" y2="421" stroke="#6d28d9" stroke-width="3"/>
-<text x="684" y="425" font-size="8" text-anchor="start" fill="#374151">split-direction scale-5 joint-control continuation (1,500 updates, retired)</text>
-<line x1="655" y1="435" x2="677" y2="435" stroke="#be123c" stroke-width="3"/>
-<text x="684" y="439" font-size="8" text-anchor="start" fill="#374151">measured stage-176 midpoint (1,522 updates, retired)</text>
-<line x1="655" y1="449" x2="677" y2="449" stroke="#dc2626" stroke-width="3"/>
-<text x="684" y="453" font-size="8" text-anchor="start" fill="#374151">2x vertical-touchdown 1/8 control (passed at update 153)</text>
-<line x1="655" y1="463" x2="677" y2="463" stroke="#b91c1c" stroke-width="3"/>
-<text x="684" y="467" font-size="8" text-anchor="start" fill="#374151">2x vertical-touchdown quarter-step (1,519 updates, retired)</text>
-<line x1="655" y1="477" x2="677" y2="477" stroke="#f97316" stroke-width="3"/>
-<text x="684" y="481" font-size="8" text-anchor="start" fill="#374151">fine residual, 5/32 bridge (passed at actor update 185)</text>
-<line x1="655" y1="491" x2="677" y2="491" stroke="#ea580c" stroke-width="3"/>
-<text x="684" y="495" font-size="8" text-anchor="start" fill="#374151">fine residual, 3/16 bridge (passed at actor update 675)</text>
-<line x1="655" y1="505" x2="677" y2="505" stroke="#c2410c" stroke-width="3"/>
-<text x="684" y="509" font-size="8" text-anchor="start" fill="#374151">fine residual, 7/32 bridge (passed at actor update 1,146)</text>
-<line x1="655" y1="519" x2="677" y2="519" stroke="#9a3412" stroke-width="3"/>
-<text x="684" y="523" font-size="8" text-anchor="start" fill="#374151">fine residual, quarter-step (1,523 updates, retired)</text>
-<line x1="655" y1="533" x2="677" y2="533" stroke="#0284c7" stroke-width="3"/>
-<text x="684" y="537" font-size="8" text-anchor="start" fill="#374151">phase expert, shared-rate baseline (250 updates, retired)</text>
-<line x1="655" y1="547" x2="677" y2="547" stroke="#0e7490" stroke-width="3"/>
-<text x="684" y="551" font-size="8" text-anchor="start" fill="#374151">phase expert, frozen coordinates + split rates (265 updates, retired)</text>
-<line x1="655" y1="561" x2="677" y2="561" stroke="#047857" stroke-width="3"/>
-<text x="684" y="565" font-size="8" text-anchor="start" fill="#374151">Markov pretrain, reset critic (107 updates, retired)</text>
-<line x1="655" y1="575" x2="677" y2="575" stroke="#15803d" stroke-width="3"/>
-<text x="684" y="579" font-size="8" text-anchor="start" fill="#374151">Markov pretrain, engine-off attractor (~270 updates, retired)</text>
-<line x1="655" y1="589" x2="677" y2="589" stroke="#166534" stroke-width="3"/>
-<text x="684" y="593" font-size="8" text-anchor="start" fill="#374151">Markov pretrain, asymmetric burn (47 updates, retired)</text>
-<line x1="655" y1="603" x2="677" y2="603" stroke="#4d7c0f" stroke-width="3"/>
-<text x="684" y="607" font-size="8" text-anchor="start" fill="#374151">Markov pretrain, open-loop 3-engine tumble (retired)</text>
-<line x1="655" y1="617" x2="677" y2="617" stroke="#22c55e" stroke-width="3"/>
-<text x="684" y="621" font-size="8" text-anchor="start" fill="#374151">Markov pretrain, centre prior + fuel shortcut (retired)</text>
-<line x1="655" y1="631" x2="677" y2="631" stroke="#16a34a" stroke-width="3"/>
-<text x="684" y="635" font-size="8" text-anchor="start" fill="#374151">Markov pretrain, no-fuel control (1,500 updates, retired)</text>
-<line x1="655" y1="645" x2="677" y2="645" stroke="#15803d" stroke-width="3"/>
-<text x="684" y="649" font-size="8" text-anchor="start" fill="#374151">Markov pretrain, pad-shaped continuation (live)</text>
+<line x1="450" y1="687" x2="472" y2="687" stroke="#0369a1" stroke-width="3"/>
+<text x="479" y="691" font-size="8" text-anchor="start" fill="#374151">22.5 m/s midpoint, minimum noise (retired)</text>
+<line x1="655" y1="43" x2="677" y2="43" stroke="#9333ea" stroke-width="3"/>
+<text x="684" y="47" font-size="8" text-anchor="start" fill="#374151">minimum noise + 2x horizontal shaping (passed midpoint)</text>
+<line x1="655" y1="57" x2="677" y2="57" stroke="#7e22ce" stroke-width="3"/>
+<text x="684" y="61" font-size="8" text-anchor="start" fill="#374151">2x horizontal shaping at original boundary (retired)</text>
+<line x1="655" y1="71" x2="677" y2="71" stroke="#a21caf" stroke-width="3"/>
+<text x="684" y="75" font-size="8" text-anchor="start" fill="#374151">40% intermediate gate at stage 169 (retired)</text>
+<line x1="655" y1="85" x2="677" y2="85" stroke="#db2777" stroke-width="3"/>
+<text x="684" y="89" font-size="8" text-anchor="start" fill="#374151">touchdown-only 1,500-update control (retired)</text>
+<line x1="655" y1="99" x2="677" y2="99" stroke="#f97316" stroke-width="3"/>
+<text x="684" y="103" font-size="8" text-anchor="start" fill="#374151">second measured midpoint (passed)</text>
+<line x1="655" y1="113" x2="677" y2="113" stroke="#ef4444" stroke-width="3"/>
+<text x="684" y="117" font-size="8" text-anchor="start" fill="#374151">source actor + boundary critic (retired)</text>
+<line x1="655" y1="127" x2="677" y2="127" stroke="#16a34a" stroke-width="3"/>
+<text x="684" y="131" font-size="8" text-anchor="start" fill="#374151">full post-loop adapter (retired at 500)</text>
+<line x1="655" y1="141" x2="677" y2="141" stroke="#65a30d" stroke-width="3"/>
+<text x="684" y="145" font-size="8" text-anchor="start" fill="#374151">post-loop lateral output head (live)</text>
+<line x1="655" y1="155" x2="677" y2="155" stroke="#3f6212" stroke-width="3"/>
+<text x="684" y="159" font-size="8" text-anchor="start" fill="#374151">lateral head at stage 171, 1,500 updates (retired)</text>
+<line x1="655" y1="169" x2="677" y2="169" stroke="#84cc16" stroke-width="3"/>
+<text x="684" y="173" font-size="8" text-anchor="start" fill="#374151">measured stage-171 midpoint (passed)</text>
+<line x1="655" y1="183" x2="677" y2="183" stroke="#65a30d" stroke-width="3"/>
+<text x="684" y="187" font-size="8" text-anchor="start" fill="#374151">original stage-172 boundary, 1,500 updates (retired)</text>
+<line x1="655" y1="197" x2="677" y2="197" stroke="#4d7c0f" stroke-width="3"/>
+<text x="684" y="201" font-size="8" text-anchor="start" fill="#374151">measured stage-172 midpoint, 1,500 updates (retired)</text>
+<line x1="655" y1="211" x2="677" y2="211" stroke="#c2410c" stroke-width="3"/>
+<text x="684" y="215" font-size="8" text-anchor="start" fill="#374151">4x horizontal shaping, 500 updates (retired)</text>
+<line x1="655" y1="225" x2="677" y2="225" stroke="#f59e0b" stroke-width="3"/>
+<text x="684" y="229" font-size="8" text-anchor="start" fill="#374151">near-touchdown 2x shaping, 1,500 updates (retired)</text>
+<line x1="655" y1="239" x2="677" y2="239" stroke="#0ea5e9" stroke-width="3"/>
+<text x="684" y="243" font-size="8" text-anchor="start" fill="#374151">throttle + steering continuation, stage 172 passed</text>
+<line x1="655" y1="253" x2="677" y2="253" stroke="#0284c7" stroke-width="3"/>
+<text x="684" y="257" font-size="8" text-anchor="start" fill="#374151">stage 173 long control, 1,000 updates (retired)</text>
+<line x1="655" y1="267" x2="677" y2="267" stroke="#7c3aed" stroke-width="3"/>
+<text x="684" y="271" font-size="8" text-anchor="start" fill="#374151">localized vertical touchdown head, stage 173 passed</text>
+<line x1="655" y1="281" x2="677" y2="281" stroke="#a855f7" stroke-width="3"/>
+<text x="684" y="285" font-size="8" text-anchor="start" fill="#374151">localized vertical touchdown head, stage 174 passed</text>
+<line x1="655" y1="295" x2="677" y2="295" stroke="#c084fc" stroke-width="3"/>
+<text x="684" y="299" font-size="8" text-anchor="start" fill="#374151">localized vertical touchdown head, stage 175 (1,505 updates, retired)</text>
+<line x1="655" y1="309" x2="677" y2="309" stroke="#db2777" stroke-width="3"/>
+<text x="684" y="313" font-size="8" text-anchor="start" fill="#374151">protected touchdown throttle head, stage 175 (1,500 updates, retired)</text>
+<line x1="655" y1="323" x2="677" y2="323" stroke="#e11d48" stroke-width="3"/>
+<text x="684" y="327" font-size="8" text-anchor="start" fill="#374151">protected touchdown lateral head from throttle best, stage 175 (1,500 updates, retired)</text>
+<line x1="655" y1="337" x2="677" y2="337" stroke="#f97316" stroke-width="3"/>
+<text x="684" y="341" font-size="8" text-anchor="start" fill="#374151">protected touchdown throttle head from lateral 2x, stage 175 (passed at update 806)</text>
+<line x1="655" y1="351" x2="677" y2="351" stroke="#fb923c" stroke-width="3"/>
+<text x="684" y="355" font-size="8" text-anchor="start" fill="#374151">protected touchdown throttle head, stage 176 (1,500 updates, retired)</text>
+<line x1="655" y1="365" x2="677" y2="365" stroke="#0ea5e9" stroke-width="3"/>
+<text x="684" y="369" font-size="8" text-anchor="start" fill="#374151">protected touchdown lateral head from throttle 1.5x, stage 176 (1,500 updates, retired)</text>
+<line x1="655" y1="379" x2="677" y2="379" stroke="#0369a1" stroke-width="3"/>
+<text x="684" y="383" font-size="8" text-anchor="start" fill="#374151">protected throttle-only head, stage 176 (1,500 updates, retired)</text>
+<line x1="655" y1="393" x2="677" y2="393" stroke="#1d4ed8" stroke-width="3"/>
+<text x="684" y="397" font-size="8" text-anchor="start" fill="#374151">protected joint-control head, stage 176 (500 updates, paused)</text>
+<line x1="655" y1="407" x2="677" y2="407" stroke="#6d28d9" stroke-width="3"/>
+<text x="684" y="411" font-size="8" text-anchor="start" fill="#374151">split-direction scale-5 joint-control continuation (1,500 updates, retired)</text>
+<line x1="655" y1="421" x2="677" y2="421" stroke="#be123c" stroke-width="3"/>
+<text x="684" y="425" font-size="8" text-anchor="start" fill="#374151">measured stage-176 midpoint (1,522 updates, retired)</text>
+<line x1="655" y1="435" x2="677" y2="435" stroke="#dc2626" stroke-width="3"/>
+<text x="684" y="439" font-size="8" text-anchor="start" fill="#374151">2x vertical-touchdown 1/8 control (passed at update 153)</text>
+<line x1="655" y1="449" x2="677" y2="449" stroke="#b91c1c" stroke-width="3"/>
+<text x="684" y="453" font-size="8" text-anchor="start" fill="#374151">2x vertical-touchdown quarter-step (1,519 updates, retired)</text>
+<line x1="655" y1="463" x2="677" y2="463" stroke="#f97316" stroke-width="3"/>
+<text x="684" y="467" font-size="8" text-anchor="start" fill="#374151">fine residual, 5/32 bridge (passed at actor update 185)</text>
+<line x1="655" y1="477" x2="677" y2="477" stroke="#ea580c" stroke-width="3"/>
+<text x="684" y="481" font-size="8" text-anchor="start" fill="#374151">fine residual, 3/16 bridge (passed at actor update 675)</text>
+<line x1="655" y1="491" x2="677" y2="491" stroke="#c2410c" stroke-width="3"/>
+<text x="684" y="495" font-size="8" text-anchor="start" fill="#374151">fine residual, 7/32 bridge (passed at actor update 1,146)</text>
+<line x1="655" y1="505" x2="677" y2="505" stroke="#9a3412" stroke-width="3"/>
+<text x="684" y="509" font-size="8" text-anchor="start" fill="#374151">fine residual, quarter-step (1,523 updates, retired)</text>
+<line x1="655" y1="519" x2="677" y2="519" stroke="#0284c7" stroke-width="3"/>
+<text x="684" y="523" font-size="8" text-anchor="start" fill="#374151">phase expert, shared-rate baseline (250 updates, retired)</text>
+<line x1="655" y1="533" x2="677" y2="533" stroke="#0e7490" stroke-width="3"/>
+<text x="684" y="537" font-size="8" text-anchor="start" fill="#374151">phase expert, frozen coordinates + split rates (265 updates, retired)</text>
+<line x1="655" y1="547" x2="677" y2="547" stroke="#047857" stroke-width="3"/>
+<text x="684" y="551" font-size="8" text-anchor="start" fill="#374151">Markov pretrain, reset critic (107 updates, retired)</text>
+<line x1="655" y1="561" x2="677" y2="561" stroke="#15803d" stroke-width="3"/>
+<text x="684" y="565" font-size="8" text-anchor="start" fill="#374151">Markov pretrain, engine-off attractor (~270 updates, retired)</text>
+<line x1="655" y1="575" x2="677" y2="575" stroke="#166534" stroke-width="3"/>
+<text x="684" y="579" font-size="8" text-anchor="start" fill="#374151">Markov pretrain, asymmetric burn (47 updates, retired)</text>
+<line x1="655" y1="589" x2="677" y2="589" stroke="#4d7c0f" stroke-width="3"/>
+<text x="684" y="593" font-size="8" text-anchor="start" fill="#374151">Markov pretrain, open-loop 3-engine tumble (retired)</text>
+<line x1="655" y1="603" x2="677" y2="603" stroke="#22c55e" stroke-width="3"/>
+<text x="684" y="607" font-size="8" text-anchor="start" fill="#374151">Markov pretrain, centre prior + fuel shortcut (retired)</text>
+<line x1="655" y1="617" x2="677" y2="617" stroke="#16a34a" stroke-width="3"/>
+<text x="684" y="621" font-size="8" text-anchor="start" fill="#374151">Markov pretrain, no-fuel control (1,500 updates, retired)</text>
+<line x1="655" y1="631" x2="677" y2="631" stroke="#15803d" stroke-width="3"/>
+<text x="684" y="635" font-size="8" text-anchor="start" fill="#374151">Markov pretrain, 0.05 pad shaping (3,000 updates, retired)</text>
+<line x1="655" y1="645" x2="677" y2="645" stroke="#166534" stroke-width="3"/>
+<text x="684" y="649" font-size="8" text-anchor="start" fill="#374151">Markov pretrain, 0.10 pad shaping (live)</text>
 <line x1="655" y1="659" x2="677" y2="659" stroke="#ea580c" stroke-width="3"/>
 <text x="684" y="663" font-size="8" text-anchor="start" fill="#374151">fine-bridge transfer to 1/8 (retired after validation)</text>
 <line x1="655" y1="673" x2="677" y2="673" stroke="#10b981" stroke-width="3"/>

@@ -951,7 +951,13 @@ control is retired at its promised endpoint. A protected continuation now adds t
 0.05 near-ground horizontal-distance potential, resets and warms the critic for 100 updates under
 the changed objective, and preserves the learned two-engine burn. The fresh critic reaches 26/128
 during warmup; after 100 pad-shaped actor updates, stochastic landing remains 1--3% and fixed pad
-miss improves modestly from 37.8 to 34.8 m. It remains on the long horizon and will
+miss improves modestly from 37.8 to 34.8 m. A deliberately long 3,000-actor-update control raises
+best fixed landing to 12.5% at update 2,500, but its recent-20 mean falls to 1.4% by the endpoint and
+miss remains 38.5 m. Actor/critic ranks remain healthy at 123/256 and 31/128, so 0.05 is retired as
+too weak rather than collapsed. The protected 12.5% actor now continues with only the centering
+weight doubled to 0.10 and another fresh-critic warmup. Its first 100 actor updates retain 9--10%
+stochastic landing and produce 6--17% fixed batches with actor/critic ranks 129/256 and 22/128. It
+remains on the long horizon and will
 relearn the known strict 2 m/s vertical, 1 m/s horizontal and 15 m pad task directly, then return
 under the normal
 post-salto gate at solved stage 179 through `salto_land_expert_transfer` for stitching and held-out
