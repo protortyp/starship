@@ -89,13 +89,15 @@ def track_attitude(a: Attitude, b: Body, v_air: wp.vec3, dt: float) -> Attitude:
         a.sideslip += v_air[1] * v_air[1] / speed_sq * dt
     axis_z = wp.quat_rotate(b.rot, wp.vec3(1.0, 0.0, 0.0))[2]
     if axis_z < wp.cos(wp.pi / 3.0):
+        # The first departure from an upright spawn begins the intended flip. Only another
+        # departure after an inverted-to-upright recovery is a re-flip.
         if a.phase == 2:
             a.reflips += 1
         a.phase = 1
     elif axis_z > wp.cos(wp.pi / 6.0):
         if a.phase == 1:
             a.flips += 1
-        a.phase = 2
+            a.phase = 2
     return a
 
 

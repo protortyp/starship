@@ -80,7 +80,7 @@ class RewardConfig:
     roll_travel_cost: float = 0.0  # per rad
     horizontal_rotation_cost: float = 0.0  # per rad about world-horizontal axes
     sideslip_cost: float = 0.0  # per squared air-relative sideslip fraction s above 20 m/s
-    reflip_cost: float = 0.0  # per return above 60 degrees after reaching below 30 degrees
+    reflip_cost: float = 0.0  # per new inversion after the first inverted-to-upright recovery
     # Optional stunt objective. Horizontal travel integrates rotation about either world-horizontal
     # axis, excluding cheap spins about the ship's own longitudinal axis. A zero target disables it.
     loop_target: float = 0.0  # rad of end-over-end rotation, normally 2*pi

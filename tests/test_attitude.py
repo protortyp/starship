@@ -68,7 +68,7 @@ def scripted_tilts(tilts: wp.array(dtype=float), out: wp.array(dtype=Attitude)):
     ("tilts", "flips", "reflips"),
     [
         ([90, 70, 50, 20, 0], [0, 0, 0, 1, 1], [0, 0, 0, 0, 0]),
-        ([0, 40, 70, 65, 55, 65, 20, 70], [0, 0, 0, 0, 0, 0, 1, 1], [0, 0, 1, 1, 1, 1, 1, 2]),
+        ([0, 40, 70, 65, 55, 65, 20, 70], [0, 0, 0, 0, 0, 0, 1, 1], [0, 0, 0, 0, 0, 0, 0, 1]),
         ([45, 20, 40, 20], [0, 0, 0, 0], [0, 0, 0, 0]),
     ],
 )
@@ -217,7 +217,7 @@ def test_spinning_trajectory_costs_more_than_one_clean_flip(device):
 
 def test_reflip_cost_fires_only_on_threshold_transition(device):
     env = RocketEnv(1, config(pitch=0), reward_config=RewardConfig(reflip_cost=5), device=device)
-    for pitch, expected in [(70, -5), (65, 0), (50, 0), (65, 0), (20, 0), (70, -5)]:
+    for pitch, expected in [(70, 0), (65, 0), (50, 0), (65, 0), (20, 0), (70, -5)]:
         bodies = env.sim.state.body.numpy()
         bodies["rot"][0] = attitude(math.radians(pitch), 0.0)
         bodies["omega"][0] = 0
