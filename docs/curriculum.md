@@ -848,9 +848,10 @@ measured post-1/8 bridge targets if the long quarter-step control finishes below
 The measured post-1/8 residual branch uses 512 environments and the same 100-update critic
 adaptation. Its early isolated 47% and 46% evaluations did not form a promotion pair, but the longer
 horizon did: it passes 5/32 after 185 actor updates, then passes 3/16 after 675 actor updates without
-rollback and advances to 7/32. Its actor/critic feature ranks remain healthy at 63/128 and 46/128,
-with the intended touchdown output active and all frozen-layer warnings expected from its narrow
-update scope. A phase-state audit then
+rollback. The long horizon pays off again: 7/32 passes at actor update 1,146 and the branch advances
+to the exact quarter-step, where its first 78 evaluations average 39.9%. Its actor/critic feature
+ranks remain healthy at 64/128 and 44/128, with the intended touchdown output active and all
+frozen-layer warnings expected from its narrow update scope. A phase-state audit then
 found that an upright spawn was marked recovered before it ever inverted. The outbound half of the
 intended first salto was therefore counted and penalized as a re-flip, making the configured final
 `flips == 1 && reflips == 0` check unreachable from the upright salto spawn. Re-flip tracking now
@@ -881,9 +882,11 @@ corrected restart averages 39.2% landing across its first 11 actor evaluations a
 32--42%, while the failed arm had reached 2% by actor update 8 and 0% by update 9. Its actor/critic
 feature ranks are healthy at 65/128 and 45/128, the expert output is active, and the critic output
 update ratio is 5.7e-5 versus 4.9e-6 at the shared-rate baseline endpoint. The causal fix is
-validated, but the longer comparison does not improve: through 127 actor updates it averages 36.9%
-and its latest 20 evaluations average 32.6%. The process remains alive through its planned
-250-update comparison, while the independent landing-pretraining path takes priority.
+validated, but the longer comparison does not improve. The completed 265-actor-update run averages
+34.2%; its latest 100 and 20 evaluations fall to 29.8% and 27.2%, ending at 23%. Actor/critic ranks
+remain healthy at 64/128 and 45/128 and every expert module still receives gradients, so this is
+objective drift rather than collapse. The recurrent expert is retired while the independent
+landing-pretraining path takes priority.
 The historical 98--99% randomized landing checkpoint is no longer present locally or in repository
 artifacts, but its reproducible five-stage curriculum remains. `landing_expert_pretrain` transfers
 the frozen salto actor into that curriculum at stage 0 and activates only an independent 28→256→256
@@ -897,8 +900,14 @@ decision, so stitching does not introduce an action-semantic shift. Checkpoint l
 intentionally reset curriculum state without affecting ordinary resumes or rollback. Once the long
 4,096-environment control reached its promised endpoint, the 6,000-update pretrain launched with
 4,096 environments at landing stage 0. Its initial zero landing rate is inside the configured
-100-update critic-only warmup. This branch will relearn the known strict 2 m/s vertical, 1 m/s
-horizontal and 15 m pad task directly, then return under the normal
+100-update critic-only warmup. The first calibration reset its critic; feature rank compressed from
+59/128 to 2/128 and recovered only to 10/128 before the actor unlocked, so it was stopped after seven
+actor updates. A matched restart retains the source critic and adapts it at 1e-5. Its rank stays in
+the narrower stage-0 range of 16--23/128 while explained variance rises to 0.91 by the end of warmup,
+then 0.99 after 120 actor updates; direct-actor rank remains 84/256. Landing is still zero at this
+early point, but return improves monotonically from -57 to -48 on the deliberately long 6,000-update
+horizon. This branch will relearn the known strict 2 m/s vertical, 1 m/s horizontal and 15 m pad task
+directly, then return under the normal
 post-salto gate at solved stage 179 through `salto_land_expert_transfer` for stitching and held-out
 acceptance. Runtime smoke tests cover the full checkpoint migration, and the direct expert is
 regression-tested for completed-loop observation semantics, invariance to salto hidden state and

@@ -676,10 +676,16 @@ TRACES = (
         "#ea580c",
     ),
     Trace(
-        "fine residual, 7/32 bridge (live)",
+        "fine residual, 7/32 bridge (passed at actor update 1,146)",
         ROOT / "out/salto-stage176-postbridge-vtouch4-control-head-512-v1.log",
         178,
         "#c2410c",
+    ),
+    Trace(
+        "fine residual, quarter-step (live)",
+        ROOT / "out/salto-stage176-postbridge-vtouch4-control-head-512-v1.log",
+        179,
+        "#9a3412",
     ),
     Trace(
         "phase expert, shared-rate baseline (250 updates, retired)",
@@ -688,16 +694,22 @@ TRACES = (
         "#0284c7",
     ),
     Trace(
-        "phase expert, frozen coordinates + split rates (live)",
+        "phase expert, frozen coordinates + split rates (265 updates, retired)",
         ROOT / "out/salto-stage178-landing-expert-splitlr-frozennorm-512-v5.log",
         179,
         "#0e7490",
     ),
     Trace(
-        "Markov landing expert pretrain, stage 0 (live)",
+        "Markov pretrain, reset critic (107 updates, retired)",
         ROOT / "out/salto-landing-direct-pretrain-4k-v1.log",
         0,
         "#047857",
+    ),
+    Trace(
+        "Markov pretrain, retained critic, stage 0 (live)",
+        ROOT / "out/salto-landing-direct-pretrain-critic-4k-v2.log",
+        0,
+        "#15803d",
     ),
     Trace(
         "fine-bridge transfer to 1/8 (retired after validation)",
