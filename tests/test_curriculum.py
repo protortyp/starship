@@ -482,6 +482,8 @@ def test_landing_expert_pretrain_resets_curriculum_and_activates_only_expert():
     assert not cfg.load_checkpoint_curriculum
     assert cfg.reset_critic
     assert cfg.reset_actor_optimizer
+    assert cfg.reward.fuel_cost == 0
+    assert cfg.reward.fuel_bonus == 0
     assert cfg.curriculum.stages[0].name.startswith("0 landing burn")
     assert cfg.runner.actor.landing_expert
     assert cfg.runner.actor.landing_direct_hidden_dim == 256

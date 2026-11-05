@@ -13,6 +13,13 @@ load_checkpoint_curriculum: false
 reset_critic: true
 reset_actor_optimizer: true
 
+# Before the first sparse landing, the default fuel charge makes an immediate engine-off crash
+# score slightly above the stable centre-engine descent. Learn braking first; fuel efficiency is
+# irrelevant to the strict touchdown gate and remains measurable after transfer.
+reward:
+  fuel_cost: 0.0
+  fuel_bonus: 0.0
+
 runner:
   algorithm:
     critic_warmup_updates: 100
