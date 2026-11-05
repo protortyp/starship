@@ -697,6 +697,12 @@ optimizer-safe scale-5 model combines the selected actor with the healthy update
 moments for touchdown output rows 3--10 are cleared. A new 4,096-environment continuation warms
 that critic for 100 updates before resuming the same protected joint head at 1e-6; its opening
 deterministic evaluations land 32% and 35% on stage 176.
+The validated scale-5 actor's seed-0
+[42.3-second chase recording](assets/salto-stage176-split-scale5.mp4) and
+[nine-frame sequence](assets/salto-stage176-split-scale5-sequence.jpg) show the selected paired
+controller through contact. It lands at 14.60 m/s vertical and 5.82 m/s horizontal speed about
+231 m from the pad centre, inside the current limits. The recording deliberately remains interim:
+the extra recovery rotation is still visible and later curriculum stages must remove it.
 The validated 3.25x actor's seed-0
 [42.5-second chase recording](assets/salto-stage176-u900-throttle325.mp4) and
 [nine-frame sequence](assets/salto-stage176-u900-throttle325-sequence.jpg) show its powered
