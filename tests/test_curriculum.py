@@ -485,7 +485,21 @@ def test_landing_expert_pretrain_resets_curriculum_and_activates_only_expert():
     assert cfg.reward.fuel_cost == 0
     assert cfg.reward.fuel_bonus == 0
     assert cfg.reward.horizontal_distance_weight == 0.10
-    assert cfg.curriculum.stages[0].name.startswith("0 landing burn")
+    assert cfg.curriculum.stages[0].name == "0 loose touchdown gate"
+    curriculum = Curriculum(cfg, cfg.curriculum)
+    assert len(curriculum.stages) == 25
+    loose, _ = curriculum.configs(0)
+    strict, _ = curriculum.target_configs()
+    assert (loose.landing.pad_radius, loose.landing.max_vertical_speed) == (100, 10)
+    assert loose.landing.max_horizontal_speed == 5
+    assert (strict.landing.pad_radius, strict.landing.max_vertical_speed) == (15, 2)
+    assert strict.landing.max_horizontal_speed == 1
+    for previous_stage, current_stage in itertools.pairwise(range(len(curriculum.stages))):
+        previous, _ = curriculum.configs(previous_stage)
+        current, _ = curriculum.configs(current_stage)
+        assert previous.landing.pad_radius - current.landing.pad_radius <= 3.55
+        assert previous.landing.max_vertical_speed - current.landing.max_vertical_speed <= 0.34
+        assert previous.landing.max_horizontal_speed - current.landing.max_horizontal_speed <= 0.17
     assert cfg.runner.actor.landing_expert
     assert cfg.runner.actor.landing_direct_hidden_dim == 256
     assert cfg.runner.actor.landing_direct_engine_logit_biases == [2, -2, -2]

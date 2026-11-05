@@ -1,0 +1,34 @@
+# @package curriculum
+# A touchdown-only curriculum for the frozen salto landing expert. The spawn distribution stays
+# fixed while the terminal safety envelope tightens in small increments, so every promotion tests
+# the same control problem instead of changing both initial conditions and the success definition.
+enabled: true
+promote_landed: 0.9
+promote_evals: 2
+stages:
+  - name: 0 loose touchdown gate
+    overrides:
+      - sim.spawn.altitude=300
+      - sim.spawn.altitude_noise=150
+      - sim.spawn.vertical_speed=-50
+      - sim.spawn.vertical_speed_noise=15
+      - sim.spawn.pitch=0
+      - sim.spawn.pitch_noise=0.1
+      - sim.spawn.offset_noise=50
+      - sim.spawn.horizontal_speed_noise=5
+      - sim.spawn.angular_rate_noise=0.02
+      - sim.spawn.lit_throttle=0.7
+      - sim.max_time=60
+      - sim.landing.pad_radius=100
+      - sim.landing.max_vertical_speed=10
+      - sim.landing.max_horizontal_speed=5
+  - name: tighten touchdown gate
+    interpolate:
+      # At two passing evals per stage this provides at least 1,200 actor updates before the
+      # strict endpoint, while each promotion changes the pad by only 3.54 m, vertical speed by
+      # 0.33 m/s and horizontal speed by 0.17 m/s.
+      steps: 24
+      overrides:
+        - sim.landing.pad_radius=15
+        - sim.landing.max_vertical_speed=2
+        - sim.landing.max_horizontal_speed=1

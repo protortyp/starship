@@ -1,10 +1,12 @@
 defaults:
   - train
+  - override curriculum: landing_expert
   - _self_
 
-# Transfer a frozen salto checkpoint into the landing curriculum. The phase expert is active for
-# every pretraining state, learns the previously solved strict landing task, then can be loaded back
-# under salto_land_expert where its normal progress gate protects the stunt.
+# Transfer a frozen salto checkpoint into a touchdown-only curriculum. The phase expert is active
+# for every pretraining state, learns progressively tighter safety gates on one fixed spawn
+# distribution, then can be loaded back under salto_land_expert where its normal progress gate
+# protects the stunt.
 experiment: landing_expert_pretrain
 device: cuda:0
 iterations: 6000
