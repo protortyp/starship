@@ -19,6 +19,10 @@ reset_actor_optimizer: true
 reward:
   fuel_cost: 0.0
   fuel_bonus: 0.0
+  # Once the burn learns vertical speed, total 3-D distance is dominated by altitude and permits
+  # a 40--80 m lateral drift. This dedicated near-ground potential solved the same failure in the
+  # salto landing curriculum while leaving the strict 15 m terminal gate unchanged.
+  horizontal_distance_weight: 0.05
 
 runner:
   algorithm:
