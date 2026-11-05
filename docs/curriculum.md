@@ -809,14 +809,25 @@ remain exact, the saved rate is 1e-6 and rollback count is zero. The same actor 
 preserved original quarter-step, 1.1 points above its source there. The live run enters that target
 as stage 177 in its immutable resolved config, corresponding exactly to stage 180 after the three
 measured bridges are codified; actor/critic ranks remain healthy at 73/128 and 46/128 with an active
-8.6 touchdown gradient. It continues uninterrupted on the stricter boundary.
+8.6 touchdown gradient. It continues uninterrupted on the stricter boundary. Fixed checkpoints near
+quarter-step actor updates 219 and 269 land 35.06% and 35.16% over the same 1,024 scenarios, versus
+35.94% at entry. Pad-miss crash failures improve from 45.0% at entry to 40.6% and 41.0%, while
+horizontal-speed failures improve from 36.4% to 33.7% between the two saved checkpoints; vertical-
+speed failures rise from 66.8% to 69.0%. Successful touchdown vertical speed and miss distance
+improve to 16.44 m/s and 187 m by update 269. Actor/critic ranks remain healthy at 74/128 and
+47/128, the touchdown gradient is active at 6.1, and rollback count is still zero. This is a flat
+but plastic opening, so the same run remains uninterrupted through the promised 1,500-update
+horizon rather than being judged on its first few hundred updates.
 A zero-training fixed-1,024 sweep also measures the protected source at fractions 0, 1/32, 1/16,
 3/32 and 1/8 of this transition: landing declines smoothly from 46.68% to 45.70%, 44.43%, 42.87%
 and 41.80%. Vertical-speed failures rise from 61.2% to 63.3% across the same sweep. This identifies
 1/32 as a gate-level bridge and 1/16 as a near-gate successor. A protected 1,024-environment branch
 then passes 1/32, 1/16 and 3/32 after about 7, 5 and 4 critic-only updates, keeping all 35 actor
 tensors bit-exact before entering the preserved 1/8 boundary as stage 179. The active 4,096-
-environment reward A/B stays uninterrupted so its full long-horizon comparison remains valid.
+environment reward A/B stays uninterrupted so its full long-horizon comparison remains valid. A
+second zero-training sweep maps its exact 1/8 promotion actor across fractions 1/8, 5/32, 3/16,
+7/32 and 1/4 at 41.11%, 40.33%, 38.57%, 37.01% and 35.94%. The smooth local decline provides
+measured post-1/8 bridge targets if the long quarter-step control finishes below the unchanged gate.
 The vertical-touchdown promotion policy's seed-0
 [42.1-second vertical-touchdown promotion recording](assets/salto-stage180-vtouch4-passed.mp4) and
 [nine-frame sequence](assets/salto-stage180-vtouch4-passed-sequence.jpg) show the exact passed actor
