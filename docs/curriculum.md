@@ -45,6 +45,14 @@ speed, 0.75 m/s horizontal speed, 12.5 m pad radius, 5° tilt, and 10°/s angula
 additionally requires exactly one inverted-to-upright recovery with no re-flip and penalizes axial
 roll and rotation beyond 360°.
 
+`salto_land_expert` is the phase-separated continuation used once a checkpoint can reliably finish
+the stunt. It copies the learned output controller exactly at load time, switches to that independent
+copy only after the monotonic loop-progress channel reaches one, and freezes the original salto path.
+Its default run adapts the critic for 100 updates, then gives the landing expert a 2,000-update
+horizon with re-flip shaping active. Final claims use `starship-acceptance`: five held-out spawn
+streams of 1,024 episodes on the exact last stage, each required to land at least 50% with one flip
+and zero re-flips.
+
 Current campaign: stages 0--179 are solved. The original stage-176 boundary stalls below promotion
 after full 1,500-update lateral-only, throttle-only and joint-control horizons. Decomposing the
 learned directions produces a robust scale-5 controller that lands 34.03% over 4,096 fixed

@@ -1,0 +1,29 @@
+defaults:
+  - salto_land
+  - _self_
+
+# Resume a capable salto checkpoint and fork its controller at the monotonic loop-complete
+# observation. Checkpoint migration makes the fork action-exact initially; PPO then trains only the
+# landing copy, so no recovery update can alter the stunt. A critic-only adaptation precedes the
+# deliberately long actor horizon.
+experiment: salto_land_expert
+iterations: 2000
+record_every: 0
+
+reward:
+  reflip_cost: 10
+
+runner:
+  algorithm:
+    learning_rate: 1.0e-4
+    post_warmup_learning_rate: 1.0e-6
+    critic_warmup_updates: 100
+    actor_update_scope: landing_expert
+  actor:
+    landing_expert: true
+    distribution_cfg:
+      # Explore steering enough to remove the systematic recovery rotation while leaving the
+      # already-sensitive landing-burn throttle schedule nearly deterministic.
+      std_range: [0.02, 0.02]
+      std_range_overrides:
+        throttle: [0.005, 0.005]

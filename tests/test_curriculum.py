@@ -458,6 +458,18 @@ def assert_fresh(runner):
     assert runner.tracker.num_finished == 0
 
 
+def test_salto_landing_expert_config_separates_stunt_and_landing_training():
+    with initialize_config_module("starship.train.conf", version_base=None):
+        cfg = compose("salto_land_expert")
+    assert cfg.iterations == 2000
+    assert cfg.reward.reflip_cost == 10
+    assert cfg.runner.algorithm.critic_warmup_updates == 100
+    assert cfg.runner.algorithm.actor_update_scope == "landing_expert"
+    assert cfg.runner.actor.landing_expert
+    assert cfg.runner.actor.distribution_cfg.std_range == [0.02, 0.02]
+    assert cfg.runner.actor.distribution_cfg.std_range_overrides.throttle == [0.005, 0.005]
+
+
 def test_initial_spawns_use_curriculum_stage(tmp_path):
     runner = make_runner(compose_cfg("num_envs=8"), tmp_path)
     assert runner.env.cfg.spawn.altitude == 60

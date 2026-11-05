@@ -3,6 +3,8 @@
 The final curriculum stage makes touchdown count only when the rocket lands inside every safety
 limit after exactly one flip and zero re-flips.  This command repeats that strict stage across
 independent spawn streams and fails unless every stream clears the requested landing-rate floor.
+
+    uv run starship-acceptance logs/salto_land_expert/<run> --device cuda:0
 """
 
 import argparse
