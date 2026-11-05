@@ -39,9 +39,14 @@ class HybridDistribution(Distribution):
     ) -> None:
         if output_dim != ACTION_DIM:
             raise ValueError(f"HybridDistribution needs output_dim={ACTION_DIM}, got {output_dim}")
-        if deterministic_engine_selection not in ("threshold", "floor_expected"):
+        if deterministic_engine_selection not in (
+            "threshold",
+            "floor_expected",
+            "round_expected",
+        ):
             raise ValueError(
-                "deterministic_engine_selection must be 'threshold' or 'floor_expected'"
+                "deterministic_engine_selection must be 'threshold', 'floor_expected', "
+                "or 'round_expected'"
             )
         if stochastic_engine_selection not in ("independent", "ranked_count"):
             raise ValueError("stochastic_engine_selection must be 'independent' or 'ranked_count'")
@@ -108,11 +113,13 @@ class HybridDistribution(Distribution):
         engine_logits = logits
         if self.stochastic_engine_selection == "ranked_count":
             expected = torch.sigmoid(logits).sum(dim=-1, keepdim=True)
-            deterministic_count = expected.squeeze(-1).floor().to(torch.long)
+            selection = getattr(self, "deterministic_engine_selection", "threshold")
+            deterministic_count = _select_engine_count(logits, selection)
             counts = torch.arange(ENGINE_HEADS + 1, device=logits.device, dtype=logits.dtype)
-            # Shift the nearest-integer boundaries onto 1, 2, ... so the categorical mode is
-            # floor(expected), exactly matching deployment's conservative engine-count decoder.
-            center = (expected - 0.5).clamp_min(0.0)
+            # Match the exploratory count's mode to deployment. The conservative decoder shifts
+            # nearest-integer boundaries onto 1, 2, ...; round_expected uses the natural nearest
+            # count and, unlike floor_expected, can deliberately command all three engines.
+            center = (expected - 0.5).clamp_min(0.0) if selection == "floor_expected" else expected
             engine_logits = -((counts - center) / self.ranked_count_temperature).square()
             engine = Categorical(logits=engine_logits)
             rank = logits.argsort(dim=-1, descending=True).argsort(dim=-1)
@@ -303,6 +310,15 @@ def _select_engines(logits: torch.Tensor, selection: str) -> torch.Tensor:
     # Independent Bernoulli heads can hover either side of 0.5 and make threshold decoding switch
     # discontinuously between engine subsets. Preserve their expected count conservatively, while
     # choosing the heads in which the policy has the most confidence.
-    count = torch.sigmoid(logits).sum(dim=-1).floor().to(torch.long)
+    count = _select_engine_count(logits, selection)
     rank = logits.argsort(dim=-1, descending=True).argsort(dim=-1)
     return rank < count.unsqueeze(-1)
+
+
+def _select_engine_count(logits: torch.Tensor, selection: str) -> torch.Tensor:
+    if selection == "threshold":
+        return (logits > 0.0).sum(dim=-1)
+    expected = torch.sigmoid(logits).sum(dim=-1)
+    if selection == "round_expected":
+        return (expected + 0.5).floor().to(torch.long)
+    return expected.floor().to(torch.long)

@@ -485,7 +485,7 @@ def test_landing_expert_pretrain_resets_curriculum_and_activates_only_expert():
     assert cfg.curriculum.stages[0].name.startswith("0 landing burn")
     assert cfg.runner.actor.landing_expert
     assert cfg.runner.actor.landing_direct_hidden_dim == 256
-    assert cfg.runner.actor.landing_direct_engine_logit_bias == 2
+    assert cfg.runner.actor.landing_direct_engine_logit_bias == 4
     assert cfg.runner.actor.landing_direct_throttle_bias == 0.5
     assert cfg.runner.actor.landing_progress_override == 1
     assert cfg.runner.actor.update_landing_normalization
@@ -493,6 +493,7 @@ def test_landing_expert_pretrain_resets_curriculum_and_activates_only_expert():
     assert cfg.runner.actor.resample_engine_count_post_loop
     assert cfg.runner.actor.resample_engine_count_touchdown
     assert cfg.runner.actor.distribution_cfg.stochastic_engine_selection == "ranked_count"
+    assert cfg.runner.actor.distribution_cfg.deterministic_engine_selection == "round_expected"
     assert cfg.runner.algorithm.actor_update_scope == "landing_expert"
     assert cfg.runner.algorithm.post_warmup_learning_rate == 3e-5
     assert cfg.runner.algorithm.post_warmup_critic_learning_rate == 3e-5
@@ -507,6 +508,7 @@ def test_landing_expert_transfer_starts_at_solved_salto_boundary():
     assert cfg.curriculum.start_stage == 179
     assert cfg.runner.actor.landing_direct_hidden_dim == 256
     assert cfg.runner.actor.landing_progress_override == 1
+    assert cfg.runner.actor.distribution_cfg.deterministic_engine_selection == "round_expected"
     curriculum = Curriculum(cfg, cfg.curriculum)
     assert curriculum.stage == 179
     assert curriculum.name.endswith("(4/8)")

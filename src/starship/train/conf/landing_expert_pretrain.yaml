@@ -32,7 +32,7 @@ runner:
     landing_direct_hidden_dim: 256
     # The persistent ranked-count decoder samples only at phase boundaries. Start from an actual
     # landing burn instead of letting a neutral head fall into the observed all-engines-off basin.
-    landing_direct_engine_logit_bias: 2.0
+    landing_direct_engine_logit_bias: 4.0
     landing_direct_throttle_bias: 0.5
     landing_progress_override: 1.0
     update_landing_normalization: true
@@ -41,7 +41,9 @@ runner:
     resample_engine_count_post_loop: true
     resample_engine_count_touchdown: true
     distribution_cfg:
-      deterministic_engine_selection: floor_expected
+      # Nearest-count decoding permits the symmetric three-engine burn. floor_expected can never
+      # select all three for finite logits and turned the tied prior into a tumbling 0+1 burn.
+      deterministic_engine_selection: round_expected
       stochastic_engine_selection: ranked_count
       ranked_count_temperature: 0.55
       ranked_count_hold_steps: 1000

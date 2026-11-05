@@ -179,6 +179,25 @@ def test_deterministic_floor_expected_engine_selection_and_export():
     )
 
 
+def test_round_expected_can_select_all_engines_and_matches_ranked_count_mode():
+    dist = HybridDistribution(
+        ACTION_DIM,
+        deterministic_engine_selection="round_expected",
+        stochastic_engine_selection="ranked_count",
+    )
+    logits = torch.full((1, ENGINE_HEADS), 2.0)
+    out = torch.cat([logits, torch.zeros(1, CONTINUOUS_HEADS)], -1)
+    expected = torch.ones(1, ENGINE_HEADS)
+    assert torch.equal(dist.deterministic_output(out)[:, :ENGINE_HEADS], expected)
+    module = dist.as_deterministic_output_module()
+    assert torch.equal(module(out)[:, :ENGINE_HEADS], expected)
+    assert torch.equal(
+        torch.export.export(module, (out,)).module()(out)[:, :ENGINE_HEADS], expected
+    )
+    dist.update(out)
+    assert dist.params[0].argmax(-1).item() == ENGINE_HEADS
+
+
 def test_ranked_count_sampling_matches_deployment_structure():
     torch.manual_seed(2)
     dist = HybridDistribution(

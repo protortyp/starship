@@ -17,3 +17,5 @@ runner:
   actor:
     landing_direct_hidden_dim: 256
     landing_progress_override: 1.0
+    distribution_cfg:
+      deterministic_engine_selection: round_expected
