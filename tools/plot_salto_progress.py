@@ -646,10 +646,16 @@ TRACES = (
         "#6d28d9",
     ),
     Trace(
-        "measured stage-176 midpoint (live)",
+        "measured stage-176 midpoint (1,522 updates, retired)",
         ROOT / "out/salto-stage176-midpoint-control-head-4k-v1.log",
         176,
         "#be123c",
+    ),
+    Trace(
+        "2x vertical-touchdown midpoint (live)",
+        ROOT / "out/salto-stage176-midpoint-vtouch4-control-head-4k-v1.log",
+        176,
+        "#dc2626",
     ),
     Trace(
         "private lateral adapter, 129 updates (retired)",

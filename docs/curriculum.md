@@ -781,7 +781,17 @@ failures improve to 28% and 35%, but vertical-speed failures remain high at 72%.
 ranks are still healthy at 74/128 and 47/128, the joint gradient is active at 8.5 and the output
 update ratio is 3.8e-5. A low 8.4e-6 critic-output update ratio is the first new health warning.
 The source remains protected while the post-rollback run completes the requested 1,500-update
-horizon.
+horizon. The exact saved update-1,522 endpoint lands 35.1% over the fixed scenarios. Horizontal-
+speed failures and pad misses improve to 27% and 31%, but vertical-speed failures rise to 74%; two
+protected rollbacks fire, while actor/critic rank remains healthy at 73/128 and 48/128 and the
+touchdown gradient remains active at 6.8. The earlier critic-output warning also recovers from
+8.4e-6 to 1.2e-5. The full horizon therefore confirms a plastic but misweighted control-axis
+tradeoff rather than collapse, and the 41.80% source remains selected. A matched successor now
+doubles only the near-ground touchdown vertical-speed penalty from 2 to 4, preserving the source
+actor, 100-update critic warmup, joint output rows, 1e-6 rate, minimum exploration noise and original
+45% promotion gate. Its opening critic-only evaluations are 40%, 35%, 34%, 38% and 35%; it continues
+to the same 1,500-actor-update horizon so terminal braking can improve without weakening the
+curriculum or repeating a short-window decision.
 The validated scale-5 actor's seed-0
 [42.3-second chase recording](assets/salto-stage176-split-scale5.mp4) and
 [nine-frame sequence](assets/salto-stage176-split-scale5-sequence.jpg) show the selected paired
