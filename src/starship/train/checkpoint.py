@@ -57,6 +57,7 @@ def migrate_checkpoint(checkpoint: dict, actor: nn.Module, critic: nn.Module, op
                     "landing_post_loop_adapter.",
                     "landing_post_loop_lateral_adapter.",
                     "landing_touchdown_adapter.",
+                    "landing_direct_mlp.",
                     "landing_obs_normalizer.",
                 )
             )

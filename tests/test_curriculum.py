@@ -484,6 +484,8 @@ def test_landing_expert_pretrain_resets_curriculum_and_activates_only_expert():
     assert cfg.reset_actor_optimizer
     assert cfg.curriculum.stages[0].name.startswith("0 landing burn")
     assert cfg.runner.actor.landing_expert
+    assert cfg.runner.actor.landing_direct_hidden_dim == 256
+    assert cfg.runner.actor.landing_progress_override == 1
     assert cfg.runner.actor.update_landing_normalization
     assert cfg.runner.actor.post_loop_progress_threshold == 0
     assert cfg.runner.actor.resample_engine_count_post_loop
@@ -501,6 +503,8 @@ def test_landing_expert_transfer_starts_at_solved_salto_boundary():
     assert cfg.reset_critic
     assert cfg.reset_actor_optimizer
     assert cfg.curriculum.start_stage == 179
+    assert cfg.runner.actor.landing_direct_hidden_dim == 256
+    assert cfg.runner.actor.landing_progress_override == 1
     curriculum = Curriculum(cfg, cfg.curriculum)
     assert curriculum.stage == 179
     assert curriculum.name.endswith("(4/8)")

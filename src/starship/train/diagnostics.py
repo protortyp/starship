@@ -101,7 +101,8 @@ def model_diagnostics(model: nn.Module, obs, hidden_state=None) -> dict[str, flo
     hooks = []
     # Hidden activations are the inputs of every Linear after the first. Hooking the activation
     # modules instead would miss layers: rsl_rl reuses one activation module for all of them.
-    linears = [m for m in probe.mlp.modules() if isinstance(m, nn.Linear)]
+    feature_mlp = getattr(probe, "landing_direct_mlp", None) or probe.mlp
+    linears = [m for m in feature_mlp.modules() if isinstance(m, nn.Linear)]
     for k, linear in enumerate(linears[1:]):
         hooks.append(
             linear.register_forward_pre_hook(

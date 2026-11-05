@@ -26,6 +26,11 @@ runner:
     post_loop_adapter_hidden_dim: 128
     touchdown_adapter_hidden_dim: 128
     landing_expert: true
+    # Train a Markov landing controller whose actions cannot depend on the reset-vs-handoff state
+    # of the frozen salto LSTM. Channel 27 is forced to the exact completed-loop value it has in
+    # deployment instead of inheriting the general landing task's pad-miss meaning.
+    landing_direct_hidden_dim: 256
+    landing_progress_override: 1.0
     update_landing_normalization: true
     post_loop_progress_threshold: 0.0
     touchdown_altitude_threshold: 0.3333333333333333

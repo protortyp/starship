@@ -998,6 +998,51 @@ def test_landing_expert_loads_exactly_then_trains_without_changing_salto(
     torch.testing.assert_close(exported(post_loop["policy"][:1]), expected_export)
 
 
+def test_direct_landing_expert_has_post_loop_schema_and_no_handoff_memory(tmp_path):
+    cfg = compose_cfg(
+        "num_envs=2",
+        "runner.actor.class_name=starship.train.models:ContinuousAdapterRNNModel",
+        "+runner.actor.continuous_adapter_hidden_dim=16",
+        "+runner.actor.engine_adapter_hidden_dim=8",
+        "+runner.actor.post_loop_adapter_hidden_dim=16",
+        "+runner.actor.touchdown_adapter_hidden_dim=16",
+        "+runner.actor.landing_expert=true",
+        "+runner.actor.landing_direct_hidden_dim=16",
+        "+runner.actor.landing_progress_override=1.0",
+        "+runner.actor.post_loop_progress_threshold=0.0",
+        "+runner.algorithm.actor_update_scope=landing_expert",
+    )
+    runner = make_runner(cfg, tmp_path)
+    actor = runner.alg.actor.eval()
+    obs = runner.env.get_observations()
+
+    # General landing uses channel 27 for pad miss, while salto deployment uses loop progress.
+    # The private controller must see completed-loop semantics in both cases.
+    obs["policy"][:, 27] = 0.25
+    landing_obs = actor._landing_observations(obs["policy"])
+    assert torch.equal(landing_obs[:, 27], torch.ones(2))
+
+    layer = actor.rnn.rnn
+    shape = (layer.num_layers, 2, layer.hidden_size)
+    zero = (torch.zeros(shape), torch.zeros(shape))
+    random = (torch.randn(shape), torch.randn(shape))
+    actor.reset()
+    from_reset = actor(obs, hidden_state=zero, stochastic_output=False).detach()
+    obs["policy"][:, 27] = 0.75
+    actor.reset()
+    after_salto_history = actor(obs, hidden_state=random, stochastic_output=False).detach()
+    assert torch.equal(from_reset, after_salto_history)
+
+    actor.reset()
+    with pytest.warns(FutureWarning, match="torch.jit.script"):
+        exported = torch.jit.script(actor.as_jit().eval())
+    for progress in (0.0, 1.0):
+        obs["policy"][:1, 27] = progress
+        expected = actor(obs[:1], stochastic_output=False)
+        actual = exported(obs["policy"][:1])
+        torch.testing.assert_close(actual, expected)
+
+
 def test_touchdown_adapter_loads_exactly_and_trains_only_near_ground_residual(tmp_path):
     base_cfg = compose_cfg(
         "num_envs=8",

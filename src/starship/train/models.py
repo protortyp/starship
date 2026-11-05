@@ -34,6 +34,8 @@ class ContinuousAdapterRNNModel(RNNModel):
         post_loop_lateral_adapter_hidden_dim: int = 0,
         touchdown_adapter_hidden_dim: int = 0,
         landing_expert: bool = False,
+        landing_direct_hidden_dim: int = 0,
+        landing_progress_override: float = -1.0,
         update_landing_normalization: bool = False,
         post_loop_progress_index: int = 27,
         post_loop_progress_threshold: float = 0.999999,
@@ -53,6 +55,12 @@ class ContinuousAdapterRNNModel(RNNModel):
             raise ValueError("post_loop_lateral_adapter_hidden_dim must be nonnegative")
         if touchdown_adapter_hidden_dim < 0:
             raise ValueError("touchdown_adapter_hidden_dim must be nonnegative")
+        if landing_direct_hidden_dim < 0:
+            raise ValueError("landing_direct_hidden_dim must be nonnegative")
+        if landing_direct_hidden_dim and not landing_expert:
+            raise ValueError("landing_direct_hidden_dim requires landing_expert=true")
+        if landing_progress_override != -1.0 and not 0.0 <= landing_progress_override <= 1.0:
+            raise ValueError("landing_progress_override must be -1 or between zero and one")
         super().__init__(*args, **kwargs)
         if not 0 <= post_loop_progress_index < self.obs_dim:
             raise ValueError("post_loop_progress_index must address an actor observation")
@@ -68,6 +76,7 @@ class ContinuousAdapterRNNModel(RNNModel):
         self.touchdown_altitude_threshold = touchdown_altitude_threshold
         self.resample_engine_count_post_loop = resample_engine_count_post_loop
         self.resample_engine_count_touchdown = resample_engine_count_touchdown
+        self.landing_progress_override = landing_progress_override
         self._post_loop_count_sampled: torch.Tensor | None = None
         self._touchdown_count_sampled: torch.Tensor | None = None
         self._deterministic_post_loop_count: torch.Tensor | None = None
@@ -185,10 +194,38 @@ class ContinuousAdapterRNNModel(RNNModel):
             if landing_expert and self.touchdown_adapter is not None
             else None
         )
+        # A landing policy trained outside the stunt must not depend on the shared LSTM state:
+        # standalone pretraining starts from a reset state, whereas deployment reaches the handoff
+        # after the complete salto history.  This optional Markov controller consumes only the
+        # current physical observation and replaces the latent-based landing copy when enabled.
+        self.landing_direct_mlp = None
+        if landing_expert and landing_direct_hidden_dim:
+            self.landing_direct_mlp = MLP(
+                self.obs_dim,
+                ACTION_DIM,
+                [landing_direct_hidden_dim, landing_direct_hidden_dim],
+                kwargs.get("activation", "elu"),
+            )
+            direct_output = next(
+                module
+                for module in reversed(list(self.landing_direct_mlp.modules()))
+                if isinstance(module, nn.Linear)
+            )
+            nn.init.zeros_(direct_output.weight)
+            nn.init.zeros_(direct_output.bias)
         # Landing transfer sees a deliberately wider state distribution. Its private running
         # statistics can adapt without changing the frozen normalization used by the salto path.
         self.landing_obs_normalizer = copy.deepcopy(self.obs_normalizer) if landing_expert else None
         self.update_landing_normalization_enabled = update_landing_normalization
+
+    def _landing_observations(self, raw: torch.Tensor) -> torch.Tensor:
+        """Return the exact post-loop observation schema used by the private controller."""
+        override = getattr(self, "landing_progress_override", -1.0)
+        if override < 0.0:
+            return raw
+        landing_raw = raw.clone()
+        landing_raw[..., self.post_loop_progress_index] = override
+        return landing_raw
 
     def update_landing_normalization(self, obs: TensorDict) -> None:
         normalizer = getattr(self, "landing_obs_normalizer", None)
@@ -198,7 +235,7 @@ class ContinuousAdapterRNNModel(RNNModel):
             and self.update_landing_normalization_enabled
         ):
             raw = torch.cat([obs[group] for group in self.obs_groups], dim=-1)
-            normalizer.update(raw)
+            normalizer.update(self._landing_observations(raw))
 
     def forward(
         self,
@@ -258,45 +295,50 @@ class ContinuousAdapterRNNModel(RNNModel):
             output = output + gate.unsqueeze(-1) * touchdown_adapter(adapter_obs)
         landing_mlp = getattr(self, "landing_mlp", None)
         if landing_mlp is not None:
-            landing_normalized = self.landing_obs_normalizer(raw)
-            landing_base = landing_mlp(latent)
-            landing_engine = landing_base[..., :ENGINE_HEADS]
-            landing_engine_adapter = getattr(self, "landing_engine_adapter", None)
-            if landing_engine_adapter is not None:
-                landing_engine = landing_engine + landing_engine_adapter(latent)
-            landing_continuous = landing_base[..., ENGINE_HEADS:] + (
-                self.landing_continuous_adapter(latent)
-            )
-            landing_output = torch.cat((landing_engine, landing_continuous), dim=-1)
+            landing_raw = self._landing_observations(raw)
+            landing_normalized = self.landing_obs_normalizer(landing_raw)
             adapter_obs = (
                 unpad_trajectories(landing_normalized, masks)
                 if masks is not None
                 else landing_normalized
             )
-            landing_post_loop_adapter = getattr(self, "landing_post_loop_adapter", None)
-            if landing_post_loop_adapter is not None:
-                landing_output = landing_output + landing_post_loop_adapter(adapter_obs)
-            landing_post_loop_lateral_adapter = getattr(
-                self, "landing_post_loop_lateral_adapter", None
-            )
-            if landing_post_loop_lateral_adapter is not None:
-                landing_lateral = landing_output[..., ENGINE_HEADS + 1 :] + (
-                    landing_post_loop_lateral_adapter(adapter_obs)
+            landing_direct_mlp = getattr(self, "landing_direct_mlp", None)
+            if landing_direct_mlp is not None:
+                landing_output = landing_direct_mlp(adapter_obs)
+            else:
+                landing_base = landing_mlp(latent)
+                landing_engine = landing_base[..., :ENGINE_HEADS]
+                landing_engine_adapter = getattr(self, "landing_engine_adapter", None)
+                if landing_engine_adapter is not None:
+                    landing_engine = landing_engine + landing_engine_adapter(latent)
+                landing_continuous = landing_base[..., ENGINE_HEADS:] + (
+                    self.landing_continuous_adapter(latent)
                 )
-                landing_output = torch.cat(
-                    (landing_output[..., : ENGINE_HEADS + 1], landing_lateral), dim=-1
+                landing_output = torch.cat((landing_engine, landing_continuous), dim=-1)
+                landing_post_loop_adapter = getattr(self, "landing_post_loop_adapter", None)
+                if landing_post_loop_adapter is not None:
+                    landing_output = landing_output + landing_post_loop_adapter(adapter_obs)
+                landing_post_loop_lateral_adapter = getattr(
+                    self, "landing_post_loop_lateral_adapter", None
                 )
-            landing_touchdown_adapter = getattr(self, "landing_touchdown_adapter", None)
-            if landing_touchdown_adapter is not None:
-                altitude_index = getattr(self, "touchdown_altitude_index", 12)
-                altitude_threshold = getattr(self, "touchdown_altitude_threshold", 1.0 / 6.0)
-                altitude = raw[..., altitude_index]
-                if masks is not None:
-                    altitude = unpad_trajectories(altitude.unsqueeze(-1), masks).squeeze(-1)
-                touchdown_gate = (altitude <= altitude_threshold).to(output.dtype).unsqueeze(-1)
-                landing_output = landing_output + touchdown_gate * landing_touchdown_adapter(
-                    adapter_obs
-                )
+                if landing_post_loop_lateral_adapter is not None:
+                    landing_lateral = landing_output[..., ENGINE_HEADS + 1 :] + (
+                        landing_post_loop_lateral_adapter(adapter_obs)
+                    )
+                    landing_output = torch.cat(
+                        (landing_output[..., : ENGINE_HEADS + 1], landing_lateral), dim=-1
+                    )
+                landing_touchdown_adapter = getattr(self, "landing_touchdown_adapter", None)
+                if landing_touchdown_adapter is not None:
+                    altitude_index = getattr(self, "touchdown_altitude_index", 12)
+                    altitude_threshold = getattr(self, "touchdown_altitude_threshold", 1.0 / 6.0)
+                    altitude = raw[..., altitude_index]
+                    if masks is not None:
+                        altitude = unpad_trajectories(altitude.unsqueeze(-1), masks).squeeze(-1)
+                    touchdown_gate = (altitude <= altitude_threshold).to(output.dtype).unsqueeze(-1)
+                    landing_output = landing_output + touchdown_gate * landing_touchdown_adapter(
+                        adapter_obs
+                    )
             progress_index = getattr(self, "post_loop_progress_index", 27)
             progress_threshold = getattr(self, "post_loop_progress_threshold", 0.999999)
             progress = raw[..., progress_index]
@@ -496,6 +538,14 @@ class _TorchLSTMContinuousAdapter(nn.Module):
             if landing_touchdown_adapter is not None
             else _ZeroPostLoopAdapter()
         )
+        landing_direct_mlp = getattr(model, "landing_direct_mlp", None)
+        self.landing_direct_enabled = landing_direct_mlp is not None
+        self.landing_direct_mlp = (
+            copy.deepcopy(landing_direct_mlp)
+            if landing_direct_mlp is not None
+            else _ZeroPostLoopAdapter()
+        )
+        self.landing_progress_override = getattr(model, "landing_progress_override", -1.0)
         self.post_loop_progress_index = getattr(model, "post_loop_progress_index", 27)
         self.post_loop_progress_threshold = getattr(model, "post_loop_progress_threshold", 0.999999)
         self.touchdown_altitude_index = getattr(model, "touchdown_altitude_index", 12)
@@ -543,19 +593,26 @@ class _TorchLSTMContinuousAdapter(nn.Module):
         )
         output = output + touchdown_gate.to(output.dtype).unsqueeze(-1) * self.touchdown_adapter(x)
         if self.landing_expert_enabled:
-            landing_x = self.landing_obs_normalizer(raw)
-            landing_base = self.landing_mlp(latent)
-            landing_engine = landing_base[..., :3] + self.landing_engine_adapter(latent)
-            landing_continuous = landing_base[..., 3:] + self.landing_continuous_adapter(latent)
-            landing_output = torch.cat((landing_engine, landing_continuous), dim=-1)
-            landing_output = landing_output + self.landing_post_loop_adapter(landing_x)
-            landing_lateral = landing_output[..., 4:] + self.landing_post_loop_lateral_adapter(
-                landing_x
-            )
-            landing_output = torch.cat((landing_output[..., :4], landing_lateral), dim=-1)
-            landing_output = landing_output + touchdown_gate.to(landing_output.dtype).unsqueeze(
-                -1
-            ) * self.landing_touchdown_adapter(landing_x)
+            landing_raw = raw
+            if self.landing_progress_override >= 0.0:
+                landing_raw = raw.clone()
+                landing_raw[:, self.post_loop_progress_index] = self.landing_progress_override
+            landing_x = self.landing_obs_normalizer(landing_raw)
+            if self.landing_direct_enabled:
+                landing_output = self.landing_direct_mlp(landing_x)
+            else:
+                landing_base = self.landing_mlp(latent)
+                landing_engine = landing_base[..., :3] + self.landing_engine_adapter(latent)
+                landing_continuous = landing_base[..., 3:] + self.landing_continuous_adapter(latent)
+                landing_output = torch.cat((landing_engine, landing_continuous), dim=-1)
+                landing_output = landing_output + self.landing_post_loop_adapter(landing_x)
+                landing_lateral = landing_output[..., 4:] + self.landing_post_loop_lateral_adapter(
+                    landing_x
+                )
+                landing_output = torch.cat((landing_output[..., :4], landing_lateral), dim=-1)
+                landing_output = landing_output + touchdown_gate.to(landing_output.dtype).unsqueeze(
+                    -1
+                ) * self.landing_touchdown_adapter(landing_x)
             output = torch.where(gate > 0.5, landing_output, output)
         actions = self.deterministic_output(output)
         if self.resample_engine_count_post_loop:
