@@ -646,6 +646,28 @@ Actor and critic ranks are healthy at 74/128 and 48/128, the throttle gradient r
 rollback count is zero. The critic's final-layer gradient has fallen to 8.9% of its start, but its
 rank and the actor's continued health support completing the requested update-1,500 endpoint with
 the original 29.10% actor protected.
+The exact update-1,500 endpoint lands 28.61%, with balanced 52.1% vertical and 52.3% horizontal
+failure rates and 47.1% pad-miss failures. Live landing finishes at 29.8% overall and 30.5% over
+each of the latest 20, 50 and 100 evaluations. Actor and critic ranks remain healthy at 74/128
+and 47/128, the throttle gradient is active and rollback count is zero. The branch is retired only
+after its full requested horizon, and the 29.10% source remains the broad optimum. Together, the
+two one-coordinate passes map the coupling cleanly: lateral-only training fixes horizontal speed
+at the cost of vertical braking, while throttle-only training reverses that trade without beating
+the balanced source.
+
+A protected joint-control pass now resumes that source, warms only its critic for 100 updates, then
+trains touchdown output rows 3--10 together. Engine-count rows 0--2, shared touchdown features,
+salto and high-altitude descent remain exact. This is the smallest architecture expansion that can
+learn state-dependent braking and lateral correction jointly. Its first deterministic evaluation
+lands 33% on stage 176 while the actor remains frozen. At critic updates 50 and 100, all 35 actor
+tensors stay bit-exact while all 14 critic tensors change. After 50 actor updates, only the
+touchdown final weight and bias have moved and only joint-control rows 3--10 change within them;
+engine-count rows 0--2 and the other 33 actor tensors remain exact. Its fixed probe lands 28.52%
+versus the 29.10% source. Horizontal-speed failures improve to 45.8%, but vertical-speed failures
+rise to 57.9% and pad misses are 48.1%. Live landing is 29.3% overall; actor and critic ranks are
+healthy at 73/128 and 47/128, the joint-control gradient is active and rollback count is zero. The
+exact mask and stable opening support continuing through update 250 and 500 before judging the
+joint architecture.
 The validated 3.25x actor's seed-0
 [42.5-second chase recording](assets/salto-stage176-u900-throttle325.mp4) and
 [nine-frame sequence](assets/salto-stage176-u900-throttle325-sequence.jpg) show its powered
