@@ -740,6 +740,20 @@ pinned 36.04% best. Vertical, horizontal and miss failure rates are 69.9%, 31.9%
 Actor and critic ranks remain healthy at 74/128 and 47/128, the joint gradient is strong at 8.7
 and no second rollback has fired. The uninterrupted post-rollback branch therefore completes the
 remaining 250 updates to the promised 1,500 endpoint.
+The exact update-1,500 endpoint lands 30.37% over the fixed 1,024 scenarios. Horizontal and
+pad-miss failures improve to 28% and 36%, but vertical-speed failures rise to 74%, confirming the
+same terminal control-axis tradeoff rather than a temporary excursion. The protected update-228
+actor validates at 34.84% over 4,096 scenarios, 0.81 points above its scale-5 source and 5.74
+points above the older balanced controller; it is selected unambiguously. At the inserted
+293.75 m / 19.5 m/s vertical / 11.75 m/s horizontal midpoint it lands 40.62% over the same 4,096
+scenarios, versus 34.84% at the preserved original boundary. The endpoint service is retired only
+after its full requested horizon, and the selected checkpoint now resumes on that measured
+midpoint with the original 45% promotion gate.
+The new 4,096-environment midpoint continuation opens at 34--46% deterministic landing during its
+100-update critic warmup. At saved critic update 22 all 35 actor tensors remain bit-exact while all
+14 critic tensors change; actor and critic feature ranks are healthy at 74/128 and 46/128. Its
+isolated 46% evaluation does not satisfy the required consecutive gate, so the warmup continues
+without overclaiming promotion.
 The validated scale-5 actor's seed-0
 [42.3-second chase recording](assets/salto-stage176-split-scale5.mp4) and
 [nine-frame sequence](assets/salto-stage176-split-scale5-sequence.jpg) show the selected paired

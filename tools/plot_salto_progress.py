@@ -640,10 +640,16 @@ TRACES = (
         "#1d4ed8",
     ),
     Trace(
-        "split-direction scale-5 joint-control continuation, stage 176 (live)",
+        "split-direction scale-5 joint-control continuation (1,500 updates, retired)",
         ROOT / "out/salto-stage176-split-scale5-control-head-4k-v1.log",
         176,
         "#6d28d9",
+    ),
+    Trace(
+        "measured stage-176 midpoint (live)",
+        ROOT / "out/salto-stage176-midpoint-control-head-4k-v1.log",
+        176,
+        "#be123c",
     ),
     Trace(
         "private lateral adapter, 129 updates (retired)",
