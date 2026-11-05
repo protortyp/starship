@@ -730,10 +730,16 @@ TRACES = (
         "#22c55e",
     ),
     Trace(
-        "Markov pretrain, centre prior without fuel shortcut (live)",
+        "Markov pretrain, no-fuel control (1,500 updates, retired)",
         ROOT / "out/salto-landing-direct-center-nofuel-2k-v10.log",
         0,
         "#16a34a",
+    ),
+    Trace(
+        "Markov pretrain, pad-shaped continuation (live)",
+        ROOT / "out/salto-landing-direct-padshape-2k-v11.log",
+        0,
+        "#15803d",
     ),
     Trace(
         "fine-bridge transfer to 1/8 (retired after validation)",

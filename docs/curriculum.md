@@ -943,7 +943,15 @@ and improve deterministic vertical impact from 57.6 to 52.5 m/s, horizontal impa
 4.3 m/s and pad miss from 34.6 to 32.8 m. Return improves from -44.5 to -43.0 instead of collapsing
 to the engine-off shortcut; actor/critic feature ranks are 124/256 and 24/128 with 0.95 explained
 variance. This is the first direct-pretrain branch whose early control metrics all move in the
-intended direction, so it remains on the full horizon. It will
+intended direction. The requested 1,500-actor-update control improves its best deterministic landing
+to 2.34%. Its selected checkpoint averages 3.6 m/s vertical and 0.74 m/s horizontal impact, but
+still misses the 15 m pad by 37 m; stochastic rollout landing reaches 1--2%. Actor rank remains
+84/256 and explained variance 0.93, while critic rank falls to 10/128 on the narrow stage. The
+control is retired at its promised endpoint. A protected continuation now adds the already-proven
+0.05 near-ground horizontal-distance potential, resets and warms the critic for 100 updates under
+the changed objective, and preserves the learned two-engine burn. The fresh critic reaches 26/128
+during warmup; after 100 pad-shaped actor updates, stochastic landing remains 1--3% and fixed pad
+miss improves modestly from 37.8 to 34.8 m. It remains on the long horizon and will
 relearn the known strict 2 m/s vertical, 1 m/s horizontal and 15 m pad task directly, then return
 under the normal
 post-salto gate at solved stage 179 through `salto_land_expert_transfer` for stitching and held-out
