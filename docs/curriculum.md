@@ -753,7 +753,14 @@ The new 4,096-environment midpoint continuation opens at 34--46% deterministic l
 100-update critic warmup. At saved critic update 22 all 35 actor tensors remain bit-exact while all
 14 critic tensors change; actor and critic feature ranks are healthy at 74/128 and 46/128. Its
 isolated 46% evaluation does not satisfy the required consecutive gate, so the warmup continues
-without overclaiming promotion.
+without overclaiming promotion. At saved actor update 22, only the touchdown final weight and bias
+change, and only control rows 3--10 move within them; engine-count rows 0--2 and the other 33 actor
+tensors stay bit-exact. Its fixed 1,024-scenario probe lands 41.41%, statistically flat to the
+41.80% source probe. Actor and critic ranks remain healthy at 73/128 and 47/128, the joint gradient
+is active at 6.5 and the optimizer rate is exactly 1e-6. Saved actor update 72 remains stable at
+41.60% fixed landing, with 64% vertical-speed, 39% horizontal-speed and 47% pad-miss crash
+failures. The healthy midpoint run therefore continues unchanged through updates 250 and 500
+before the long horizon is judged.
 The validated scale-5 actor's seed-0
 [42.3-second chase recording](assets/salto-stage176-split-scale5.mp4) and
 [nine-frame sequence](assets/salto-stage176-split-scale5-sequence.jpg) show the selected paired
