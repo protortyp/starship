@@ -38,20 +38,21 @@
 
 The `salto_land` curriculum first learns one powered end-over-end rotation and recovery, then keeps
 the same recurrent policy alive while tightening touchdown speed, pad radius, attitude and angular
-rate. It expands to 210 stages and has a 2,000-update default budget; promotion requires at least 45%
+rate. It expands to 213 stages and has a 2,000-update default budget; promotion requires at least 45%
 of 256 deterministic evaluation episodes twice in succession. Compact numeric interpolation blocks
 keep the long braking tail reviewable while limiting each post-60 transition to 1.25 m/s vertical
 speed, 0.75 m/s horizontal speed, 12.5 m pad radius, 5° tilt, and 10°/s angular rate. The final stage
 additionally requires exactly one inverted-to-upright recovery with no re-flip and penalizes axial
 roll and rotation beyond 360°.
 
-Current campaign: stages 0--175 are solved. The original stage-176 boundary stalls below promotion
+Current campaign: stages 0--179 are solved. The original stage-176 boundary stalls below promotion
 after full 1,500-update lateral-only, throttle-only and joint-control horizons. Decomposing the
 learned directions produces a robust scale-5 controller that lands 34.03% over 4,096 fixed
 scenarios, a 4.93-point gain over its source. Its protected live-best continuation lands 36.04%
-over 1,024 scenarios at the original boundary and 41.80% at the measured halfway boundary. The
-curriculum therefore inserts only that 293.75 m / 19.5 m/s vertical / 11.75 m/s horizontal
-half-step as stage 176; the former stage 176 and every later target remain exact, shifted by one.
+over 1,024 scenarios at the original boundary and 41.80% at the measured 1/8 boundary. Fixed probes
+at fractions 1/32, 1/16 and 3/32 land 45.70%, 44.43% and 42.87%; a protected restart passes all
+three during critic-only adaptation. They are stages 176--178, the 1/8 boundary is stage 179, and
+the former stage 176 and every later target remain exact, shifted by four.
 The campaign's unified policy completed the
 51-step two-engine
 braking/pad ladder, restored the exact 35 m/s vertical, 22 m/s horizontal and 450 m pad waypoint,
@@ -800,8 +801,22 @@ healthy at 73/128 and 46/128, the touchdown gradient is active at 6.4, output up
 3.6e-5 and rollback count is zero. Saved actor update 72 remains stable at 41.21% fixed landing;
 vertical-speed failures ease to 63.5%, while horizontal-speed and pad-miss failures are 38.9% and
 46.2%. Only the same final output rows move, the saved rate remains 1e-6, ranks are healthy and
-rollback count remains zero. The matched run therefore continues unchanged through updates 250 and
-500 before its long horizon is judged.
+rollback count remains zero. The run then produces the required consecutive gate-level evaluations
+and passes the 1/8 boundary at actor update 153. Its exact promotion checkpoint lands 41.11% over
+the fixed 1,024 stage-179 scenarios; vertical-speed, horizontal-speed and pad-miss failures are
+63.7%, 38.8% and 45.3%. Only touchdown output rows 3--10 differ from the source, the engine rows
+remain exact, the saved rate is 1e-6 and rollback count is zero. The same actor lands 35.94% on the
+preserved original quarter-step, 1.1 points above its source there. The live run enters that target
+as stage 177 in its immutable resolved config, corresponding exactly to stage 180 after the three
+measured bridges are codified; actor/critic ranks remain healthy at 73/128 and 46/128 with an active
+8.6 touchdown gradient. It continues uninterrupted on the stricter boundary.
+A zero-training fixed-1,024 sweep also measures the protected source at fractions 0, 1/32, 1/16,
+3/32 and 1/8 of this transition: landing declines smoothly from 46.68% to 45.70%, 44.43%, 42.87%
+and 41.80%. Vertical-speed failures rise from 61.2% to 63.3% across the same sweep. This identifies
+1/32 as a gate-level bridge and 1/16 as a near-gate successor. A protected 1,024-environment branch
+then passes 1/32, 1/16 and 3/32 after about 7, 5 and 4 critic-only updates, keeping all 35 actor
+tensors bit-exact before entering the preserved 1/8 boundary as stage 179. The active 4,096-
+environment reward A/B stays uninterrupted so its full long-horizon comparison remains valid.
 The validated scale-5 actor's seed-0
 [42.3-second chase recording](assets/salto-stage176-split-scale5.mp4) and
 [nine-frame sequence](assets/salto-stage176-split-scale5-sequence.jpg) show the selected paired

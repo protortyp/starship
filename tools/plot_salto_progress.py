@@ -652,10 +652,22 @@ TRACES = (
         "#be123c",
     ),
     Trace(
-        "2x vertical-touchdown midpoint (live)",
+        "2x vertical-touchdown 1/8 control (passed at update 153)",
         ROOT / "out/salto-stage176-midpoint-vtouch4-control-head-4k-v1.log",
         176,
         "#dc2626",
+    ),
+    Trace(
+        "2x vertical-touchdown quarter-step (live)",
+        ROOT / "out/salto-stage176-midpoint-vtouch4-control-head-4k-v1.log",
+        177,
+        "#b91c1c",
+    ),
+    Trace(
+        "fine-bridge transfer to 1/8 (retired after validation)",
+        ROOT / "out/salto-stage176-fine-bridge-control-head-1k-v1.log",
+        179,
+        "#ea580c",
     ),
     Trace(
         "private lateral adapter, 129 updates (retired)",

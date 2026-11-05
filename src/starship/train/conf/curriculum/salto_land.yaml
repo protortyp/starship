@@ -651,9 +651,14 @@ stages:
     interpolate:
       # The original first quarter-step remains below the promotion gate after three protected
       # 1,500-update coordinate passes and a healthy 1,500-update joint continuation. The selected
-      # joint checkpoint lands 36.04% over 1,024 fixed scenarios there, but 41.80% at the measured
-      # halfway boundary. Insert only that 1/8 fraction, then retain every original quarter-step.
+      # joint checkpoint lands 36.04% over 1,024 fixed scenarios there. At fractions 1/32, 1/16,
+      # 3/32 and 1/8, it lands 45.70%, 44.43%, 42.87% and 41.80%. A protected restart passes the
+      # first three during critic-only adaptation, so preserve those measured bridges and every
+      # original quarter-step exactly.
       fractions:
+        - 0.03125
+        - 0.0625
+        - 0.09375
         - 0.125
         - 0.25
         - 0.5
