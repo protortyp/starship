@@ -72,8 +72,13 @@ def main() -> None:
             ROOT / "out" / "salto-landing-direct-padshape10-2k-v12.log",
             "#334155",
         ),
+        (
+            "gate curriculum, saturated critic",
+            ROOT / "out" / "salto-landing-direct-gatecurriculum-2k-v13.log",
+            "#7c3aed",
+        ),
     )
-    live = evaluations(ROOT / "out" / "salto-landing-direct-gatecurriculum-2k-v13.log")
+    live = evaluations(ROOT / "out" / "salto-landing-gatecurriculum-normcritic-2k-v14.log")
     series = [(label, evaluations(path), color) for label, path, color in controls]
     left, width = 78, 760
     success_top, success_height = 100, 300

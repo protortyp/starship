@@ -965,14 +965,20 @@ weight doubled to 0.10 and another fresh-critic warmup. It reached a 17.2% best 
 but seven rollbacks followed; at the requested 1,500-actor-update endpoint its fixed landing is
 6.25%, recent-20 mean 3.52%, and strict target landing 0%. Actor rank remains about 120/256 while
 critic rank contracts to 25/128, so this long control rules out simply extending the strict sparse
-objective. Its protected 17.2% checkpoint now starts the dedicated 25-stage loose-to-strict
-touchdown curriculum with another fresh critic. Its opening loose-gate fixed evaluations are
+objective. Its protected 17.2% checkpoint then started the dedicated 25-stage loose-to-strict
+touchdown curriculum with another fresh critic. Its opening loose-gate fixed evaluations were
 85.9--90.6% (87.3% mean across the first four), while the simultaneous untouched strict target is
-15.6%; the actor remains frozen during the 100-update critic warmup. Once unlocked, it reaches
-stage 6/24 by actor update 325 with 94--98% gate evaluations. Strict-target success temporarily
-falls to 0% as the policy adapts to the loose objective, so target recovery—not stage speed—is the
-important endpoint check. After this curriculum reaches and retains the strict endpoint, the expert
-returns under the normal post-salto gate at solved stage 179 through
+15.6%; the actor remained frozen during the 100-update critic warmup. Once unlocked, it reached
+stage 11/24, but the post-warmup critic-rate jump from 1e-5 to 3e-5 collapsed critic rank to 6/128
+with 31--50% saturated LSTM gates. Gate evaluation briefly recovered to 96.9%, then collapsed to
+0% around actor update 1,225. One rollback restored the protected actor but could not produce two
+new passes; the 1,500-update endpoint is 85% gate / 0% strict target. This identifies a value
+learning failure rather than insufficient horizon. A matched successor keeps the critic at 1e-5,
+normalizes its return targets and resumes the protected actor at stage 11. It promotes to stage 12
+during critic warmup; after 120 actor updates its critic rank is 64/128 with no saturated gates,
+while gate evaluation is adapting at 80%. Strict-target recovery—not stage speed—remains the
+important endpoint check. After this curriculum reaches and retains the strict endpoint, the
+expert returns under the normal post-salto gate at solved stage 179 through
 `salto_land_expert_transfer` for stitching and held-out acceptance. Runtime smoke tests cover the
 full checkpoint migration, and the direct expert is regression-tested for completed-loop
 observation semantics, invariance to salto hidden state and sequential JIT parity.
