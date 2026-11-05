@@ -1215,6 +1215,40 @@ def test_touchdown_head_preserves_rows_after_optimizer_resume(tmp_path, scope, t
     assert torch.equal(protected_bias, output.bias[protected])
 
 
+def test_direct_landing_lateral_head_preserves_features_burn_and_optimizer_rows(tmp_path):
+    cfg = compose_cfg(
+        "num_envs=8",
+        "runner.actor.class_name=starship.train.models:ContinuousAdapterRNNModel",
+        "+runner.actor.continuous_adapter_hidden_dim=16",
+        "+runner.actor.engine_adapter_hidden_dim=8",
+        "+runner.actor.landing_expert=true",
+        "+runner.actor.landing_direct_hidden_dim=16",
+        "+runner.actor.landing_progress_override=1.0",
+        "+runner.algorithm.actor_update_scope=landing_direct_lateral_head",
+    )
+    runner = make_runner(cfg, tmp_path)
+    direct = runner.alg.actor.landing_direct_mlp
+    output = next(
+        module for module in reversed(list(direct.modules())) if isinstance(module, torch.nn.Linear)
+    )
+    before = {name: value.detach().clone() for name, value in direct.named_parameters()}
+
+    runner.alg.optimizer.zero_grad()
+    (output.weight.sum() + output.bias.sum()).backward()
+    runner.alg._optimizer_step()
+
+    after = dict(direct.named_parameters())
+    assert torch.equal(before["0.weight"], after["0.weight"])
+    assert torch.equal(before["0.bias"], after["0.bias"])
+    assert torch.equal(before["2.weight"], after["2.weight"])
+    assert torch.equal(before["2.bias"], after["2.bias"])
+    assert torch.equal(before["4.weight"][: ENGINE_HEADS + 1], output.weight[: ENGINE_HEADS + 1])
+    assert torch.equal(before["4.bias"][: ENGINE_HEADS + 1], output.bias[: ENGINE_HEADS + 1])
+    assert not torch.equal(
+        before["4.weight"][ENGINE_HEADS + 1 :], output.weight[ENGINE_HEADS + 1 :]
+    )
+
+
 def test_touchdown_adapter_is_phase_and_altitude_gated_and_jit_matches_policy(tmp_path):
     cfg = compose_cfg(
         "num_envs=1",

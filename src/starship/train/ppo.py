@@ -80,6 +80,7 @@ class InstrumentedPPO(PPO):
             "touchdown_throttle_head",
             "touchdown_lateral_head",
             "landing_expert",
+            "landing_direct_lateral_head",
         ):
             raise ValueError(
                 "actor_update_scope must be 'all', 'continuous_head', 'continuous_adapter', "
@@ -87,6 +88,7 @@ class InstrumentedPPO(PPO):
                 "'post_loop_lateral_head', 'post_loop_lateral_adapter', 'touchdown_adapter', "
                 "'touchdown_control_head', 'touchdown_throttle_head', or "
                 "'touchdown_lateral_head', or 'landing_expert'"
+                ", or 'landing_direct_lateral_head'"
             )
         super().__init__(*args, **kwargs)
         self.max_kl = max_kl
@@ -122,6 +124,8 @@ class InstrumentedPPO(PPO):
             self._freeze_actor_except_touchdown_lateral_head()
         elif actor_update_scope == "landing_expert":
             self._freeze_actor_except_landing_expert()
+        elif actor_update_scope == "landing_direct_lateral_head":
+            self._freeze_actor_except_landing_direct_lateral_head()
         # Every `diagnostics_interval` updates, log network health under plasticity/* (0 = off).
         self.diagnostics_interval = diagnostics_interval
         self._updates_done = 0
@@ -447,6 +451,37 @@ class InstrumentedPPO(PPO):
         for module in expert:
             for parameter in module.parameters():
                 parameter.requires_grad_(True)
+
+    def _freeze_actor_except_landing_direct_lateral_head(self) -> None:
+        """Tune direct-expert steering without moving its features, engine count or throttle."""
+        direct = getattr(self.actor, "landing_direct_mlp", None)
+        if direct is None:
+            raise ValueError(
+                "actor_update_scope='landing_direct_lateral_head' requires landing_direct_mlp"
+            )
+        output = next(
+            (
+                module
+                for module in reversed(list(direct.modules()))
+                if isinstance(module, nn.Linear)
+            ),
+            None,
+        )
+        if output is None or output.bias is None:
+            raise ValueError("landing_direct_mlp has no trainable output layer")
+        for parameter in self.actor.parameters():
+            parameter.requires_grad_(False)
+        output.weight.requires_grad_(True)
+        output.bias.requires_grad_(True)
+
+        # The protected controller already brakes safely but drifts away from the pad when all
+        # 256-wide layers update. Preserve its representation and burn, and train only steering.
+        weight_mask = torch.ones_like(output.weight)
+        bias_mask = torch.ones_like(output.bias)
+        weight_mask[: ENGINE_HEADS + 1] = 0
+        bias_mask[: ENGINE_HEADS + 1] = 0
+        self._register_parameter_mask(output.weight, weight_mask)
+        self._register_parameter_mask(output.bias, bias_mask)
 
     def _activation_diagnostics(self, max_envs: int = 4096) -> dict[str, float]:
         """Unit, rank and gate diagnostics on a random rollout step and its stored hidden state."""
