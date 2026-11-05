@@ -193,6 +193,34 @@ def test_in_process_checkpoint_restore_keeps_post_warmup_learning_rate(tmp_path)
     assert all(group["lr"] == pytest.approx(1e-6) for group in runner.alg.optimizer.param_groups)
 
 
+def test_post_warmup_critic_learning_rate_is_independent_and_resumes_legacy_checkpoint(tmp_path):
+    old_cfg = compose_cfg(*SHORT_EPISODES)
+    old = make_runner(old_cfg, tmp_path / "old")
+    old.learn(1)
+
+    cfg = compose_cfg(
+        *SHORT_EPISODES,
+        "runner.algorithm.learning_rate=3e-5",
+        "+runner.algorithm.critic_warmup_updates=1",
+        "+runner.algorithm.post_warmup_learning_rate=2.5e-7",
+        "+runner.algorithm.post_warmup_critic_learning_rate=1e-6",
+    )
+    runner = make_runner(cfg, tmp_path / "new")
+    runner.load(str(tmp_path / "old" / "model_0.pt"))
+    assert [group["component"] for group in runner.alg.optimizer.param_groups] == [
+        "actor",
+        "critic",
+    ]
+
+    collect(runner)
+    runner.alg.update()
+    collect(runner)
+    metrics = runner.alg.update()
+
+    assert metrics["optim/lr/group_0"] == pytest.approx(2.5e-7)
+    assert metrics["optim/lr/group_1"] == pytest.approx(1e-6)
+
+
 def test_reset_critic_preserves_actor_and_its_optimizer_state(tmp_path):
     cfg = compose_cfg(*SHORT_EPISODES)
     first = make_runner(cfg, tmp_path / "a")

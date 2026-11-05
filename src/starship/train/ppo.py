@@ -54,6 +54,7 @@ class InstrumentedPPO(PPO):
         max_kl: float | None = None,
         critic_warmup_updates: int = 0,
         post_warmup_learning_rate: float | None = None,
+        post_warmup_critic_learning_rate: float | None = None,
         actor_update_scope: str = "all",
         **kwargs,
     ):
@@ -63,6 +64,8 @@ class InstrumentedPPO(PPO):
             raise ValueError("critic_warmup_updates must be nonnegative")
         if post_warmup_learning_rate is not None and post_warmup_learning_rate <= 0:
             raise ValueError("post_warmup_learning_rate must be positive or None")
+        if post_warmup_critic_learning_rate is not None and post_warmup_critic_learning_rate <= 0:
+            raise ValueError("post_warmup_critic_learning_rate must be positive or None")
         if actor_update_scope not in (
             "all",
             "continuous_head",
@@ -89,6 +92,10 @@ class InstrumentedPPO(PPO):
         self.max_kl = max_kl
         self.critic_warmup_updates = critic_warmup_updates
         self.post_warmup_learning_rate = post_warmup_learning_rate
+        self.post_warmup_critic_learning_rate = post_warmup_critic_learning_rate
+        self.critic_learning_rate = self.learning_rate
+        if post_warmup_critic_learning_rate is not None:
+            self._split_actor_critic_param_groups()
         self.actor_update_scope = actor_update_scope
         self._parameter_masks: list[tuple[nn.Parameter, torch.Tensor]] = []
         if actor_update_scope == "continuous_head":
@@ -125,6 +132,27 @@ class InstrumentedPPO(PPO):
         if value_normalization:
             self.critic.value_norm = ValueNormalizer().to(self.device)
             self.value_norm = self.critic.value_norm
+
+    def _split_actor_critic_param_groups(self) -> None:
+        """Give actor and critic independent rates while preserving one Adam state machine."""
+        group = self.optimizer.param_groups[0]
+        actor_ids = {id(parameter) for parameter in self.actor.parameters()}
+        actor = [parameter for parameter in group["params"] if id(parameter) in actor_ids]
+        critic = [parameter for parameter in group["params"] if id(parameter) not in actor_ids]
+        common = {key: value for key, value in group.items() if key != "params"}
+        self.optimizer.param_groups = [
+            {**common, "params": actor, "component": "actor"},
+            {**common, "params": critic, "component": "critic"},
+        ]
+
+    def apply_learning_rates(self) -> None:
+        """Apply configured actor and critic rates to their optimizer groups."""
+        for group in self.optimizer.param_groups:
+            group["lr"] = (
+                self.critic_learning_rate
+                if group.get("component") == "critic"
+                else self.learning_rate
+            )
 
     def _freeze_actor_backbone_and_engine_head(self) -> None:
         """Keep the deployed engine schedule fixed while tuning continuous actuator outputs."""
@@ -494,13 +522,18 @@ class InstrumentedPPO(PPO):
         )
         self._updates_done += 1
         critic_warmup = self._updates_done <= self.critic_warmup_updates
-        if (
+        if self._updates_done == self.critic_warmup_updates + 1 and (
             self.post_warmup_learning_rate is not None
-            and self._updates_done == self.critic_warmup_updates + 1
+            or self.post_warmup_critic_learning_rate is not None
         ):
-            self.learning_rate = self.post_warmup_learning_rate
-            for group in self.optimizer.param_groups:
-                group["lr"] = self.learning_rate
+            if self.post_warmup_learning_rate is not None:
+                self.learning_rate = self.post_warmup_learning_rate
+            self.critic_learning_rate = (
+                self.post_warmup_critic_learning_rate
+                if self.post_warmup_critic_learning_rate is not None
+                else self.learning_rate
+            )
+            self.apply_learning_rates()
         if diagnose:
             before = {"actor": diag.snapshot(self.actor), "critic": diag.snapshot(self.critic)}
             plasticity = self._activation_diagnostics()
@@ -549,8 +582,7 @@ class InstrumentedPPO(PPO):
                         self.learning_rate = max(1e-5, self.learning_rate / 1.5)
                     elif 0.0 < kl_mean < self.desired_kl / 2.0:
                         self.learning_rate = min(1e-2, self.learning_rate * 1.5)
-                    for group in self.optimizer.param_groups:
-                        group["lr"] = self.learning_rate
+                    self.apply_learning_rates()
 
                 log_ratio = log_prob - torch.squeeze(batch.old_actions_log_prob)
                 ratio = torch.exp(log_ratio)

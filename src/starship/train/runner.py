@@ -251,13 +251,19 @@ class StarshipRunner(OnPolicyRunner):
         # an in-process rollback, PPO has already moved beyond critic warmup, so restoring the
         # bootstrap rate here would silently undo post-warmup stabilization.
         self.alg.learning_rate = self.cfg["algorithm"]["learning_rate"]
+        self.alg.critic_learning_rate = self.alg.learning_rate
         if (
             self.alg.post_warmup_learning_rate is not None
             and self.alg._updates_done > self.alg.critic_warmup_updates
         ):
             self.alg.learning_rate = self.alg.post_warmup_learning_rate
-        for group in self.alg.optimizer.param_groups:
-            group["lr"] = self.alg.learning_rate
+        if self.alg._updates_done > self.alg.critic_warmup_updates:
+            self.alg.critic_learning_rate = (
+                self.alg.post_warmup_critic_learning_rate
+                if self.alg.post_warmup_critic_learning_rate is not None
+                else self.alg.learning_rate
+            )
+        self.alg.apply_learning_rates()
         self.next_iteration = self.current_learning_iteration + 1
         # Keeps TensorBoard's env-step axis continuous, assuming the same batch size as before.
         self.total_env_steps = (

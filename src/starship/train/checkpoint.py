@@ -15,6 +15,28 @@ def _pad(value: torch.Tensor, fill: float = 0) -> torch.Tensor:
     return result
 
 
+def _migrate_optimizer_groups(checkpoint: dict, optimizer) -> None:
+    """Split a legacy joint group when the current optimizer separates actor and critic rates."""
+    saved = checkpoint.get("optimizer_state_dict")
+    if saved is None or len(saved["param_groups"]) != 1 or len(optimizer.param_groups) != 2:
+        return
+    current = optimizer.state_dict()
+    old_group = saved["param_groups"][0]
+    counts = [len(group["params"]) for group in current["param_groups"]]
+    if len(old_group["params"]) != sum(counts):
+        checkpoint["optimizer_state_dict"] = current
+        return
+    groups = []
+    offset = 0
+    for target, count in zip(current["param_groups"], counts, strict=True):
+        group = {**old_group, "params": old_group["params"][offset : offset + count]}
+        if "component" in target:
+            group["component"] = target["component"]
+        groups.append(group)
+        offset += count
+    saved["param_groups"] = groups
+
+
 def migrate_checkpoint(checkpoint: dict, actor: nn.Module, critic: nn.Module, optimizer) -> None:
     changed = set()
     actor_state = checkpoint["actor_state_dict"]
@@ -72,6 +94,7 @@ def migrate_checkpoint(checkpoint: dict, actor: nn.Module, critic: nn.Module, op
         # Parameter ordering changes when the adapter is introduced. Start fresh optimizer
         # moments rather than attaching old moments to the wrong tensors.
         checkpoint["optimizer_state_dict"] = optimizer.state_dict()
+    _migrate_optimizer_groups(checkpoint, optimizer)
     for name, model in (("actor", actor), ("critic", critic)):
         state = checkpoint[f"{name}_state_dict"]
         target = model.state_dict()

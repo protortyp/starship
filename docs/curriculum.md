@@ -49,7 +49,8 @@ roll and rotation beyond 360°.
 the stunt. It copies the learned output controller exactly at load time, switches to that independent
 copy only after the monotonic loop-progress channel reaches one, and freezes the original salto path.
 Its default run adapts the critic for 100 updates, then gives the landing expert a 2,000-update
-horizon with re-flip shaping active. Final claims use `starship-acceptance`: five held-out spawn
+horizon with re-flip shaping active. Independent optimizer groups keep the conservative expert
+actor rate from freezing the critic. Final claims use `starship-acceptance`: five held-out spawn
 streams of 1,024 episodes on the exact last stage, each required to land at least 50% with one flip
 and zero re-flips.
 
@@ -851,7 +852,12 @@ bridge promotions during critic adaptation, but the first complete-expert 1e-6 c
 from about 40% to 26--34% evaluation landing over 68 actor updates despite healthy features and full
 PPO minibatch counts. That rate is retired rather than extrapolated. A continuation from the clean
 3/32 promotion checkpoint refreshes the already-healthy critic for 50 updates, then uses 2.5e-7 for
-the long expert horizon.
+the long expert horizon. Its first 47 actor updates hold a 40.1% mean across the latest eight
+evaluations, but diagnostics show the critic output update ratio falling to 1.8e-6 because the
+shared post-warmup rate also reduced value learning to 2.5e-7. PPO now supports independently
+scheduled actor and critic parameter groups, including migration of legacy joint-optimizer
+checkpoints. The next expert continuation retains the measured 2.5e-7 actor rate while keeping the
+critic at 1e-6.
 The vertical-touchdown promotion policy's seed-0
 [42.1-second vertical-touchdown promotion recording](assets/salto-stage180-vtouch4-passed.mp4) and
 [nine-frame sequence](assets/salto-stage180-vtouch4-passed-sequence.jpg) show the exact passed actor

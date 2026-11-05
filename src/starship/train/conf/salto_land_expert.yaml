@@ -19,6 +19,8 @@ runner:
     # The complete expert has far more jointly moving parameters than the old final-output head.
     # A measured 1e-6 calibration drove 1/8 landing from ~40% to ~30% in 68 actor updates.
     post_warmup_learning_rate: 2.5e-7
+    # Keep the value function responsive without taking larger policy steps.
+    post_warmup_critic_learning_rate: 1.0e-6
     critic_warmup_updates: 100
     actor_update_scope: landing_expert
   actor:
