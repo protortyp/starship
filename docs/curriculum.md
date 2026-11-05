@@ -38,19 +38,21 @@
 
 The `salto_land` curriculum first learns one powered end-over-end rotation and recovery, then keeps
 the same recurrent policy alive while tightening touchdown speed, pad radius, attitude and angular
-rate. It expands to 209 stages and has a 2,000-update default budget; promotion requires at least 45%
+rate. It expands to 210 stages and has a 2,000-update default budget; promotion requires at least 45%
 of 256 deterministic evaluation episodes twice in succession. Compact numeric interpolation blocks
 keep the long braking tail reviewable while limiting each post-60 transition to 1.25 m/s vertical
 speed, 0.75 m/s horizontal speed, 12.5 m pad radius, 5° tilt, and 10°/s angular rate. The final stage
 additionally requires exactly one inverted-to-upright recovery with no re-flip and penalizes axial
 roll and rotation beyond 360°.
 
-Current campaign: stages 0--174 are solved. Stage 175, the exact 20 m/s endpoint, is active in a
-protected coordinate-descent continuation: the unified, throttle-only and lateral-only controllers
-have each completed at least 1,500 actor updates. The lateral pass sets a 33.4% trained broad best
-at update 500, and a validated 2x extrapolation of its learned delta reaches 34.18% over 4,096
-scenarios. A new throttle-only pass now resumes that protected 2x checkpoint to recover vertical
-braking while preserving its lateral correction. The campaign's unified policy completed the
+Current campaign: stages 0--175 are solved. The original stage-176 boundary stalls below promotion
+after full 1,500-update lateral-only, throttle-only and joint-control horizons. Decomposing the
+learned directions produces a robust scale-5 controller that lands 34.03% over 4,096 fixed
+scenarios, a 4.93-point gain over its source. Its protected live-best continuation lands 36.04%
+over 1,024 scenarios at the original boundary and 41.80% at the measured halfway boundary. The
+curriculum therefore inserts only that 293.75 m / 19.5 m/s vertical / 11.75 m/s horizontal
+half-step as stage 176; the former stage 176 and every later target remain exact, shifted by one.
+The campaign's unified policy completed the
 51-step two-engine
 braking/pad ladder, restored the exact 35 m/s vertical, 22 m/s horizontal and 450 m pad waypoint,
 passed the 34.583 m/s vertical half-step after eight more iterations, passed its pad/horizontal

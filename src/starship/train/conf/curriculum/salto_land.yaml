@@ -649,7 +649,16 @@ stages:
         - sim.landing.max_angular_rate=1.5707963267948966
   - name: controlled touchdown toward 16 m/s
     interpolate:
-      steps: 4
+      # The original first quarter-step remains below the promotion gate after three protected
+      # 1,500-update coordinate passes and a healthy 1,500-update joint continuation. The selected
+      # joint checkpoint lands 36.04% over 1,024 fixed scenarios there, but 41.80% at the measured
+      # halfway boundary. Insert only that 1/8 fraction, then retain every original quarter-step.
+      fractions:
+        - 0.125
+        - 0.25
+        - 0.5
+        - 0.75
+        - 1
       overrides:
         - sim.landing.pad_radius=250
         - sim.landing.max_vertical_speed=16
