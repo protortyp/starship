@@ -30,6 +30,10 @@ runner:
     # of the frozen salto LSTM. Channel 27 is forced to the exact completed-loop value it has in
     # deployment instead of inheriting the general landing task's pad-miss meaning.
     landing_direct_hidden_dim: 256
+    # The persistent ranked-count decoder samples only at phase boundaries. Start from an actual
+    # landing burn instead of letting a neutral head fall into the observed all-engines-off basin.
+    landing_direct_engine_logit_bias: 2.0
+    landing_direct_throttle_bias: 0.5
     landing_progress_override: 1.0
     update_landing_normalization: true
     post_loop_progress_threshold: 0.0

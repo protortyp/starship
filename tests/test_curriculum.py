@@ -485,6 +485,8 @@ def test_landing_expert_pretrain_resets_curriculum_and_activates_only_expert():
     assert cfg.curriculum.stages[0].name.startswith("0 landing burn")
     assert cfg.runner.actor.landing_expert
     assert cfg.runner.actor.landing_direct_hidden_dim == 256
+    assert cfg.runner.actor.landing_direct_engine_logit_bias == 2
+    assert cfg.runner.actor.landing_direct_throttle_bias == 0.5
     assert cfg.runner.actor.landing_progress_override == 1
     assert cfg.runner.actor.update_landing_normalization
     assert cfg.runner.actor.post_loop_progress_threshold == 0

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import copy
+import math
 
 import torch
 from rsl_rl.models.rnn_model import RNNModel
@@ -35,6 +36,8 @@ class ContinuousAdapterRNNModel(RNNModel):
         touchdown_adapter_hidden_dim: int = 0,
         landing_expert: bool = False,
         landing_direct_hidden_dim: int = 0,
+        landing_direct_engine_logit_bias: float = 0.0,
+        landing_direct_throttle_bias: float = 0.0,
         landing_progress_override: float = -1.0,
         update_landing_normalization: bool = False,
         post_loop_progress_index: int = 27,
@@ -59,6 +62,10 @@ class ContinuousAdapterRNNModel(RNNModel):
             raise ValueError("landing_direct_hidden_dim must be nonnegative")
         if landing_direct_hidden_dim and not landing_expert:
             raise ValueError("landing_direct_hidden_dim requires landing_expert=true")
+        if not math.isfinite(landing_direct_engine_logit_bias):
+            raise ValueError("landing_direct_engine_logit_bias must be finite")
+        if not math.isfinite(landing_direct_throttle_bias):
+            raise ValueError("landing_direct_throttle_bias must be finite")
         if landing_progress_override != -1.0 and not 0.0 <= landing_progress_override <= 1.0:
             raise ValueError("landing_progress_override must be -1 or between zero and one")
         super().__init__(*args, **kwargs)
@@ -213,6 +220,11 @@ class ContinuousAdapterRNNModel(RNNModel):
             )
             nn.init.zeros_(direct_output.weight)
             nn.init.zeros_(direct_output.bias)
+            # Stage-0 landing starts with a real burn, not the engine-off attractor produced by a
+            # zero-logit ranked-count policy. Two engines and above-mid throttle provide useful
+            # braking trajectories while PPO retains full authority over every output.
+            nn.init.constant_(direct_output.bias[:ENGINE_HEADS], landing_direct_engine_logit_bias)
+            nn.init.constant_(direct_output.bias[ENGINE_HEADS], landing_direct_throttle_bias)
         # Landing transfer sees a deliberately wider state distribution. Its private running
         # statistics can adapt without changing the frozen normalization used by the salto path.
         self.landing_obs_normalizer = copy.deepcopy(self.obs_normalizer) if landing_expert else None
