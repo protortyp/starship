@@ -37,6 +37,7 @@ class ContinuousAdapterRNNModel(RNNModel):
         landing_expert: bool = False,
         landing_direct_hidden_dim: int = 0,
         landing_direct_engine_logit_bias: float = 0.0,
+        landing_direct_engine_logit_biases: list[float] | tuple[float, ...] | None = None,
         landing_direct_throttle_bias: float = 0.0,
         landing_progress_override: float = -1.0,
         update_landing_normalization: bool = False,
@@ -64,6 +65,13 @@ class ContinuousAdapterRNNModel(RNNModel):
             raise ValueError("landing_direct_hidden_dim requires landing_expert=true")
         if not math.isfinite(landing_direct_engine_logit_bias):
             raise ValueError("landing_direct_engine_logit_bias must be finite")
+        if landing_direct_engine_logit_biases is not None and (
+            len(landing_direct_engine_logit_biases) != ENGINE_HEADS
+            or not all(math.isfinite(value) for value in landing_direct_engine_logit_biases)
+        ):
+            raise ValueError(
+                f"landing_direct_engine_logit_biases must contain {ENGINE_HEADS} finite values"
+            )
         if not math.isfinite(landing_direct_throttle_bias):
             raise ValueError("landing_direct_throttle_bias must be finite")
         if landing_progress_override != -1.0 and not 0.0 <= landing_progress_override <= 1.0:
@@ -220,10 +228,18 @@ class ContinuousAdapterRNNModel(RNNModel):
             )
             nn.init.zeros_(direct_output.weight)
             nn.init.zeros_(direct_output.bias)
-            # Stage-0 landing starts with a real burn, not the engine-off attractor produced by a
-            # zero-logit ranked-count policy. Two engines and above-mid throttle provide useful
-            # braking trajectories while PPO retains full authority over every output.
-            nn.init.constant_(direct_output.bias[:ENGINE_HEADS], landing_direct_engine_logit_bias)
+            # Stage-0 landing can start from a stable centre-engine burn instead of either the
+            # engine-off attractor or an open-loop off-axis multi-engine command. A scalar remains
+            # supported for existing configs; per-engine biases can encode a physical prior.
+            if landing_direct_engine_logit_biases is None:
+                nn.init.constant_(
+                    direct_output.bias[:ENGINE_HEADS], landing_direct_engine_logit_bias
+                )
+            else:
+                with torch.no_grad():
+                    direct_output.bias[:ENGINE_HEADS].copy_(
+                        direct_output.bias.new_tensor(landing_direct_engine_logit_biases)
+                    )
             nn.init.constant_(direct_output.bias[ENGINE_HEADS], landing_direct_throttle_bias)
         # Landing transfer sees a deliberately wider state distribution. Its private running
         # statistics can adapt without changing the frozen normalization used by the salto path.

@@ -1008,11 +1008,11 @@ def test_direct_landing_expert_has_post_loop_schema_and_no_handoff_memory(tmp_pa
         "+runner.actor.touchdown_adapter_hidden_dim=16",
         "+runner.actor.landing_expert=true",
         "+runner.actor.landing_direct_hidden_dim=16",
-        "+runner.actor.landing_direct_engine_logit_bias=2.0",
-        "+runner.actor.landing_direct_throttle_bias=0.5",
+        "+runner.actor.landing_direct_engine_logit_biases=[2.0,-2.0,-2.0]",
+        "+runner.actor.landing_direct_throttle_bias=0.0",
         "+runner.actor.landing_progress_override=1.0",
         "+runner.actor.post_loop_progress_threshold=0.0",
-        "+runner.actor.distribution_cfg.deterministic_engine_selection=floor_expected",
+        "+runner.actor.distribution_cfg.deterministic_engine_selection=round_expected",
         "+runner.algorithm.actor_update_scope=landing_expert",
     )
     runner = make_runner(cfg, tmp_path)
@@ -1031,7 +1031,8 @@ def test_direct_landing_expert_has_post_loop_schema_and_no_handoff_memory(tmp_pa
     random = (torch.randn(shape), torch.randn(shape))
     actor.reset()
     from_reset = actor(obs, hidden_state=zero, stochastic_output=False).detach()
-    assert from_reset[:, :3].sum() == 4
+    assert from_reset[:, :3].sum() == 2
+    assert torch.equal(from_reset[:, :3], torch.tensor([[1.0, 0.0, 0.0]]).expand(2, -1))
     obs["policy"][:, 27] = 0.75
     actor.reset()
     after_salto_history = actor(obs, hidden_state=random, stochastic_output=False).detach()

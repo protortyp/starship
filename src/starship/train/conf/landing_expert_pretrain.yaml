@@ -30,10 +30,11 @@ runner:
     # of the frozen salto LSTM. Channel 27 is forced to the exact completed-loop value it has in
     # deployment instead of inheriting the general landing task's pad-miss meaning.
     landing_direct_hidden_dim: 256
-    # The persistent ranked-count decoder samples only at phase boundaries. Start from an actual
-    # landing burn instead of letting a neutral head fall into the observed all-engines-off basin.
-    landing_direct_engine_logit_bias: 4.0
-    landing_direct_throttle_bias: 0.5
+    # The persistent ranked-count decoder samples only at phase boundaries. Start from the stable
+    # centre engine at the simulator's 70% lit throttle. Nearest-count decoding puts the zero-engine
+    # boundary far enough away to avoid the observed engine-off shortcut while PPO learns steering.
+    landing_direct_engine_logit_biases: [2.0, -2.0, -2.0]
+    landing_direct_throttle_bias: 0.0
     landing_progress_override: 1.0
     update_landing_normalization: true
     post_loop_progress_threshold: 0.0
@@ -41,8 +42,8 @@ runner:
     resample_engine_count_post_loop: true
     resample_engine_count_touchdown: true
     distribution_cfg:
-      # Nearest-count decoding permits the symmetric three-engine burn. floor_expected can never
-      # select all three for finite logits and turned the tied prior into a tumbling 0+1 burn.
+      # Nearest-count decoding can represent zero through all three engines and matches the
+      # exploratory count mode, while the ranked logits keep the centre engine unambiguous.
       deterministic_engine_selection: round_expected
       stochastic_engine_selection: ranked_count
       ranked_count_temperature: 0.55
