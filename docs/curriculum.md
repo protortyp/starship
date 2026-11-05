@@ -838,13 +838,15 @@ second zero-training sweep maps its exact 1/8 promotion actor across fractions 1
 measured post-1/8 bridge targets if the long quarter-step control finishes below the unchanged gate.
 The measured post-1/8 residual branch uses 512 environments and the same 100-update critic
 adaptation. Its early isolated 47% and 46% evaluations did not form a promotion pair, but the longer
-horizon did: it passes 5/32 after 185 actor updates and continues on 3/16. In parallel, the
-phase-separated landing expert copies the whole learned output controller at the monotonic recovery
-handoff and freezes the salto path. It passes 1/32 and 1/16 during critic-only adaptation, then
-passes 3/32 after eight actor updates and reaches the preserved 1/8 boundary. A fixed 256-episode
-3/32 baseline lands 40.6%; every landed episode still has exactly one re-flip and about 874 degrees
-of horizontal travel, giving the expert phase a clean invariant target rather than treating bridge
-promotion as evidence that cleanup is solved.
+horizon did: it passes 5/32 after 185 actor updates and continues on 3/16. A phase-state audit then
+found that an upright spawn was marked recovered before it ever inverted. The outbound half of the
+intended first salto was therefore counted and penalized as a re-flip, making the configured final
+`flips == 1 && reflips == 0` check unreachable from the upright salto spawn. Re-flip tracking now
+arms only after the first inverted-to-upright recovery. Re-evaluating a saved stage-179 policy under
+the corrected kernel lands 38.7% over 256 fixed episodes with exactly 1.00 flip and 0.00 re-flips.
+The first expert process, which had been optimizing the erroneous penalty, is retired; its corrected
+replacement retains exact checkpoint initialization and now trains only genuine post-recovery
+departures while the two landing controls remain uninterrupted.
 The vertical-touchdown promotion policy's seed-0
 [42.1-second vertical-touchdown promotion recording](assets/salto-stage180-vtouch4-passed.mp4) and
 [nine-frame sequence](assets/salto-stage180-vtouch4-passed-sequence.jpg) show the exact passed actor
