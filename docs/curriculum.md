@@ -904,10 +904,19 @@ intentionally reset curriculum state without affecting ordinary resumes or rollb
 59/128 to 2/128 and recovered only to 10/128 before the actor unlocked, so it was stopped after seven
 actor updates. A matched restart retains the source critic and adapts it at 1e-5. Its rank stays in
 the narrower stage-0 range of 16--23/128 while explained variance rises to 0.91 by the end of warmup,
-then 0.99 after 120 actor updates; direct-actor rank remains 84/256. Landing is still zero at this
-early point, but return improves monotonically from -57 to -48 on the deliberately long 6,000-update
-horizon. This branch will relearn the known strict 2 m/s vertical, 1 m/s horizontal and 15 m pad task
-directly, then return under the normal
+then 0.99 after 120 actor updates; direct-actor rank remains 84/256. That healthy run nevertheless
+converges to an all-engines-off attractor: deterministic engine count is zero, all episodes crash at
+about 84 m/s vertical speed, and return plateaus near -47 after roughly 170 actor updates. The first
+ignition-prior restart exposes a second decoder issue before actor training: finite tied logits under
+`floor(sum(p))` can select at most two of three engines, so it persistently chooses centre engine 0
+plus one off-axis engine. Its deterministic rollouts use two engines at 0.84 mean throttle, tumble
+88% of the time, and crash with about 56 m/s horizontal speed and 180 m pad miss. That branch is
+retired during critic warmup rather than training on an asymmetric failure mode. Ranked-count
+decoding now has a nearest-expected-count option whose exploratory mode, deterministic evaluation
+and export agree. The pretrain and its transfer config use that option with a high-confidence
+three-engine prior; regression tests prove all three engines are selected and exported identically.
+The corrected long branch will relearn the known strict 2 m/s vertical, 1 m/s horizontal and 15 m
+pad task directly, then return under the normal
 post-salto gate at solved stage 179 through `salto_land_expert_transfer` for stitching and held-out
 acceptance. Runtime smoke tests cover the full checkpoint migration, and the direct expert is
 regression-tested for completed-loop observation semantics, invariance to salto hidden state and

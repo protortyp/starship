@@ -706,10 +706,16 @@ TRACES = (
         "#047857",
     ),
     Trace(
-        "Markov pretrain, retained critic, stage 0 (live)",
+        "Markov pretrain, engine-off attractor (~270 updates, retired)",
         ROOT / "out/salto-landing-direct-pretrain-critic-4k-v2.log",
         0,
         "#15803d",
+    ),
+    Trace(
+        "Markov pretrain, asymmetric burn (47 updates, retired)",
+        ROOT / "out/salto-landing-direct-burn-4k-v3.log",
+        0,
+        "#166534",
     ),
     Trace(
         "fine-bridge transfer to 1/8 (retired after validation)",
