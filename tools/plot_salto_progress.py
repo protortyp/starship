@@ -682,7 +682,7 @@ TRACES = (
         "#c2410c",
     ),
     Trace(
-        "fine residual, quarter-step (live)",
+        "fine residual, quarter-step (1,523 updates, retired)",
         ROOT / "out/salto-stage176-postbridge-vtouch4-control-head-512-v1.log",
         179,
         "#9a3412",
@@ -716,6 +716,24 @@ TRACES = (
         ROOT / "out/salto-landing-direct-burn-4k-v3.log",
         0,
         "#166534",
+    ),
+    Trace(
+        "Markov pretrain, open-loop 3-engine tumble (retired)",
+        ROOT / "out/salto-landing-direct-symmetric-4k-v4.log",
+        0,
+        "#4d7c0f",
+    ),
+    Trace(
+        "Markov pretrain, centre prior + fuel shortcut (retired)",
+        ROOT / "out/salto-landing-direct-center-2k-v8.log",
+        0,
+        "#22c55e",
+    ),
+    Trace(
+        "Markov pretrain, centre prior without fuel shortcut (live)",
+        ROOT / "out/salto-landing-direct-center-nofuel-2k-v10.log",
+        0,
+        "#16a34a",
     ),
     Trace(
         "fine-bridge transfer to 1/8 (retired after validation)",

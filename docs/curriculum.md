@@ -849,9 +849,14 @@ The measured post-1/8 residual branch uses 512 environments and the same 100-upd
 adaptation. Its early isolated 47% and 46% evaluations did not form a promotion pair, but the longer
 horizon did: it passes 5/32 after 185 actor updates, then passes 3/16 after 675 actor updates without
 rollback. The long horizon pays off again: 7/32 passes at actor update 1,146 and the branch advances
-to the exact quarter-step, where its first 78 evaluations average 39.9%. Its actor/critic feature
-ranks remain healthy at 64/128 and 44/128, with the intended touchdown output active and all
-frozen-layer warnings expected from its narrow update scope. A phase-state audit then
+to the exact quarter-step, where its first 78 evaluations average 39.9%. The branch completes its
+required 1,500-actor-update horizon without a promotion pair: all 378 quarter-step evaluations
+average 39.9%, the latest 100 average 40.7%, and isolated evaluations reach 51%. A 512-episode probe
+of the protected best lands 39.8%. Landed episodes retain exactly one flip and zero re-flips; the
+remaining re-flip warning occurs only among crashes. Endpoint actor/critic feature ranks are healthy
+at 66/128 and 46/128, with the intended touchdown output active and all frozen-layer warnings
+expected from its narrow update scope. The endpoint is retired and the protected best remains
+available for comparison. A phase-state audit then
 found that an upright spawn was marked recovered before it ever inverted. The outbound half of the
 intended first salto was therefore counted and penalized as a re-flip, making the configured final
 `flips == 1 && reflips == 0` check unreachable from the upright salto spawn. Re-flip tracking now
@@ -913,10 +918,34 @@ plus one off-axis engine. Its deterministic rollouts use two engines at 0.84 mea
 88% of the time, and crash with about 56 m/s horizontal speed and 180 m pad miss. That branch is
 retired during critic warmup rather than training on an asymmetric failure mode. Ranked-count
 decoding now has a nearest-expected-count option whose exploratory mode, deterministic evaluation
-and export agree. The pretrain and its transfer config use that option with a high-confidence
-three-engine prior; regression tests prove all three engines are selected and exported identically.
-The corrected long branch will relearn the known strict 2 m/s vertical, 1 m/s horizontal and 15 m
-pad task directly, then return under the normal
+and export agree. An audited restart used that option with a high-confidence three-engine prior;
+regression tests prove all three engines are selected and exported identically.
+That open-loop prior does decode correctly but is not dynamically stable: all three engines at 84%
+throttle tumble every deterministic stage-0 episode before a gimbal controller has been learned.
+It is retired during critic warmup. The next prior encodes the physical centre engine explicitly at
+the simulator's native 70% lit throttle. Its opening deterministic sweep has zero tumbles, 34 m mean
+pad miss and 7.6 m/s horizontal speed; the remaining problem is 56 m/s vertical contact speed.
+Nearest-count decoding also moves the zero-engine boundary away from this prior, while the ranked
+distribution retains count exploration. The first 4,096-environment actor updates complete but
+request a caught 4.7 GiB CUDA workspace fallback on every PPO pass once the 256-wide head unlocks.
+The same workspace request scales to 3.6 GiB at 3,072 environments, so the long process uses 2,048
+training and 128 evaluation environments with the original PPO minibatch semantics on the full
+6,000-update budget, still providing about 1.57 billion environment steps. Evaluation batch size
+does not change the later fixed held-out acceptance batches. The first centre-engine actor
+calibration also exposes why the earlier attractor is so strong: the default landing fuel charge
+costs the stable burn 2.87 return units, making the immediate engine-off crash score 0.6 points
+higher despite its 84 m/s impact. The deterministic engine count collapses from one to zero within
+25 actor updates. With fuel cost removed, the unchanged centre-burn trajectory instead starts about
+2.1 return units above engine-off. The dedicated pretrain now optimizes braking without fuel cost;
+transfer and held-out evaluation still report fuel and enforce every touchdown constraint. Its
+first 25 actor updates preserve exactly one centre engine, raise mean throttle from 0.70 to 0.76,
+and improve deterministic vertical impact from 57.6 to 52.5 m/s, horizontal impact from 7.2 to
+4.3 m/s and pad miss from 34.6 to 32.8 m. Return improves from -44.5 to -43.0 instead of collapsing
+to the engine-off shortcut; actor/critic feature ranks are 124/256 and 24/128 with 0.95 explained
+variance. This is the first direct-pretrain branch whose early control metrics all move in the
+intended direction, so it remains on the full horizon. It will
+relearn the known strict 2 m/s vertical, 1 m/s horizontal and 15 m pad task directly, then return
+under the normal
 post-salto gate at solved stage 179 through `salto_land_expert_transfer` for stitching and held-out
 acceptance. Runtime smoke tests cover the full checkpoint migration, and the direct expert is
 regression-tested for completed-loop observation semantics, invariance to salto hidden state and
