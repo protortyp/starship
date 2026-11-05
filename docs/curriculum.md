@@ -817,6 +817,13 @@ and 41.80%. Vertical-speed failures rise from 61.2% to 63.3% across the same swe
 then passes 1/32, 1/16 and 3/32 after about 7, 5 and 4 critic-only updates, keeping all 35 actor
 tensors bit-exact before entering the preserved 1/8 boundary as stage 179. The active 4,096-
 environment reward A/B stays uninterrupted so its full long-horizon comparison remains valid.
+The vertical-touchdown promotion policy's seed-0
+[42.1-second vertical-touchdown promotion recording](assets/salto-stage180-vtouch4-passed.mp4) and
+[nine-frame sequence](assets/salto-stage180-vtouch4-passed-sequence.jpg) show the exact passed actor
+landing on the preserved original quarter-step, now stage 180. It contacts at 14.83 m/s vertical
+speed, 5.83 m/s horizontal speed and about 226 m pad miss, inside the 19 m/s, 11.5 m/s and 287.5 m
+limits. The later recovery rotation is still visible, so this is stronger curriculum evidence and
+not yet the final exact-single-salto claim.
 The validated scale-5 actor's seed-0
 [42.3-second chase recording](assets/salto-stage176-split-scale5.mp4) and
 [nine-frame sequence](assets/salto-stage176-split-scale5-sequence.jpg) show the selected paired
