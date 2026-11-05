@@ -246,6 +246,7 @@ def probe_section(
     episodes: int,
     device: str | None,
     stage: int | None = None,
+    seed: int = 123,
 ) -> list[str]:
     """Run the best policy deterministically on the run's current curriculum stage."""
     import torch
@@ -282,7 +283,7 @@ def probe_section(
     if not policy_path.exists():
         policy_path = run / "policy.pt"
     obs_cfg = OmegaConf.to_object(cfg.obs)
-    env = RslRocketEnv(RocketEnv(episodes, sim, obs_cfg, reward, device=device, seed=123))
+    env = RslRocketEnv(RocketEnv(episodes, sim, obs_cfg, reward, device=device, seed=seed))
     policy = load_policy(policy_path, env.device)
     policy.reset()
     # Confidence instrumentation needs a stochastic forward to populate the distribution. Keep
@@ -360,6 +361,7 @@ def probe_section(
         "policy": str(policy_path),
         "stage": stage_name,
         "episodes": episodes,
+        "seed": seed,
         "stats": stats,
         "live_diagnostics": live,
     }
