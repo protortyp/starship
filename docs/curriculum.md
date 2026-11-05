@@ -828,6 +828,13 @@ improve to 16.44 m/s and 187 m by update 269. Actor/critic ranks remain healthy 
 47/128, the touchdown gradient is active at 6.1, and rollback count is still zero. This is a flat
 but plastic opening, so the same run remains uninterrupted through the promised 1,500-update
 horizon rather than being judged on its first few hundred updates.
+The saved update-1,519 endpoint completes that horizon without promotion and with one protected
+rollback. It lands 34.2% over the fixed 1,024 scenarios, statistically flat with the run's 34.9%
+protected best but below the 35.9% entry actor and the 41.8% source at 1/8. Endpoint crash failures
+improve to 29% horizontal-speed and 32% pad-miss violations while vertical-speed violations worsen
+to 74%. Actor/critic feature ranks remain healthy at 73/128 and 47/128; the declining critic output
+gradients arrive with a flat policy result rather than representation collapse. The endpoint is
+therefore retired and the protected source remains selected.
 A zero-training fixed-1,024 sweep also measures the protected source at fractions 0, 1/32, 1/16,
 3/32 and 1/8 of this transition: landing declines smoothly from 46.68% to 45.70%, 44.43%, 42.87%
 and 41.80%. Vertical-speed failures rise from 61.2% to 63.3% across the same sweep. This identifies
@@ -874,19 +881,28 @@ corrected restart averages 39.2% landing across its first 11 actor evaluations a
 32--42%, while the failed arm had reached 2% by actor update 8 and 0% by update 9. Its actor/critic
 feature ranks are healthy at 65/128 and 45/128, the expert output is active, and the critic output
 update ratio is 5.7e-5 versus 4.9e-6 at the shared-rate baseline endpoint. The causal fix is
-validated and the run continues on its long horizon.
+validated, but the longer comparison does not improve: through 127 actor updates it averages 36.9%
+and its latest 20 evaluations average 32.6%. The process remains alive through its planned
+250-update comparison, while the independent landing-pretraining path takes priority.
 The historical 98--99% randomized landing checkpoint is no longer present locally or in repository
 artifacts, but its reproducible five-stage curriculum remains. `landing_expert_pretrain` transfers
-the frozen salto actor into that curriculum at stage 0, activates only the independent landing
-expert, and gives its direct-state controller private normalization. Pretraining retains the exact
+the frozen salto actor into that curriculum at stage 0 and activates only an independent 28→256→256
+Markov landing controller with private normalization. A transfer audit found that the earlier
+latent expert would train with channel 27 as pad miss and a reset frozen-LSTM state, then deploy
+with that channel as completed-loop progress after the full salto history. The corrected controller
+forces the private channel to the deployment value of one and ignores the shared recurrent latent,
+eliminating both semantic shifts by construction. Pretraining retains the exact
 ranked, phase-coherent engine-count decoder used after the salto, including a separate touchdown
 decision, so stitching does not introduce an action-semantic shift. Checkpoint loading can now
 intentionally reset curriculum state without affecting ordinary resumes or rollback. Once the long
-4,096-environment control reaches its promised endpoint, this branch will relearn the known strict
-2 m/s vertical, 1 m/s horizontal and 15 m pad task directly, then return under the normal
+4,096-environment control reached its promised endpoint, the 6,000-update pretrain launched with
+4,096 environments at landing stage 0. Its initial zero landing rate is inside the configured
+100-update critic-only warmup. This branch will relearn the known strict 2 m/s vertical, 1 m/s
+horizontal and 15 m pad task directly, then return under the normal
 post-salto gate at solved stage 179 through `salto_land_expert_transfer` for stitching and held-out
-acceptance. Both standalone transfer configs are smoke-tested without the live runs' former CLI-only
-model overrides.
+acceptance. Runtime smoke tests cover the full checkpoint migration, and the direct expert is
+regression-tested for completed-loop observation semantics, invariance to salto hidden state and
+sequential JIT parity.
 The vertical-touchdown promotion policy's seed-0
 [42.1-second vertical-touchdown promotion recording](assets/salto-stage180-vtouch4-passed.mp4) and
 [nine-frame sequence](assets/salto-stage180-vtouch4-passed-sequence.jpg) show the exact passed actor

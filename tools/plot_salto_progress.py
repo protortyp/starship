@@ -658,7 +658,7 @@ TRACES = (
         "#dc2626",
     ),
     Trace(
-        "2x vertical-touchdown quarter-step (live)",
+        "2x vertical-touchdown quarter-step (1,519 updates, retired)",
         ROOT / "out/salto-stage176-midpoint-vtouch4-control-head-4k-v1.log",
         177,
         "#b91c1c",
@@ -686,6 +686,18 @@ TRACES = (
         ROOT / "out/salto-stage178-landing-expert-lr025-512-v3.log",
         179,
         "#0284c7",
+    ),
+    Trace(
+        "phase expert, frozen coordinates + split rates (live)",
+        ROOT / "out/salto-stage178-landing-expert-splitlr-frozennorm-512-v5.log",
+        179,
+        "#0e7490",
+    ),
+    Trace(
+        "Markov landing expert pretrain, stage 0 (live)",
+        ROOT / "out/salto-landing-direct-pretrain-4k-v1.log",
+        0,
+        "#047857",
     ),
     Trace(
         "fine-bridge transfer to 1/8 (retired after validation)",
