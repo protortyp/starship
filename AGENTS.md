@@ -1,6 +1,6 @@
 # Agents
 
-- Branches: `ce/<feature-name>`, off `main`.
+- Branches: `ce/<feature-name>`, off `develop`.
 - Commit small and often; `just check` and `just test` must pass first (`just setup` installs the pre-commit hooks).
 - PRs: squash-merge only; title `feat(scope): ...` / `fix(scope): ...` / `chore(scope): ...`; body is one short paragraph.
 - Merge once CI is green.
