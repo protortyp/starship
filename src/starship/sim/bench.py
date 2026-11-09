@@ -22,7 +22,6 @@ def main() -> None:
     for n in (int(x) for x in args.envs.split(",")):
         sim = Simulator(n, cfg, device=args.device, auto_reset=True)
         rng = np.random.default_rng(0)
-        # Engines and flaps active so every code path is exercised.
         sim.set_commands(
             engine_on=rng.integers(0, 2, (n, 3)),
             throttle=rng.uniform(0.4, 1.0, (n, 3)),

@@ -15,6 +15,7 @@ from starship.sim.physics import (
     Terminal,
     advance,
     init_rng_kernel,
+    record_terminal,
     spawn,
 )
 from starship.train.actions import (
@@ -94,14 +95,7 @@ def _step_kernel(
     final_mirrored[i] = mirrored[i]
     advance(p, state, commands, i)
     if state.status[i] != FLYING:
-        terminal.done[i] = 1
-        terminal.status[i] = state.status[i]
-        terminal.body[i] = state.body[i]
-        terminal.stats[i] = state.stats[i]
-        terminal.tanks[i] = state.tanks[i]
-        terminal.time[i] = state.time[i]
-        terminal.steps[i] = state.steps[i]
-        terminal.wind[i] = state.wind[i]
+        record_terminal(state, terminal, i)
         # The simulator's terminal struct has no actuators, so encode before spawn discards them.
         encode(
             state.body[i],
@@ -250,14 +244,7 @@ class RocketEnv:
     def reset(self) -> wp.array:
         self.sim.reset()
         for buffer in (
-            self.sim.terminal.done,
-            self.sim.terminal.status,
-            self.sim.terminal.steps,
-            self.sim.terminal.time,
-            self.sim.terminal.body,
-            self.sim.terminal.stats,
-            self.sim.terminal.tanks,
-            self.sim.terminal.wind,
+            *(getattr(self.sim.terminal, name) for name in Terminal.vars),
             self.reward,
             self.terminal_reward,
             self.reward_terms,

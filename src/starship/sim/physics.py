@@ -158,9 +158,7 @@ class State:
     time: wp.array(dtype=float)
     steps: wp.array(dtype=wp.int32)
     status: wp.array(dtype=wp.int32)
-    # Per-env random stream, advanced on every respawn.
     rng: wp.array(dtype=wp.uint32)
-    # Wind sample and filter states, with their own stream inside.
     wind: wp.array(dtype=WindState)
 
 
@@ -178,6 +176,10 @@ class Terminal:
     wind: wp.array(dtype=WindState)
 
 
+FLIP_CORRIDOR_ALTITUDE = wp.constant(300.0)  # m, where the entry footprint ends
+ENTRY_RANGE_STEPS = wp.constant(480)
+
+
 def allocate(struct, num_envs: int, device) -> "wp.Struct":
     """A struct of per-env arrays, one zeroed array per field."""
     out = struct()
@@ -190,16 +192,16 @@ def allocate(struct, num_envs: int, device) -> "wp.Struct":
 def entry_range(
     altitude: float, speed: float, angle: float, mass: float, drag_area: float
 ) -> float:
-    """Point-mass, no-thrust footprint to the 300 m flip corridor, with quadratic drag."""
+    """Point-mass, no-thrust footprint to the flip corridor altitude, with quadratic drag."""
     z = altitude
     vx = speed * wp.cos(angle)
     vz = -speed * wp.sin(angle)
     x = float(0.0)  # noqa: UP018 - Warp requires a dynamic loop accumulator.
-    for _ in range(480):
-        if z <= 300.0:
+    for _ in range(ENTRY_RANGE_STEPS):
+        if z <= FLIP_CORRIDOR_ALTITUDE:
             break
         drag = 0.5 * atmosphere(z).density * drag_area * wp.length(wp.vec2(vx, vz)) / mass
-        dt = wp.min(0.5, (z - 300.0) / wp.max(-vz, 1.0))
+        dt = wp.min(0.5, (z - FLIP_CORRIDOR_ALTITUDE) / wp.max(-vz, 1.0))
         # Semi-implicit drag avoids a velocity reversal at large density or speed.
         vx = vx / (1.0 + drag * dt)
         vz = (vz - gravity(z) * dt) / (1.0 + drag * dt)
@@ -335,7 +337,6 @@ def advance(p: Params, s: State, c: Commands, tid: int):
         w = add_wrench(w, rcs_wrench(p.propulsion, c.rcs[tid]))
         force = wp.quat_rotate(b.rot, w.force) - wp.vec3(0.0, 0.0, gravity(b.pos[2]) * mp.mass)
         b = integrate(b, force, w.torque, mp.mass, mp.inertia, p.dt)
-        # Match the integrated angular step and use the same air-relative flow as aerodynamics.
         a = track_motion(a, b, v_air, p.dt)
         air_speed_sq = wp.dot(v_air, v_air)
         a = track_flight(
@@ -377,6 +378,18 @@ def advance(p: Params, s: State, c: Commands, tid: int):
     s.status[tid] = status
 
 
+@wp.func
+def record_terminal(s: State, term: Terminal, tid: int):
+    term.done[tid] = 1
+    term.status[tid] = s.status[tid]
+    term.body[tid] = s.body[tid]
+    term.stats[tid] = s.stats[tid]
+    term.tanks[tid] = s.tanks[tid]
+    term.time[tid] = s.time[tid]
+    term.steps[tid] = s.steps[tid]
+    term.wind[tid] = s.wind[tid]
+
+
 @wp.kernel
 def step_kernel(p: Params, auto_reset: int, c: Commands, s: State, term: Terminal):
     tid = wp.tid()
@@ -385,14 +398,7 @@ def step_kernel(p: Params, auto_reset: int, c: Commands, s: State, term: Termina
         return
     advance(p, s, c, tid)
     if s.status[tid] != FLYING:
-        term.done[tid] = 1
-        term.status[tid] = s.status[tid]
-        term.body[tid] = s.body[tid]
-        term.stats[tid] = s.stats[tid]
-        term.tanks[tid] = s.tanks[tid]
-        term.time[tid] = s.time[tid]
-        term.steps[tid] = s.steps[tid]
-        term.wind[tid] = s.wind[tid]
+        record_terminal(s, term, tid)
         if auto_reset != 0:
             spawn(p, s, tid)
 

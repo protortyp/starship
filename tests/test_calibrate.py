@@ -71,8 +71,8 @@ def test_quantization_and_repaired_channels_are_not_point_targets():
 
 
 @pytest.mark.skipif(platform.machine() != "arm64", reason="pre-change CPU reference is arm64")
-def test_neutral_defaults_match_pre_calibration_simulator_exactly():
-    # Captured before adding the multipliers, with CPU Warp 1.18.0; includes drift and moments.
+def test_default_config_reproduces_reference_trajectories():
+    # Reference captured with CPU Warp 1.18.0; includes drift and moments.
     reference = np.load(Path(__file__).parent / "data" / "sim_neutral_reference.npz")
     for name, speed in [("vertical", 0), ("drift", 150)]:
         cfg = SimConfig()

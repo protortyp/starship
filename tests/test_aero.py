@@ -324,7 +324,6 @@ def test_axial_drag_tables_follow_mach():
     np.testing.assert_allclose(tail[:2], 0.9, rtol=1e-6)
     assert np.all((tail[4:] > 1.6) & (tail[4:] < 1.8))
     assert np.all(tail > nose)
-    print("C_A0 nose-first:", np.round(nose, 3), "tail-first:", np.round(tail, 3))
 
 
 def test_folded_flaps_shift_hypersonic_pressure_center_as_in_the_panel_model():
