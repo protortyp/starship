@@ -1,6 +1,6 @@
 # Held-descent calibration
 
-`starship.sim.calibrate` fits hull crossflow drag, flap effectiveness, dry mass and initial
+`starship.calibrate.fit` fits hull crossflow drag, flap effectiveness, dry mass and initial
 flight-path angle with cross-entropy search. Each candidate is one Warp environment using the
 production physics and a pitch PD flap controller. The two new aerodynamic scales default to
 1.0; no fitted values are installed into the training configuration.
@@ -12,7 +12,7 @@ Place SofieBrink's MIT-licensed
 in a directory as `IFT-4_Telemetry.csv`, `IFT-5_Telemetry.csv`, `IFT-6_Telemetry.csv`, then run:
 
 ```sh
-WARP_CACHE_PATH=$PWD/.warp_cache uv run python -m starship.sim.calibrate \
+WARP_CACHE_PATH=$PWD/.warp_cache uv run python -m starship.calibrate.fit \
   --flight IFT-5 --device cpu --data-dir /path/to/telemetry
 ```
 

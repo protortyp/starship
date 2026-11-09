@@ -1,6 +1,5 @@
 """Batched 6-DOF Starship simulator on a Warp device."""
 
-import math
 from dataclasses import dataclass
 
 import numpy as np
@@ -8,88 +7,27 @@ import warp as wp
 
 from starship.sim.aero import make_aero_params
 from starship.sim.config import SimConfig
+from starship.sim.hull import make_hull_params
 from starship.sim.mass import make_mass_params
 from starship.sim.physics import (
-    Attitude,
     Commands,
+    LandingParams,
     Params,
-    SpawnParams,
     State,
     Terminal,
+    allocate,
     gather_kernel,
     init_rng_kernel,
+    make_spawn_params,
     reset_kernel,
     step_kernel,
 )
-from starship.sim.propulsion import EngineState, FlapState, make_propulsion_params
-from starship.sim.rigid import Body
-from starship.sim.wind import WindState, init_wind_kernel, make_wind_params
-
-TANK_ORDER = ("main_lox", "main_ch4", "header_lox", "header_ch4")
-COMMAND_FIELDS = {
-    "engine_on": wp.vec3,
-    "throttle": wp.vec3,
-    "gimbal2": wp.vec3,
-    "gimbal3": wp.vec3,
-    "flaps": wp.vec4,
-    "rcs": float,
-}
+from starship.sim.propulsion import make_propulsion_params
+from starship.sim.wind import init_wind_kernel, make_wind_params
 
 
 def make_params(config: SimConfig, device) -> Params:
-    v, sp, ld = config.vehicle, config.spawn, config.landing
-    if sp.entry:
-        values = (
-            sp.speed,
-            sp.speed_noise,
-            sp.flight_path_angle,
-            sp.flight_path_angle_noise,
-            sp.heading,
-            sp.heading_noise,
-            sp.entry_drag_area,
-        )
-        if not all(math.isfinite(x) for x in values):
-            raise ValueError("entry spawn parameters must be finite")
-        if (
-            sp.speed_noise < 0
-            or sp.speed <= sp.speed_noise
-            or sp.heading_noise < 0
-            or sp.flight_path_angle_noise < 0
-            or sp.entry_drag_area <= 0
-            or not 0
-            < sp.flight_path_angle - sp.flight_path_angle_noise
-            <= sp.flight_path_angle + sp.flight_path_angle_noise
-            <= math.pi / 2
-        ):
-            raise ValueError("entry spawn needs positive speed/drag area and descending angles")
-    spawn = SpawnParams()
-    spawn.entry = int(sp.entry)
-    for name in (
-        "altitude",
-        "altitude_noise",
-        "offset",
-        "offset_noise",
-        "vertical_speed",
-        "vertical_speed_noise",
-        "horizontal_speed",
-        "horizontal_speed_noise",
-        "speed",
-        "speed_noise",
-        "flight_path_angle",
-        "flight_path_angle_noise",
-        "heading",
-        "heading_noise",
-        "entry_drag_area",
-        "pitch",
-        "pitch_noise",
-        "angular_rate_noise",
-        "flap_angle",
-        "lit_throttle",
-    ):
-        setattr(spawn, name, float(getattr(sp, name)))
-    fill = (sp.main_fill, sp.main_fill, sp.header_fill, sp.header_fill)
-    spawn.tanks = wp.vec4(*[v.tanks[n].capacity * f for n, f in zip(TANK_ORDER, fill, strict=True)])
-
+    v = config.vehicle
     p = Params()
     p.dt = config.dt
     p.substeps = config.substeps
@@ -99,16 +37,10 @@ def make_params(config: SimConfig, device) -> Params:
     p.max_pitch = config.max_pitch
     p.max_rate = config.max_rate
     p.max_roll_rate = config.max_roll_rate
-    p.length = v.hull.length
-    p.radius = v.hull.diameter / 2
-    p.nose_length = v.hull.nose_length
-    p.ogive_radius = (v.hull.nose_length**2 + p.radius**2) / (2 * p.radius)
-    p.pad_radius = ld.pad_radius
-    p.max_vertical_speed = ld.max_vertical_speed
-    p.max_horizontal_speed = ld.max_horizontal_speed
-    p.max_tilt = ld.max_tilt
-    p.max_angular_rate = ld.max_angular_rate
-    p.spawn = spawn
+    p.hull = make_hull_params(v.hull)
+    for name in LandingParams.vars:
+        setattr(p.landing, name, getattr(config.landing, name))
+    p.spawn = make_spawn_params(v, config.spawn)
     p.mass = make_mass_params(v)
     p.propulsion = make_propulsion_params(v, config.dt)
     p.aero = make_aero_params(v, device=device)
@@ -152,7 +84,7 @@ def _bodies(arr: wp.array) -> dict[str, np.ndarray]:
 
 
 class Simulator:
-    """N independent rockets. Commands are per-env arrays (see `COMMAND_FIELDS`), held for one
+    """N independent rockets. Commands are per-env arrays (fields of `Commands`), held for one
     control step of `substeps` physics steps.
 
     When an episode ends, the step that ended it sets `terminal.done` and records the final state
@@ -173,32 +105,9 @@ class Simulator:
         self.config = config or SimConfig()
         self.params = make_params(self.config, self.device)
 
-        def zeros(dtype):
-            return wp.zeros(num_envs, dtype=dtype, device=self.device)
-
-        self.state = State()
-        self.state.body = zeros(Body)
-        self.state.attitude = zeros(Attitude)
-        self.state.engine = zeros(EngineState)
-        self.state.flaps = zeros(FlapState)
-        self.state.tanks = zeros(wp.vec4)
-        self.state.time = zeros(float)
-        self.state.steps = zeros(wp.int32)
-        self.state.status = zeros(wp.int32)
-        self.state.rng = zeros(wp.uint32)
-        self.state.wind = zeros(WindState)
-        self.terminal = Terminal()
-        self.terminal.done = zeros(wp.int32)
-        self.terminal.status = zeros(wp.int32)
-        self.terminal.body = zeros(Body)
-        self.terminal.attitude = zeros(Attitude)
-        self.terminal.tanks = zeros(wp.vec4)
-        self.terminal.time = zeros(float)
-        self.terminal.steps = zeros(wp.int32)
-        self.terminal.wind = zeros(WindState)
-        self.commands = Commands()
-        for name, dtype in COMMAND_FIELDS.items():
-            setattr(self.commands, name, zeros(dtype))
+        self.state = allocate(State, num_envs, self.device)
+        self.terminal = allocate(Terminal, num_envs, self.device)
+        self.commands = allocate(Commands, num_envs, self.device)
         wp.launch(init_rng_kernel, dim=num_envs, inputs=[seed, self.state.rng], device=self.device)
         wp.launch(
             init_wind_kernel,
@@ -235,18 +144,7 @@ class Simulator:
         src = other.state
         if other is self:
             src = State()
-            for name in (
-                "body",
-                "attitude",
-                "engine",
-                "flaps",
-                "tanks",
-                "time",
-                "steps",
-                "status",
-                "rng",
-                "wind",
-            ):
+            for name in State.vars:
                 setattr(src, name, wp.clone(getattr(self.state, name)))
         wp.launch(
             gather_kernel, dim=self.num_envs, inputs=[sources, src, self.state], device=self.device
@@ -260,7 +158,7 @@ class Simulator:
             if isinstance(value, wp.array):
                 target.assign(value)
                 continue
-            width = 1 if COMMAND_FIELDS[name] is float else COMMAND_FIELDS[name]._length_
+            width = getattr(target.dtype, "_length_", 1)
             shape = (self.num_envs,) if width == 1 else (self.num_envs, width)
             host = np.broadcast_to(np.asarray(value, dtype=np.float32), shape)
             target.assign(

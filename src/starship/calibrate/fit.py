@@ -1,7 +1,7 @@
 """Fit a held belly-flop to OCR telemetry with batched cross-entropy search.
 
-Example: python -m starship.sim.calibrate --flight IFT-5 --data-dir /path/to/telemetry
-Only the effective ballistic coefficient is strongly constrained without attitude/flap data.
+Example: python -m starship.calibrate.fit --flight IFT-5 --data-dir /path/to/telemetry
+Only the effective ballistic coefficient is strongly constrained without orientation/flap data.
 """
 
 import argparse
@@ -15,10 +15,11 @@ from time import perf_counter
 import numpy as np
 import warp as wp
 
+from starship.calibrate.telemetry import Telemetry, load_telemetry
 from starship.sim.config import SimConfig
-from starship.sim.physics import Commands, Params, State, advance, attitude, spawn
+from starship.sim.physics import Commands, Params, State, advance, spawn
+from starship.sim.rigid import orientation
 from starship.sim.simulator import Simulator, make_params
-from starship.sim.telemetry import Telemetry, load_telemetry
 
 DEFAULT_BOUNDS = np.array([[0.5, 1.8], [0.5, 1.5], [100_000, 200_000], [40, 90]], dtype=float)
 
@@ -45,7 +46,7 @@ def _rollout(
     spawn(p, state, i)
     b = state.body[i]
     # Common heading and drift remove the randomized training spawn as a fitting nuisance.
-    b.rot = attitude(wp.pi / 2.0, 0.0)
+    b.rot = orientation(wp.pi / 2.0, 0.0)
     b.vel = wp.vec3(p.spawn.horizontal_speed, 0.0, p.spawn.vertical_speed)
     state.body[i] = b
     result[i, 0] = wp.vec2(b.pos[2], wp.length(b.vel))

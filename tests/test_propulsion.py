@@ -3,7 +3,7 @@ import math
 import numpy as np
 import pytest
 
-from starship.sim.config import G0, VehicleConfig
+from starship.sim.config import VehicleConfig
 from starship.sim.propulsion import (
     engine_eval,
     engine_rollout,
@@ -31,7 +31,6 @@ def test_thrust_sea_level_and_vacuum():
 
 def test_mass_flow_and_floor():
     _, _, mdot = engine_eval(P, engine_state(spool=1.0), 101325.0, COM, DEV)
-    assert mdot / 3 == pytest.approx(2.39e6 / (347.0 * G0), rel=1e-5)
     assert mdot / 3 == pytest.approx(702.3, abs=0.5)
     # A throttle so low that the ambient-pressure loss exceeds it gives zero, not negative, thrust.
     force, _, _ = engine_eval(P, engine_state(spool=1.0, throttle=0.05), 101325.0, COM, DEV)

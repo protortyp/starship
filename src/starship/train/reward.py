@@ -5,8 +5,10 @@ from dataclasses import dataclass, fields
 import warp as wp
 
 from starship.sim import CRASHED, LANDED, OUT_OF_BOUNDS, TIMEOUT, TUMBLED
+from starship.sim.flight_stats import FlightStats
+from starship.sim.hull import lowest_point
 from starship.sim.mass import mass_properties
-from starship.sim.physics import Attitude, Params, State, Terminal, lowest_point
+from starship.sim.physics import Params, State, Terminal
 from starship.sim.rigid import Body
 from starship.train.actions import CONTINUOUS_HEADS
 from starship.train.encoding import fuel_fraction
@@ -116,8 +118,8 @@ def make_reward_params(config: RewardConfig) -> RewardParams:
 @wp.func
 def potential(p: Params, r: RewardParams, b: Body, tanks: wp.vec4) -> wp.vec3:
     com = mass_properties(p.mass, tanks).com
-    height = wp.max(lowest_point(p, b, com), 0.0)
-    safe_speed = wp.sqrt(2.0 * r.safe_deceleration * height) + p.max_vertical_speed
+    height = wp.max(lowest_point(p.hull, b, com), 0.0)
+    safe_speed = wp.sqrt(2.0 * r.safe_deceleration * height) + p.landing.max_vertical_speed
     excess_speed = wp.max(wp.length(b.vel) - safe_speed, 0.0)
     axis_z = wp.quat_rotate(b.rot, wp.vec3(1.0, 0.0, 0.0))[2]
     tilt = wp.acos(wp.clamp(axis_z, -1.0, 1.0))
@@ -146,11 +148,11 @@ def terminal_value(p: Params, r: RewardParams, t: Terminal, i: int, load: float)
         miss = wp.length(wp.vec2(base[0], base[1]))
         tilt = wp.acos(wp.clamp(axis[2], -1.0, 1.0))
         excess = (
-            r.crash_vertical_weight * wp.max(-b.vel[2] - p.max_vertical_speed, 0.0)
-            + r.crash_horizontal_weight * wp.max(horizontal - p.max_horizontal_speed, 0.0)
-            + r.crash_tilt_weight * wp.max(tilt - p.max_tilt, 0.0)
-            + r.crash_rate_weight * wp.max(wp.length(b.omega) - p.max_angular_rate, 0.0)
-            + r.crash_miss_weight * wp.max(miss - p.pad_radius, 0.0)
+            r.crash_vertical_weight * wp.max(-b.vel[2] - p.landing.max_vertical_speed, 0.0)
+            + r.crash_horizontal_weight * wp.max(horizontal - p.landing.max_horizontal_speed, 0.0)
+            + r.crash_tilt_weight * wp.max(tilt - p.landing.max_tilt, 0.0)
+            + r.crash_rate_weight * wp.max(wp.length(b.omega) - p.landing.max_angular_rate, 0.0)
+            + r.crash_miss_weight * wp.max(miss - p.landing.pad_radius, 0.0)
         )
         return -(r.crash_penalty + r.crash_excess_scale * wp.log(1.0 + excess))
     if status == TUMBLED:
@@ -171,7 +173,7 @@ def reward_kernel(
     before: wp.array(dtype=wp.vec3),
     fuel_before: wp.array(dtype=float),
     time_before: wp.array(dtype=float),
-    attitude_before: wp.array(dtype=Attitude),
+    stats_before: wp.array(dtype=FlightStats),
     landing_load: wp.array(dtype=float),
     squashed: wp.array2d(dtype=float),
     previous: wp.array2d(dtype=float),
@@ -186,7 +188,7 @@ def reward_kernel(
     b = state.body[i]
     tanks = state.tanks[i]
     time = state.time[i]
-    a = state.attitude[i]
+    a = state.stats[i]
     done = terminal.done[i] != 0
     phi = wp.vec3(0.0)
     terminal_reward[i] = 0.0
@@ -196,7 +198,7 @@ def reward_kernel(
         b = terminal.body[i]
         tanks = terminal.tanks[i]
         time = terminal.time[i]
-        a = terminal.attitude[i]
+        a = terminal.stats[i]
         terminal_reward[i] = terminal_value(p, r, terminal, i, landing_load[i])
         if terminal.status[i] == TIMEOUT:
             truncated[i] = 1
@@ -225,7 +227,7 @@ def reward_kernel(
     terms[i, 5] = -r.fuel_cost * burned
     terms[i, 6] = -r.time_cost * dt
     terms[i, 7] = terminal_reward[i]
-    prev = attitude_before[i]
+    prev = stats_before[i]
     terms[i, 8] = -r.roll_travel_cost * (a.roll_travel - prev.roll_travel)
     terms[i, 9] = -r.horizontal_rotation_cost * (a.horizontal_travel - prev.horizontal_travel)
     terms[i, 10] = -r.sideslip_cost * (a.sideslip - prev.sideslip)

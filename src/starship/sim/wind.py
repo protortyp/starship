@@ -17,7 +17,7 @@ import math
 import numpy as np
 import warp as wp
 
-from starship.sim.config import WindConfig
+from starship.sim.config import HullConfig, WindConfig
 
 FT = 0.3048
 W20_LIGHT = 15.0 * 0.514444  # m/s, MIL-F-8785C "light" wind at 20 ft; moderate 30 kt, severe 45 kt
@@ -167,12 +167,6 @@ def dryden_scales(level: float, altitude: float) -> wp.vec4:
     sigma = wp.lerp(sigma_low, _exceedance_sigma(level, h), f)
     scale = wp.lerp(1000.0 * FT, 1750.0 * FT, f)
     return wp.vec4(sigma, scale, sigma, scale)
-
-
-@wp.func
-def _rotated(v: wp.vec2, angle: float) -> wp.vec2:
-    c, s = wp.cos(angle), wp.sin(angle)
-    return wp.vec2(c * v[0] - s * v[1], s * v[0] + c * v[1])
 
 
 @wp.func
@@ -348,7 +342,7 @@ def wind_series(
     envs: int = 1,
     dt: float = 0.01,
     seed: int = 0,
-    diameter: float = 9.0,
+    diameter: float = HullConfig().diameter,
     device: str | None = None,
 ) -> np.ndarray:
     """(envs, steps, 3) total wind seen by a vehicle held at `pos` moving at `vel`."""
@@ -367,7 +361,7 @@ def wind_profile(
     cfg: WindConfig, altitudes, seed: int = 0, device: str | None = None
 ) -> np.ndarray:
     """(N, 3) mean wind of one episode sample at the given altitudes."""
-    p = make_wind_params(cfg, 9.0)
+    p = make_wind_params(cfg, HullConfig().diameter)
     z = wp.array(np.asarray(altitudes, dtype=np.float32), dtype=float, device=device)
     out = wp.zeros(len(z), dtype=wp.vec3, device=device)
     wp.launch(_profile_kernel, dim=len(z), inputs=[p, seed, z, out], device=device)

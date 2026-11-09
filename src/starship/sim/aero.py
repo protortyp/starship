@@ -18,7 +18,8 @@ import warp as wp
 
 from starship.sim.atmosphere import Air, atmosphere
 from starship.sim.config import VehicleConfig
-from starship.sim.types import Wrench
+from starship.sim.hull import HullParams, hull_radius, hull_slope, make_hull_params, station_radius
+from starship.sim.wrench import Wrench
 
 # (crossflow Mach, C_dn, eta blend): TN D-6996 figs. 1-3, high-Re column, digitization ~+/-0.05.
 # The 0.7 low-M plateau is the tile-roughness prior in docs/starship.md, not smooth-cylinder
@@ -102,10 +103,7 @@ class AeroParams:
     crossflow_scale: float
     crossflow_scale_supersonic: float
     reference_area: float
-    length: float
-    radius: float
-    nose_base: float  # station where the ogive starts
-    ogive_radius: float
+    hull: HullParams
     potential_station: float  # where the slender-body normal force acts (nose centroid)
     hinge: wp.array(dtype=wp.vec3)  # absolute body positions measured from station zero
     span_open: wp.array(dtype=wp.vec3)  # unit span perpendicular to the canted hinge
@@ -126,25 +124,6 @@ def make_aero_params(cfg: VehicleConfig, device: str | None = None) -> AeroParam
         raise ValueError("aero requires four flaps in default_flaps order")
 
     radius = h.diameter / 2
-    nose_base = h.length - h.nose_length
-    ogive_radius = (h.nose_length**2 + radius**2) / (2 * radius)
-
-    def hull_radius(station):
-        # Tangent-ogive proxy (docs/starship.md [4]), not a surveyed Ship profile.
-        if station <= nose_base:
-            return radius
-        return max(
-            0.0,
-            math.sqrt(max(0.0, ogive_radius**2 - (station - nose_base) ** 2))
-            + radius
-            - ogive_radius,
-        )
-
-    def hull_slope(station):
-        if station <= nose_base:
-            return 0.0
-        arc = station - nose_base
-        return arc / math.sqrt(max(ogive_radius**2 - arc**2, 1e-12))
 
     dx = h.length / cfg.aero.strips
     stations = [(i + 0.5) * dx for i in range(cfg.aero.strips)]
@@ -157,7 +136,7 @@ def make_aero_params(cfg: VehicleConfig, device: str | None = None) -> AeroParam
         span = math.sin(f.cant) * axial + math.cos(f.cant) * radial
         # Li et al. hinge proxy (docs/starship.md [12]): a straight canted hinge tangent near
         # its midpoint on the tapered hull. A uniform plate puts its CP half a span out.
-        hinge = np.array([station, 0.0, 0.0]) + hull_radius(station) * radial
+        hinge = np.array([station, 0.0, 0.0]) + hull_radius(h, station) * radial
         # phi is measured from +b3: increasing |phi| folds both sides leeward. Thus the
         # starboard fold is towards +phi, the port fold towards -phi (mirror symmetry).
         # 0 deg is the radial plane; 90 deg is circumferential/tangent, pointing towards
@@ -171,8 +150,10 @@ def make_aero_params(cfg: VehicleConfig, device: str | None = None) -> AeroParam
 
     p = AeroParams()
     p.strip_station = wp.array(stations, dtype=float, device=device)
-    p.strip_area = wp.array([2 * hull_radius(x) * dx for x in stations], dtype=float, device=device)
-    p.strip_slope = wp.array([hull_slope(x) for x in stations], dtype=float, device=device)
+    p.strip_area = wp.array(
+        [2 * hull_radius(h, x) * dx for x in stations], dtype=float, device=device
+    )
+    p.strip_slope = wp.array([hull_slope(h, x) for x in stations], dtype=float, device=device)
     p.crossflow_table = wp.array(CROSS_FLOW_TABLE, dtype=float, ndim=2, device=device)
     p.plate_table = wp.array(PLATE_TABLE, dtype=float, ndim=2, device=device)
     p.mach_table = wp.array(MACH_TABLE, dtype=float, ndim=2, device=device)
@@ -180,11 +161,8 @@ def make_aero_params(cfg: VehicleConfig, device: str | None = None) -> AeroParam
     p.flap_force_scale = cfg.aero.flap_force_scale
     p.crossflow_scale = cfg.aero.crossflow_scale
     p.crossflow_scale_supersonic = cfg.aero.crossflow_scale_supersonic
+    p.hull = make_hull_params(h)
     p.reference_area = math.pi * radius**2
-    p.length = h.length
-    p.radius = radius
-    p.nose_base = nose_base
-    p.ogive_radius = ogive_radius
     p.potential_station = h.length - 0.5 * h.nose_length
     p.hinge = wp.array(hinges, dtype=wp.vec3, device=device)
     p.hinge_axis = wp.array(axes, dtype=wp.vec3, device=device)
@@ -224,21 +202,6 @@ def _interpolate2(table: wp.array2d(dtype=float), x: float, column: int) -> wp.v
 
 
 @wp.func
-def _hull_radius(p: AeroParams, station: float) -> float:
-    """Tangent-ogive hull radius; zero beyond either end."""
-    if station < 0.0 or station > p.length:
-        return 0.0
-    if station <= p.nose_base:
-        return p.radius
-    arc = station - p.nose_base
-    return (
-        wp.sqrt(wp.max(p.ogive_radius * p.ogive_radius - arc * arc, 0.0))
-        + p.radius
-        - p.ogive_radius
-    )
-
-
-@wp.func
 def _newtonian_strip(slope: float, cos_a: float, sin_a: float) -> wp.vec2:
     """Modified-Newtonian pressure integrals over the wetted sector of a body-of-revolution strip
     with surface slope tan(delta) = slope at local angle of attack alpha, per unit Cp_max r dx:
@@ -275,7 +238,7 @@ def _shadow_fraction(p: AeroParams, root: wp.vec3, tip: wp.vec3, velocity: wp.ve
     d = wp.vec2(tip[1] - root[1], tip[2] - root[2])
     centre = p0 + 0.5 * d
     station = 0.5 * (root[0] + tip[0]) - wp.dot(centre, c) * velocity[0] / lateral_speed
-    r = _hull_radius(p, station)
+    r = station_radius(p.hull, station)
     if r <= 0.0:
         return 0.0
     # Along the span s in [0, 1] both the offset from the flow line through the axis, h(s), and

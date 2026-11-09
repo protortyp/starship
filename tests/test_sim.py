@@ -3,7 +3,7 @@ from dataclasses import replace
 import numpy as np
 import pytest
 
-from starship.sim import CRASHED, FLYING, LANDED, TIMEOUT, SimConfig, Simulator
+from starship.sim import CRASHED, FLYING, LANDED, TIMEOUT, TUMBLED, SimConfig, Simulator
 from starship.sim.mass import make_mass_params, sample
 
 DEVICE = "cpu"
@@ -229,7 +229,6 @@ def test_copy_within_the_same_simulator():
 
 
 def test_tumbling_ends_the_episode():
-    from starship.sim import TUMBLED
 
     # Passive belly-flop with aft flaps open pitches nose-down past the limit.
     sim = Simulator(1, config(altitude=5000.0), device=DEVICE)
@@ -257,7 +256,6 @@ def test_spawn_with_engines_lit():
     [((60, 0, 0), False), ((120, 0, 0), True), ((0, 50, 0), True), ((0, 0, 30), False)],
 )
 def test_roll_has_its_own_limit(omega_deg, tumbles):
-    from starship.sim import TUMBLED
 
     sim = Simulator(1, config(altitude=3000.0, pitch=0.0, vertical_speed=0.0), device=DEVICE)
     body = sim.state.body.numpy()

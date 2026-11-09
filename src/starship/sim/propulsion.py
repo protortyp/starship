@@ -15,7 +15,7 @@ import numpy as np
 import warp as wp
 
 from starship.sim.config import G0, VehicleConfig
-from starship.sim.types import Wrench, body_point
+from starship.sim.wrench import Wrench, body_point
 
 
 @wp.struct

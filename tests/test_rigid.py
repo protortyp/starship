@@ -1,7 +1,8 @@
 import numpy as np
 import pytest
 
-from starship.sim.rigid import G0, simulate
+from starship.sim.config import G0
+from starship.sim.rigid import simulate
 
 IDENTITY = (0.0, 0.0, 0.0, 1.0)
 

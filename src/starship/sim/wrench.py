@@ -1,13 +1,6 @@
-"""Warp structs shared between the physics modules."""
+"""Force and torque on the body, and the helpers to accumulate them."""
 
 import warp as wp
-
-
-@wp.struct
-class MassProps:
-    mass: float
-    com: float  # station of the centre of mass; it lies on the axis
-    inertia: wp.vec3  # principal moments about the centre of mass along (b1, b2, b3)
 
 
 @wp.struct
