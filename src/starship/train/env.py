@@ -7,9 +7,8 @@ import torch
 import warp as wp
 
 from starship.sim import FLYING, SimConfig, Simulator
+from starship.sim.flight_stats import STATS_FIELDS, FlightStats, stats_vector
 from starship.sim.physics import (
-    ATTITUDE_FIELDS,
-    Attitude,
     Commands,
     Params,
     State,
@@ -80,7 +79,7 @@ def _step_kernel(
     before: wp.array(dtype=wp.vec3),
     fuel_before: wp.array(dtype=float),
     time_before: wp.array(dtype=float),
-    attitude_before: wp.array(dtype=Attitude),
+    stats_before: wp.array(dtype=FlightStats),
     final_obs: wp.array2d(dtype=float),
     final_mirrored: wp.array(dtype=int),
 ):
@@ -88,7 +87,7 @@ def _step_kernel(
     before[i] = potential(p, r, state.body[i], state.tanks[i])
     fuel_before[i] = wp.dot(state.tanks[i], wp.vec4(1.0))
     time_before[i] = state.time[i]
-    attitude_before[i] = state.attitude[i]
+    stats_before[i] = state.stats[i]
     terminal.done[i] = 0
     for j in range(OBS_DIM):
         final_obs[i, j] = 0.0
@@ -98,7 +97,7 @@ def _step_kernel(
         terminal.done[i] = 1
         terminal.status[i] = state.status[i]
         terminal.body[i] = state.body[i]
-        terminal.attitude[i] = state.attitude[i]
+        terminal.stats[i] = state.stats[i]
         terminal.tanks[i] = state.tanks[i]
         terminal.time[i] = state.time[i]
         terminal.steps[i] = state.steps[i]
@@ -125,7 +124,7 @@ def _terminal_views_kernel(
     vel: wp.array(dtype=wp.vec3),
     rot: wp.array(dtype=wp.quat),
     omega: wp.array(dtype=wp.vec3),
-    attitude: wp.array2d(dtype=float),
+    stats: wp.array2d(dtype=float),
     wind: wp.array2d(dtype=float),
 ):
     i = wp.tid()
@@ -134,19 +133,10 @@ def _terminal_views_kernel(
     vel[i] = b.vel
     rot[i] = b.rot
     omega[i] = b.omega
-    a = terminal.attitude[i]
-    attitude[i, 0] = a.roll_travel
-    attitude[i, 1] = a.horizontal_travel
-    attitude[i, 2] = a.peak_roll_rate
-    attitude[i, 3] = a.peak_horizontal_rate
-    attitude[i, 4] = float(a.flips)
-    attitude[i, 5] = float(a.reflips)
-    attitude[i, 6] = a.peak_dynamic_pressure
-    attitude[i, 7] = a.peak_mach
-    attitude[i, 8] = a.peak_load
-    attitude[i, 9] = a.flip_altitude
-    attitude[i, 10] = a.ignition_altitude
-    attitude[i, 11] = a.start_offset
+    a = terminal.stats[i]
+    row = stats_vector(a)
+    for k in range(row.length):
+        stats[i, k] = row[k]
     w = terminal.wind[i]
     wind[i, 0] = wp.length(w.surface)
     wind[i, 1] = w.turbulence
@@ -209,13 +199,13 @@ class RocketEnv:
         self._potential_before = zeros(wp.vec3)
         self._fuel_before = zeros()
         self._time_before = zeros()
-        self._attitude_before = zeros(Attitude)
+        self._stats_before = zeros(FlightStats)
         self._ranges = make_action_ranges(self.device)
         self.final_pos = zeros(wp.vec3)
         self.final_vel = zeros(wp.vec3)
         self.final_rot = zeros(wp.quat)
         self.final_omega = zeros(wp.vec3)
-        self.final_attitude = zeros(width=len(ATTITUDE_FIELDS))
+        self.final_stats = zeros(width=len(STATS_FIELDS))
         self.final_wind = zeros(width=2)  # episode's surface wind speed and turbulence level
         term = self.sim.terminal
         self.final_status, self.final_steps = term.status, term.steps
@@ -265,7 +255,7 @@ class RocketEnv:
             self.sim.terminal.steps,
             self.sim.terminal.time,
             self.sim.terminal.body,
-            self.sim.terminal.attitude,
+            self.sim.terminal.stats,
             self.sim.terminal.tanks,
             self.sim.terminal.wind,
             self.reward,
@@ -279,7 +269,7 @@ class RocketEnv:
             self.final_vel,
             self.final_rot,
             self.final_omega,
-            self.final_attitude,
+            self.final_stats,
             self.final_wind,
             self.actions,
             self.squashed_actions,
@@ -320,7 +310,7 @@ class RocketEnv:
                 self._potential_before,
                 self._fuel_before,
                 self._time_before,
-                self._attitude_before,
+                self._stats_before,
                 self.final_obs,
                 self.final_mirrored,
             ],
@@ -335,7 +325,7 @@ class RocketEnv:
                 self._potential_before,
                 self._fuel_before,
                 self._time_before,
-                self._attitude_before,
+                self._stats_before,
                 self.landing_load,
                 self.squashed_actions,
                 self.previous_actions,
@@ -355,7 +345,7 @@ class RocketEnv:
                 self.final_vel,
                 self.final_rot,
                 self.final_omega,
-                self.final_attitude,
+                self.final_stats,
                 self.final_wind,
             ],
         )

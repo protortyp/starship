@@ -7,8 +7,8 @@ import torch
 import warp as wp
 
 from starship.sim import CRASHED, LANDED, TUMBLED, Simulator
-from starship.sim.physics import Attitude, attitude, track_attitude
-from starship.sim.rigid import Body, rotate_by_body_rate
+from starship.sim.flight_stats import STATS_FIELDS, FlightStats, stats_vector, track_motion
+from starship.sim.rigid import Body, orientation, rotate_by_body_rate
 from starship.train import RewardConfig, RocketEnv
 from starship.train.diagnose import attitude_lines, failure_lines
 from starship.train.metrics import ATTITUDE_METRICS, EpisodeTracker
@@ -23,14 +23,14 @@ def device(request):
 
 
 @wp.kernel
-def spin(out: wp.array(dtype=Attitude), pitch: float, omega: wp.vec3):
+def spin(out: wp.array(dtype=FlightStats), pitch: float, omega: wp.vec3):
     b = Body()
-    b.rot = attitude(pitch, 0.7)
+    b.rot = orientation(pitch, 0.7)
     b.omega = omega
-    a = track_attitude(Attitude(), b, wp.vec3(0.0), 0.0)
+    a = track_motion(FlightStats(), b, wp.vec3(0.0), 0.0)
     for _ in range(100):
         b.rot = rotate_by_body_rate(b.rot, omega, 0.01)
-        a = track_attitude(a, b, wp.vec3(0.0), 0.01)
+        a = track_motion(a, b, wp.vec3(0.0), 0.01)
     out[0] = a
 
 
@@ -45,7 +45,7 @@ def spin(out: wp.array(dtype=Attitude), pitch: float, omega: wp.vec3):
     ],
 )
 def test_rotation_travel_and_peak_rates(device, pitch, omega, roll, horizontal):
-    out = wp.zeros(1, dtype=Attitude, device=device)
+    out = wp.zeros(1, dtype=FlightStats, device=device)
     wp.launch(spin, 1, inputs=[out, pitch, wp.vec3(*omega)], device=device)
     a = out.numpy()[0]
     assert a["roll_travel"] == pytest.approx(roll, abs=2e-6)
@@ -55,12 +55,12 @@ def test_rotation_travel_and_peak_rates(device, pitch, omega, roll, horizontal):
 
 
 @wp.kernel
-def scripted_tilts(tilts: wp.array(dtype=float), out: wp.array(dtype=Attitude)):
-    a = Attitude()
+def scripted_tilts(tilts: wp.array(dtype=float), out: wp.array(dtype=FlightStats)):
+    a = FlightStats()
     for i in range(tilts.shape[0]):
         b = Body()
-        b.rot = attitude(tilts[i], 0.0)
-        a = track_attitude(a, b, wp.vec3(0.0), 0.01)
+        b.rot = orientation(tilts[i], 0.0)
+        a = track_motion(a, b, wp.vec3(0.0), 0.01)
         out[i] = a
 
 
@@ -73,7 +73,7 @@ def scripted_tilts(tilts: wp.array(dtype=float), out: wp.array(dtype=Attitude)):
     ],
 )
 def test_flip_hysteresis(device, tilts, flips, reflips):
-    out = wp.zeros(len(tilts), dtype=Attitude, device=device)
+    out = wp.zeros(len(tilts), dtype=FlightStats, device=device)
     wp.launch(
         scripted_tilts,
         1,
@@ -85,12 +85,12 @@ def test_flip_hysteresis(device, tilts, flips, reflips):
 
 
 @wp.kernel
-def sideslip_sample(flow: wp.vec3, out: wp.array(dtype=Attitude)):
+def sideslip_sample(flow: wp.vec3, out: wp.array(dtype=FlightStats)):
     b = Body()
-    b.rot = attitude(0.0, 0.0)
+    b.rot = orientation(0.0, 0.0)
     # Ground velocity deliberately differs: the cost must use the supplied aerodynamic flow.
     b.vel = wp.vec3(0.0, 0.0, 100.0)
-    out[0] = track_attitude(Attitude(), b, flow, 0.1)
+    out[0] = track_motion(FlightStats(), b, flow, 0.1)
 
 
 @pytest.mark.parametrize(
@@ -98,7 +98,7 @@ def sideslip_sample(flow: wp.vec3, out: wp.array(dtype=Attitude)):
     [((0, 20, 0), 0), ((0, 0, 100), 0), ((0, 100, 0), 0.1), ((30, -40, 0), 0.064)],
 )
 def test_sideslip_uses_air_relative_flow_and_speed_gate(device, flow, expected):
-    out = wp.zeros(1, dtype=Attitude, device=device)
+    out = wp.zeros(1, dtype=FlightStats, device=device)
     wp.launch(sideslip_sample, 1, inputs=[wp.vec3(*flow), out], device=device)
     assert out.numpy()["sideslip"][0] == pytest.approx(expected)
 
@@ -116,15 +116,15 @@ def test_substeps_match_single_steps_and_copy_preserves_counters(device):
     batched.step()
     for _ in range(cfg.substeps):
         single.step()
-    np.testing.assert_array_equal(batched.state.attitude.numpy(), single.state.attitude.numpy())
-    saved = batched.state.attitude.numpy().copy()
+    np.testing.assert_array_equal(batched.state.stats.numpy(), single.state.stats.numpy())
+    saved = batched.state.stats.numpy().copy()
     single.copy_from(batched, [2, 0, 1])
-    np.testing.assert_array_equal(single.state.attitude.numpy(), saved[[2, 0, 1]])
+    np.testing.assert_array_equal(single.state.stats.numpy(), saved[[2, 0, 1]])
     batched.copy_from(batched, [1, 2, 0])
-    np.testing.assert_array_equal(batched.state.attitude.numpy(), saved[[1, 2, 0]])
+    np.testing.assert_array_equal(batched.state.stats.numpy(), saved[[1, 2, 0]])
     batched.reset()
     for name in ("roll_travel", "horizontal_travel", "sideslip", "flips", "reflips"):
-        np.testing.assert_array_equal(batched.state.attitude.numpy()[name], 0)
+        np.testing.assert_array_equal(batched.state.stats.numpy()[name], 0)
 
 
 @pytest.mark.parametrize("training", [False, True])
@@ -140,10 +140,10 @@ def test_partial_terminal_step_survives_auto_reset(device, training):
         sim.step()
     assert sim.terminal.done.numpy()[0]
     assert sim.terminal.time.numpy()[0] == pytest.approx(cfg.dt)
-    a = sim.terminal.attitude.numpy()[0]
+    a = sim.terminal.stats.numpy()[0]
     assert a["roll_travel"] == pytest.approx(a["peak_roll_rate"] * cfg.dt, rel=1e-4)
     assert a["horizontal_travel"] > 0
-    assert sim.state.attitude.numpy()["roll_travel"][0] == 0
+    assert sim.state.stats.numpy()["roll_travel"][0] == 0
     if training:
         terms = env.reward_terms.numpy()[0]
         assert terms[8] == pytest.approx(-2 * a["roll_travel"])
@@ -179,7 +179,7 @@ def test_costs_telescope_to_episode_totals_across_reset(device):
             env.step(actions(2))
             total += env.reward_terms.numpy()[:, 8:]
         assert env.sim.terminal.done.numpy().all()
-        a = env.sim.terminal.attitude.numpy()
+        a = env.sim.terminal.stats.numpy()
         expected = np.stack(
             [
                 -2 * a["roll_travel"],
@@ -211,15 +211,15 @@ def test_spinning_trajectory_costs_more_than_one_clean_flip(device):
     assert env.sim.terminal.done.numpy().all()
     # Belly-down roll contributes to both integrals; the clean flip only to horizontal travel.
     np.testing.assert_allclose(total, [-28.8, -3.2], rtol=1e-3)
-    np.testing.assert_array_equal(env.sim.terminal.attitude.numpy()["flips"], [0, 1])
-    np.testing.assert_array_equal(env.sim.terminal.attitude.numpy()["reflips"], 0)
+    np.testing.assert_array_equal(env.sim.terminal.stats.numpy()["flips"], [0, 1])
+    np.testing.assert_array_equal(env.sim.terminal.stats.numpy()["reflips"], 0)
 
 
 def test_reflip_cost_fires_only_on_threshold_transition(device):
     env = RocketEnv(1, config(pitch=0), reward_config=RewardConfig(reflip_cost=5), device=device)
     for pitch, expected in [(70, -5), (65, 0), (50, 0), (65, 0), (20, 0), (70, -5)]:
         bodies = env.sim.state.body.numpy()
-        bodies["rot"][0] = attitude(math.radians(pitch), 0.0)
+        bodies["rot"][0] = orientation(math.radians(pitch), 0.0)
         bodies["omega"][0] = 0
         env.sim.state.body.assign(bodies)
         env.step(actions(1))
@@ -251,13 +251,13 @@ def test_attitude_metrics_subsets_and_diagnostic_warnings(device):
 def test_flight_peaks_and_event_altitudes(device):
     cfg = config(altitude=2000, vertical_speed=-80, pitch=math.pi / 2, offset=300, offset_noise=0)
     env = RocketEnv(2, cfg, device=device)
-    a = env.sim.state.attitude.numpy()[0]
+    a = env.sim.state.stats.numpy()[0]
     assert a["start_offset"] == pytest.approx(300, rel=1e-4)
     assert a["flip_altitude"] == -1
     assert a["ignition_altitude"] == -1
     for _ in range(20):
         env.step(actions(2))
-    a = env.sim.state.attitude.numpy()[0]
+    a = env.sim.state.stats.numpy()[0]
     b = env.sim.state.body.numpy()[0]
     speed = np.linalg.norm(b["vel"])
     assert a["peak_mach"] == pytest.approx(speed / 340, rel=0.05)
@@ -268,16 +268,14 @@ def test_flight_peaks_and_event_altitudes(device):
     assert a["ignition_altitude"] == -1
 
     lit = RocketEnv(1, config(lit_throttle=0.6), device=device)
-    assert lit.sim.state.attitude.numpy()[0]["ignition_altitude"] == pytest.approx(150)
+    assert lit.sim.state.stats.numpy()[0]["ignition_altitude"] == pytest.approx(150)
     unlit = RocketEnv(1, config(), device=device)
     for _ in range(5):
         unlit.step(actions(1))
-    assert unlit.sim.state.attitude.numpy()[0]["ignition_altitude"] == -1
+    assert unlit.sim.state.stats.numpy()[0]["ignition_altitude"] == -1
     altitude = unlit.sim.state.body.numpy()[0]["pos"][2]
     unlit.step(actions(1, engines=1.0))
-    assert unlit.sim.state.attitude.numpy()[0]["ignition_altitude"] == pytest.approx(
-        altitude, abs=1.0
-    )
+    assert unlit.sim.state.stats.numpy()[0]["ignition_altitude"] == pytest.approx(altitude, abs=1.0)
 
 
 def test_failure_metrics_split_tumble_causes_and_skip_missing_events(device):
@@ -305,3 +303,30 @@ def test_failure_metrics_split_tumble_causes_and_skip_missing_events(device):
     lines = failure_lines(stats)
     assert "- tumbles tripping roll_rate: 50%" in lines
     assert "- tumbled/altitude_m: 600" in lines
+
+
+@wp.kernel
+def _export_row(row_out: wp.array2d(dtype=float)):
+    a = FlightStats()
+    a.roll_travel = 1.0
+    a.horizontal_travel = 2.0
+    a.peak_roll_rate = 3.0
+    a.peak_horizontal_rate = 4.0
+    a.flips = 5
+    a.reflips = 6
+    a.peak_dynamic_pressure = 7.0
+    a.peak_mach = 8.0
+    a.peak_load = 9.0
+    a.flip_altitude = 10.0
+    a.ignition_altitude = 11.0
+    a.start_offset = 12.0
+    row = stats_vector(a)
+    for k in range(row.length):
+        row_out[0, k] = row[k]
+
+
+def test_exported_row_follows_stats_fields_order(device):
+    out = wp.zeros((1, len(STATS_FIELDS)), dtype=float, device=device)
+    wp.launch(_export_row, dim=1, inputs=[out], device=device)
+    expected = dict(zip(STATS_FIELDS, range(1, 13), strict=True))
+    assert dict(zip(STATS_FIELDS, out.numpy()[0], strict=True)) == expected

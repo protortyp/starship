@@ -5,9 +5,10 @@ from dataclasses import dataclass, fields
 import warp as wp
 
 from starship.sim import CRASHED, LANDED, OUT_OF_BOUNDS, TIMEOUT, TUMBLED
+from starship.sim.flight_stats import FlightStats
 from starship.sim.hull import lowest_point
 from starship.sim.mass import mass_properties
-from starship.sim.physics import Attitude, Params, State, Terminal
+from starship.sim.physics import Params, State, Terminal
 from starship.sim.rigid import Body
 from starship.train.actions import CONTINUOUS_HEADS
 from starship.train.encoding import fuel_fraction
@@ -172,7 +173,7 @@ def reward_kernel(
     before: wp.array(dtype=wp.vec3),
     fuel_before: wp.array(dtype=float),
     time_before: wp.array(dtype=float),
-    attitude_before: wp.array(dtype=Attitude),
+    stats_before: wp.array(dtype=FlightStats),
     landing_load: wp.array(dtype=float),
     squashed: wp.array2d(dtype=float),
     previous: wp.array2d(dtype=float),
@@ -187,7 +188,7 @@ def reward_kernel(
     b = state.body[i]
     tanks = state.tanks[i]
     time = state.time[i]
-    a = state.attitude[i]
+    a = state.stats[i]
     done = terminal.done[i] != 0
     phi = wp.vec3(0.0)
     terminal_reward[i] = 0.0
@@ -197,7 +198,7 @@ def reward_kernel(
         b = terminal.body[i]
         tanks = terminal.tanks[i]
         time = terminal.time[i]
-        a = terminal.attitude[i]
+        a = terminal.stats[i]
         terminal_reward[i] = terminal_value(p, r, terminal, i, landing_load[i])
         if terminal.status[i] == TIMEOUT:
             truncated[i] = 1
@@ -226,7 +227,7 @@ def reward_kernel(
     terms[i, 5] = -r.fuel_cost * burned
     terms[i, 6] = -r.time_cost * dt
     terms[i, 7] = terminal_reward[i]
-    prev = attitude_before[i]
+    prev = stats_before[i]
     terms[i, 8] = -r.roll_travel_cost * (a.roll_travel - prev.roll_travel)
     terms[i, 9] = -r.horizontal_rotation_cost * (a.horizontal_travel - prev.horizontal_travel)
     terms[i, 10] = -r.sideslip_cost * (a.sideslip - prev.sideslip)

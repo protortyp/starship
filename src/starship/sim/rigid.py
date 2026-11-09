@@ -60,6 +60,18 @@ def integrate(
     return out
 
 
+@wp.func
+def orientation(pitch: float, heading: float) -> wp.quat:
+    """Body axis b1 tilted `pitch` from vertical towards `heading`, belly (b3) facing down."""
+    sp, cp = wp.sin(pitch), wp.cos(pitch)
+    sh, ch = wp.sin(heading), wp.cos(heading)
+    b1 = wp.vec3(sp * ch, sp * sh, cp)
+    b3 = wp.vec3(cp * ch, cp * sh, -sp)
+    b2 = wp.cross(b3, b1)
+    m = wp.mat33(b1[0], b2[0], b3[0], b1[1], b2[1], b3[1], b1[2], b2[2], b3[2])
+    return wp.quat_from_matrix(m)
+
+
 @wp.kernel
 def _integrate_kernel(
     bodies: wp.array(dtype=Body),

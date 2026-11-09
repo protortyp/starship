@@ -6,7 +6,7 @@ from rsl_rl.env import VecEnv
 from tensordict import TensorDict
 
 from starship.sim import SimConfig
-from starship.sim.physics import ATTITUDE_FIELDS
+from starship.sim.flight_stats import STATS_FIELDS
 from starship.train.actions import ACTION_DIM
 from starship.train.env import RocketEnv
 from starship.train.reward import RewardConfig
@@ -39,9 +39,9 @@ class RslRocketEnv(VecEnv):
             "final_obs",
         ):
             setattr(self, name, wp.to_torch(getattr(env, name)))
-        attitude = wp.to_torch(env.final_attitude)
-        for i, name in enumerate(ATTITUDE_FIELDS):
-            setattr(self, f"final_{name}", attitude[:, i])
+        stats = wp.to_torch(env.final_stats)
+        for i, name in enumerate(STATS_FIELDS):
+            setattr(self, f"final_{name}", stats[:, i])
         wind = wp.to_torch(env.final_wind)
         self.final_wind_speed, self.final_turbulence = wind[:, 0], wind[:, 1]
         # Physical engine order; final_mirrored identifies the policy frame of ended episodes.

@@ -11,6 +11,7 @@ import warp as wp
 from starship.sim.aero import AeroParams, aero_wrench
 from starship.sim.atmosphere import atmosphere
 from starship.sim.config import G0
+from starship.sim.flight_stats import FlightStats, track_flight, track_motion
 from starship.sim.hull import HullParams, lowest_point
 from starship.sim.mass import MassParams, mass_properties
 from starship.sim.propulsion import (
@@ -25,7 +26,7 @@ from starship.sim.propulsion import (
     flap_step,
     rcs_wrench,
 )
-from starship.sim.rigid import Body, gravity, integrate
+from starship.sim.rigid import Body, gravity, integrate, orientation
 from starship.sim.wind import (
     WindParams,
     WindState,
@@ -42,77 +43,6 @@ CRASHED = 2
 OUT_OF_BOUNDS = 3
 TIMEOUT = 4
 TUMBLED = 5
-
-ATTITUDE_FIELDS = (
-    "roll_travel",
-    "horizontal_travel",
-    "peak_roll_rate",
-    "peak_horizontal_rate",
-    "flips",
-    "reflips",
-    "peak_dynamic_pressure",
-    "peak_mach",
-    "peak_load",
-    "flip_altitude",
-    "ignition_altitude",
-    "start_offset",
-)
-
-
-@wp.struct
-class Attitude:
-    roll_travel: float
-    horizontal_travel: float
-    peak_roll_rate: float
-    peak_horizontal_rate: float
-    flips: int
-    reflips: int
-    sideslip: float
-    phase: int  # 0: neither threshold reached; 1: above 60 degrees; 2: below 30 degrees
-    peak_dynamic_pressure: float  # Pa, air-relative
-    peak_mach: float
-    peak_load: float  # non-gravitational acceleration, g
-    flip_altitude: float  # m at the first flip to upright, -1 if none
-    ignition_altitude: float  # m when thrust first appears, -1 if never
-    start_offset: float  # m, horizontal distance to the pad at spawn
-
-
-@wp.func
-def track_attitude(a: Attitude, b: Body, v_air: wp.vec3, dt: float) -> Attitude:
-    roll = wp.abs(b.omega[0])
-    world_rate = wp.quat_rotate(b.rot, b.omega)
-    horizontal = wp.length(wp.vec2(world_rate[0], world_rate[1]))
-    a.roll_travel += roll * dt
-    a.horizontal_travel += horizontal * dt
-    a.peak_roll_rate = wp.max(a.peak_roll_rate, roll)
-    a.peak_horizontal_rate = wp.max(a.peak_horizontal_rate, horizontal)
-    speed_sq = wp.dot(v_air, v_air)
-    if speed_sq > 400.0:
-        a.sideslip += v_air[1] * v_air[1] / speed_sq * dt
-    axis_z = wp.quat_rotate(b.rot, wp.vec3(1.0, 0.0, 0.0))[2]
-    if axis_z < wp.cos(wp.pi / 3.0):
-        if a.phase == 2:
-            a.reflips += 1
-        a.phase = 1
-    elif axis_z > wp.cos(wp.pi / 6.0):
-        if a.phase == 1:
-            a.flips += 1
-        a.phase = 2
-    return a
-
-
-@wp.func
-def track_flight(
-    a: Attitude, b: Body, dynamic_pressure: float, mach: float, load: float, thrusting: bool
-) -> Attitude:
-    a.peak_dynamic_pressure = wp.max(a.peak_dynamic_pressure, dynamic_pressure)
-    a.peak_mach = wp.max(a.peak_mach, mach)
-    a.peak_load = wp.max(a.peak_load, load)
-    if a.flips > 0 and a.flip_altitude < 0.0:
-        a.flip_altitude = b.pos[2]
-    if thrusting and a.ignition_altitude < 0.0:
-        a.ignition_altitude = b.pos[2]
-    return a
 
 
 @wp.struct
@@ -182,7 +112,7 @@ class Commands:
 @wp.struct
 class State:
     body: wp.array(dtype=Body)
-    attitude: wp.array(dtype=Attitude)
+    stats: wp.array(dtype=FlightStats)
     engine: wp.array(dtype=EngineState)
     flaps: wp.array(dtype=FlapState)
     tanks: wp.array(dtype=wp.vec4)
@@ -202,23 +132,11 @@ class Terminal:
     done: wp.array(dtype=wp.int32)
     status: wp.array(dtype=wp.int32)
     body: wp.array(dtype=Body)
-    attitude: wp.array(dtype=Attitude)
+    stats: wp.array(dtype=FlightStats)
     tanks: wp.array(dtype=wp.vec4)
     time: wp.array(dtype=float)
     steps: wp.array(dtype=wp.int32)
     wind: wp.array(dtype=WindState)
-
-
-@wp.func
-def attitude(pitch: float, heading: float) -> wp.quat:
-    """Body axis b1 tilted `pitch` from vertical towards `heading`, belly (b3) facing down."""
-    sp, cp = wp.sin(pitch), wp.cos(pitch)
-    sh, ch = wp.sin(heading), wp.cos(heading)
-    b1 = wp.vec3(sp * ch, sp * sh, cp)
-    b3 = wp.vec3(cp * ch, cp * sh, -sp)
-    b2 = wp.cross(b3, b1)
-    m = wp.mat33(b1[0], b2[0], b3[0], b1[1], b2[1], b3[1], b1[2], b2[2], b3[2])
-    return wp.quat_from_matrix(m)
 
 
 @wp.func
@@ -259,7 +177,7 @@ def spawn(p: Params, s: State, tid: int):
     b = Body()
     b.pos = wp.vec3(offset * wp.cos(bearing), offset * wp.sin(bearing), alt)
     b.vel = wp.vec3(speed * wp.cos(drift), speed * wp.sin(drift), vz)
-    b.rot = attitude(pitch, heading)
+    b.rot = orientation(pitch, heading)
     b.omega = wp.vec3(wp.randf(rng, -w, w), wp.randf(rng, -w, w), wp.randf(rng, -w, w))
     if sp.entry != 0:
         speed = sp.speed + sp.speed_noise * wp.randf(rng, -1.0, 1.0)
@@ -277,15 +195,15 @@ def spawn(p: Params, s: State, tid: int):
             wp.cos(angle) * wp.cos(heading), wp.cos(angle) * wp.sin(heading), -wp.sin(angle)
         )
         # In still air, pitch=90 degrees means b3 along the flow, b1 at 90-degree AoA.
-        b.rot = attitude(angle + pitch - 0.5 * wp.pi, heading)
+        b.rot = orientation(angle + pitch - 0.5 * wp.pi, heading)
     s.body[tid] = b
-    a = track_attitude(Attitude(), b, wp.vec3(0.0), 0.0)
+    a = track_motion(FlightStats(), b, wp.vec3(0.0), 0.0)
     a.flip_altitude = -1.0
     a.ignition_altitude = -1.0
     if sp.lit_throttle > 0.0:
         a.ignition_altitude = b.pos[2]
     a.start_offset = wp.length(wp.vec2(b.pos[0], b.pos[1]))
-    s.attitude[tid] = a
+    s.stats[tid] = a
 
     e = EngineState()
     e.throttle = wp.vec3(p.propulsion.min_throttle)
@@ -327,7 +245,7 @@ def touchdown_status(ld: LandingParams, b: Body, com: float) -> int:
 @wp.func
 def advance(p: Params, s: State, c: Commands, tid: int):
     b = s.body[tid]
-    a = s.attitude[tid]
+    a = s.stats[tid]
     e = s.engine[tid]
     f = s.flaps[tid]
     tanks = s.tanks[tid]
@@ -371,7 +289,7 @@ def advance(p: Params, s: State, c: Commands, tid: int):
         force = wp.quat_rotate(b.rot, w.force) - wp.vec3(0.0, 0.0, gravity(b.pos[2]) * mp.mass)
         b = integrate(b, force, w.torque, mp.mass, mp.inertia, p.dt)
         # Match the integrated angular step and use the same air-relative flow as aerodynamics.
-        a = track_attitude(a, b, v_air, p.dt)
+        a = track_motion(a, b, v_air, p.dt)
         air_speed_sq = wp.dot(v_air, v_air)
         a = track_flight(
             a,
@@ -402,7 +320,7 @@ def advance(p: Params, s: State, c: Commands, tid: int):
     if status == FLYING and s.steps[tid] + 1 >= p.max_steps:
         status = TIMEOUT
     s.body[tid] = b
-    s.attitude[tid] = a
+    s.stats[tid] = a
     s.engine[tid] = e
     s.flaps[tid] = f
     s.tanks[tid] = tanks
@@ -423,7 +341,7 @@ def step_kernel(p: Params, auto_reset: int, c: Commands, s: State, term: Termina
         term.done[tid] = 1
         term.status[tid] = s.status[tid]
         term.body[tid] = s.body[tid]
-        term.attitude[tid] = s.attitude[tid]
+        term.stats[tid] = s.stats[tid]
         term.tanks[tid] = s.tanks[tid]
         term.time[tid] = s.time[tid]
         term.steps[tid] = s.steps[tid]
@@ -438,7 +356,7 @@ def gather_kernel(sources: wp.array(dtype=wp.int32), src: State, dst: State):
     tid = wp.tid()
     j = sources[tid]
     dst.body[tid] = src.body[j]
-    dst.attitude[tid] = src.attitude[j]
+    dst.stats[tid] = src.stats[j]
     dst.engine[tid] = src.engine[j]
     dst.flaps[tid] = src.flaps[j]
     dst.tanks[tid] = src.tanks[j]

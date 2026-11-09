@@ -11,8 +11,8 @@ from starship.sim.config import TANK_ORDER, SimConfig
 from starship.sim.hull import make_hull_params
 from starship.sim.mass import make_mass_params
 from starship.sim.physics import (
-    Attitude,
     Commands,
+    FlightStats,
     Params,
     SpawnParams,
     State,
@@ -178,7 +178,7 @@ class Simulator:
 
         self.state = State()
         self.state.body = zeros(Body)
-        self.state.attitude = zeros(Attitude)
+        self.state.stats = zeros(FlightStats)
         self.state.engine = zeros(EngineState)
         self.state.flaps = zeros(FlapState)
         self.state.tanks = zeros(wp.vec4)
@@ -191,7 +191,7 @@ class Simulator:
         self.terminal.done = zeros(wp.int32)
         self.terminal.status = zeros(wp.int32)
         self.terminal.body = zeros(Body)
-        self.terminal.attitude = zeros(Attitude)
+        self.terminal.stats = zeros(FlightStats)
         self.terminal.tanks = zeros(wp.vec4)
         self.terminal.time = zeros(float)
         self.terminal.steps = zeros(wp.int32)
@@ -237,7 +237,7 @@ class Simulator:
             src = State()
             for name in (
                 "body",
-                "attitude",
+                "stats",
                 "engine",
                 "flaps",
                 "tanks",
