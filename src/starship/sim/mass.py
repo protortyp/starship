@@ -12,7 +12,6 @@ import numpy as np
 import warp as wp
 
 from starship.sim.config import TANK_ORDER, HullConfig, VehicleConfig
-from starship.sim.types import MassProps
 
 _NOSE_SLICES = 400
 
@@ -26,6 +25,13 @@ class MassParams:
     tank_height: wp.vec4
     tank_radius: wp.vec4
     tank_line_density: wp.vec4  # liquid mass per metre of column, kg/m
+
+
+@wp.struct
+class MassProps:
+    mass: float
+    com: float  # station of the centre of mass; it lies on the axis
+    inertia: wp.vec3  # principal moments about the centre of mass along (b1, b2, b3)
 
 
 def ogive_radius(hull: HullConfig, station: float) -> float:

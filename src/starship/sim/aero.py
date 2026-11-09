@@ -18,7 +18,7 @@ import warp as wp
 
 from starship.sim.atmosphere import Air, atmosphere
 from starship.sim.config import VehicleConfig
-from starship.sim.types import Wrench
+from starship.sim.wrench import Wrench
 
 # (crossflow Mach, C_dn, eta blend): TN D-6996 figs. 1-3, high-Re column, digitization ~+/-0.05.
 # The 0.7 low-M plateau is the tile-roughness prior in docs/starship.md, not smooth-cylinder

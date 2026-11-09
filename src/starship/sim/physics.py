@@ -25,7 +25,6 @@ from starship.sim.propulsion import (
     rcs_wrench,
 )
 from starship.sim.rigid import Body, gravity, integrate
-from starship.sim.types import add_wrench
 from starship.sim.wind import (
     WindParams,
     WindState,
@@ -34,6 +33,7 @@ from starship.sim.wind import (
     unsteady_step,
     wind_step,
 )
+from starship.sim.wrench import add_wrench
 
 FLYING = 0
 LANDED = 1
