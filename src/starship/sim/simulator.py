@@ -12,28 +12,18 @@ from starship.sim.hull import make_hull_params
 from starship.sim.mass import make_mass_params
 from starship.sim.physics import (
     Commands,
-    FlightStats,
     Params,
     SpawnParams,
     State,
     Terminal,
+    allocate,
     gather_kernel,
     init_rng_kernel,
     reset_kernel,
     step_kernel,
 )
-from starship.sim.propulsion import EngineState, FlapState, make_propulsion_params
-from starship.sim.rigid import Body
-from starship.sim.wind import WindState, init_wind_kernel, make_wind_params
-
-COMMAND_FIELDS = {
-    "engine_on": wp.vec3,
-    "throttle": wp.vec3,
-    "gimbal2": wp.vec3,
-    "gimbal3": wp.vec3,
-    "flaps": wp.vec4,
-    "rcs": float,
-}
+from starship.sim.propulsion import make_propulsion_params
+from starship.sim.wind import init_wind_kernel, make_wind_params
 
 
 def make_params(config: SimConfig, device) -> Params:
@@ -152,7 +142,7 @@ def _bodies(arr: wp.array) -> dict[str, np.ndarray]:
 
 
 class Simulator:
-    """N independent rockets. Commands are per-env arrays (see `COMMAND_FIELDS`), held for one
+    """N independent rockets. Commands are per-env arrays (fields of `Commands`), held for one
     control step of `substeps` physics steps.
 
     When an episode ends, the step that ended it sets `terminal.done` and records the final state
@@ -173,32 +163,9 @@ class Simulator:
         self.config = config or SimConfig()
         self.params = make_params(self.config, self.device)
 
-        def zeros(dtype):
-            return wp.zeros(num_envs, dtype=dtype, device=self.device)
-
-        self.state = State()
-        self.state.body = zeros(Body)
-        self.state.stats = zeros(FlightStats)
-        self.state.engine = zeros(EngineState)
-        self.state.flaps = zeros(FlapState)
-        self.state.tanks = zeros(wp.vec4)
-        self.state.time = zeros(float)
-        self.state.steps = zeros(wp.int32)
-        self.state.status = zeros(wp.int32)
-        self.state.rng = zeros(wp.uint32)
-        self.state.wind = zeros(WindState)
-        self.terminal = Terminal()
-        self.terminal.done = zeros(wp.int32)
-        self.terminal.status = zeros(wp.int32)
-        self.terminal.body = zeros(Body)
-        self.terminal.stats = zeros(FlightStats)
-        self.terminal.tanks = zeros(wp.vec4)
-        self.terminal.time = zeros(float)
-        self.terminal.steps = zeros(wp.int32)
-        self.terminal.wind = zeros(WindState)
-        self.commands = Commands()
-        for name, dtype in COMMAND_FIELDS.items():
-            setattr(self.commands, name, zeros(dtype))
+        self.state = allocate(State, num_envs, self.device)
+        self.terminal = allocate(Terminal, num_envs, self.device)
+        self.commands = allocate(Commands, num_envs, self.device)
         wp.launch(init_rng_kernel, dim=num_envs, inputs=[seed, self.state.rng], device=self.device)
         wp.launch(
             init_wind_kernel,
@@ -235,18 +202,7 @@ class Simulator:
         src = other.state
         if other is self:
             src = State()
-            for name in (
-                "body",
-                "stats",
-                "engine",
-                "flaps",
-                "tanks",
-                "time",
-                "steps",
-                "status",
-                "rng",
-                "wind",
-            ):
+            for name in State.vars:
                 setattr(src, name, wp.clone(getattr(self.state, name)))
         wp.launch(
             gather_kernel, dim=self.num_envs, inputs=[sources, src, self.state], device=self.device
@@ -260,7 +216,7 @@ class Simulator:
             if isinstance(value, wp.array):
                 target.assign(value)
                 continue
-            width = 1 if COMMAND_FIELDS[name] is float else COMMAND_FIELDS[name]._length_
+            width = getattr(target.dtype, "_length_", 1)
             shape = (self.num_envs,) if width == 1 else (self.num_envs, width)
             host = np.broadcast_to(np.asarray(value, dtype=np.float32), shape)
             target.assign(

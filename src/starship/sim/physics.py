@@ -139,6 +139,14 @@ class Terminal:
     wind: wp.array(dtype=WindState)
 
 
+def allocate(struct, num_envs: int, device) -> "wp.Struct":
+    """A struct of per-env arrays, one zeroed array per field."""
+    out = struct()
+    for name, var in struct.vars.items():
+        setattr(out, name, wp.zeros(num_envs, dtype=var.type.dtype, device=device))
+    return out
+
+
 @wp.func
 def entry_range(
     altitude: float, speed: float, angle: float, mass: float, drag_area: float
