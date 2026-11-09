@@ -5,8 +5,9 @@ from dataclasses import dataclass, fields
 import warp as wp
 
 from starship.sim import CRASHED, LANDED, OUT_OF_BOUNDS, TIMEOUT, TUMBLED
+from starship.sim.hull import lowest_point
 from starship.sim.mass import mass_properties
-from starship.sim.physics import Attitude, Params, State, Terminal, lowest_point
+from starship.sim.physics import Attitude, Params, State, Terminal
 from starship.sim.rigid import Body
 from starship.train.actions import CONTINUOUS_HEADS
 from starship.train.encoding import fuel_fraction
@@ -116,8 +117,8 @@ def make_reward_params(config: RewardConfig) -> RewardParams:
 @wp.func
 def potential(p: Params, r: RewardParams, b: Body, tanks: wp.vec4) -> wp.vec3:
     com = mass_properties(p.mass, tanks).com
-    height = wp.max(lowest_point(p, b, com), 0.0)
-    safe_speed = wp.sqrt(2.0 * r.safe_deceleration * height) + p.max_vertical_speed
+    height = wp.max(lowest_point(p.hull, b, com), 0.0)
+    safe_speed = wp.sqrt(2.0 * r.safe_deceleration * height) + p.landing.max_vertical_speed
     excess_speed = wp.max(wp.length(b.vel) - safe_speed, 0.0)
     axis_z = wp.quat_rotate(b.rot, wp.vec3(1.0, 0.0, 0.0))[2]
     tilt = wp.acos(wp.clamp(axis_z, -1.0, 1.0))
@@ -146,11 +147,11 @@ def terminal_value(p: Params, r: RewardParams, t: Terminal, i: int, load: float)
         miss = wp.length(wp.vec2(base[0], base[1]))
         tilt = wp.acos(wp.clamp(axis[2], -1.0, 1.0))
         excess = (
-            r.crash_vertical_weight * wp.max(-b.vel[2] - p.max_vertical_speed, 0.0)
-            + r.crash_horizontal_weight * wp.max(horizontal - p.max_horizontal_speed, 0.0)
-            + r.crash_tilt_weight * wp.max(tilt - p.max_tilt, 0.0)
-            + r.crash_rate_weight * wp.max(wp.length(b.omega) - p.max_angular_rate, 0.0)
-            + r.crash_miss_weight * wp.max(miss - p.pad_radius, 0.0)
+            r.crash_vertical_weight * wp.max(-b.vel[2] - p.landing.max_vertical_speed, 0.0)
+            + r.crash_horizontal_weight * wp.max(horizontal - p.landing.max_horizontal_speed, 0.0)
+            + r.crash_tilt_weight * wp.max(tilt - p.landing.max_tilt, 0.0)
+            + r.crash_rate_weight * wp.max(wp.length(b.omega) - p.landing.max_angular_rate, 0.0)
+            + r.crash_miss_weight * wp.max(miss - p.landing.pad_radius, 0.0)
         )
         return -(r.crash_penalty + r.crash_excess_scale * wp.log(1.0 + excess))
     if status == TUMBLED:

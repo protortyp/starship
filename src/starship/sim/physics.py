@@ -11,6 +11,7 @@ import warp as wp
 from starship.sim.aero import AeroParams, aero_wrench
 from starship.sim.atmosphere import atmosphere
 from starship.sim.config import G0
+from starship.sim.hull import HullParams, lowest_point
 from starship.sim.mass import MassParams, mass_properties
 from starship.sim.propulsion import (
     EngineState,
@@ -141,6 +142,15 @@ class SpawnParams:
 
 
 @wp.struct
+class LandingParams:
+    pad_radius: float
+    max_vertical_speed: float
+    max_horizontal_speed: float
+    max_tilt: float
+    max_angular_rate: float
+
+
+@wp.struct
 class Params:
     dt: float
     substeps: int
@@ -150,15 +160,8 @@ class Params:
     max_pitch: float  # from vertical; beyond it the vehicle counts as tumbling
     max_rate: float
     max_roll_rate: float
-    length: float
-    radius: float
-    nose_length: float
-    ogive_radius: float  # radius of the tangent-ogive arc
-    pad_radius: float
-    max_vertical_speed: float
-    max_horizontal_speed: float
-    max_tilt: float
-    max_angular_rate: float
+    hull: HullParams
+    landing: LandingParams
     spawn: SpawnParams
     mass: MassParams
     propulsion: PropulsionParams
@@ -303,34 +306,7 @@ def spawn(p: Params, s: State, tid: int):
 
 
 @wp.func
-def lowest_point(p: Params, b: Body, com: float) -> float:
-    """Height of the lowest hull point: the engine-plane rim, the nose-base rim, the tip, or the
-    point of the tangent-ogive nose whose surface slope matches the tilt."""
-    axis = wp.quat_rotate(b.rot, wp.vec3(1.0, 0.0, 0.0))
-    s = wp.sqrt(wp.max(1.0 - axis[2] * axis[2], 0.0))
-    base = b.pos[2] - com * axis[2]
-    nose_base = p.length - p.nose_length
-    tail = base - p.radius * s
-    shoulder = base + nose_base * axis[2] - p.radius * s
-    tip = base + p.length * axis[2]
-    lowest = wp.min(wp.min(tail, shoulder), tip)
-    # Surface height along the nose: z(u) = z(nose_base) + u a_z - r(u) s, with the ogive radius
-    # r(u) = sqrt(R^2 - u^2) + radius - R. Its minimum sits where u / sqrt(R^2 - u^2) = -a_z / s,
-    # which exists only when the nose points down.
-    if axis[2] < 0.0 and s > 0.0:
-        k = -axis[2] / s
-        u = wp.min(p.ogive_radius * k / wp.sqrt(1.0 + k * k), p.nose_length)
-        r = (
-            wp.sqrt(wp.max(p.ogive_radius * p.ogive_radius - u * u, 0.0))
-            + p.radius
-            - p.ogive_radius
-        )
-        lowest = wp.min(lowest, base + (nose_base + u) * axis[2] - wp.max(r, 0.0) * s)
-    return lowest
-
-
-@wp.func
-def touchdown_status(p: Params, b: Body, com: float) -> int:
+def touchdown_status(ld: LandingParams, b: Body, com: float) -> int:
     axis = wp.quat_rotate(b.rot, wp.vec3(1.0, 0.0, 0.0))
     base = b.pos - axis * com
     horizontal_speed = wp.sqrt(b.vel[0] * b.vel[0] + b.vel[1] * b.vel[1])
@@ -338,11 +314,11 @@ def touchdown_status(p: Params, b: Body, com: float) -> int:
     tilt = wp.acos(wp.clamp(axis[2], -1.0, 1.0))
     rate = wp.length(b.omega)
     if (
-        -b.vel[2] <= p.max_vertical_speed
-        and horizontal_speed <= p.max_horizontal_speed
-        and tilt <= p.max_tilt
-        and rate <= p.max_angular_rate
-        and miss <= p.pad_radius
+        -b.vel[2] <= ld.max_vertical_speed
+        and horizontal_speed <= ld.max_horizontal_speed
+        and tilt <= ld.max_tilt
+        and rate <= ld.max_angular_rate
+        and miss <= ld.pad_radius
     ):
         return LANDED
     return CRASHED
@@ -407,8 +383,8 @@ def advance(p: Params, s: State, c: Commands, tid: int):
         )
         tanks = draw_propellant(p.propulsion, tanks, mdot * supply, p.dt)
         t += p.dt
-        if lowest_point(p, b, mp.com) <= 0.0:
-            status = touchdown_status(p, b, mp.com)
+        if lowest_point(p.hull, b, mp.com) <= 0.0:
+            status = touchdown_status(p.landing, b, mp.com)
             break
         horizontal = wp.sqrt(b.pos[0] * b.pos[0] + b.pos[1] * b.pos[1])
         if b.pos[2] > p.max_altitude or horizontal > p.max_offset:

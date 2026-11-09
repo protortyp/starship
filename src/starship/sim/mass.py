@@ -11,7 +11,8 @@ import math
 import numpy as np
 import warp as wp
 
-from starship.sim.config import TANK_ORDER, HullConfig, VehicleConfig
+from starship.sim.config import TANK_ORDER, VehicleConfig
+from starship.sim.hull import hull_radius
 
 _NOSE_SLICES = 400
 
@@ -34,16 +35,6 @@ class MassProps:
     inertia: wp.vec3  # principal moments about the centre of mass along (b1, b2, b3)
 
 
-def ogive_radius(hull: HullConfig, station: float) -> float:
-    """Hull radius at a station: cylinder below the nose, tangent ogive above."""
-    r, length = hull.diameter / 2, hull.nose_length
-    from_tip = hull.length - station
-    if from_tip >= length:
-        return r
-    rho = (r * r + length * length) / (2 * r)
-    return math.sqrt(max(rho * rho - (length - from_tip) ** 2, 0.0)) + r - rho
-
-
 def _point(m: float, x: float, y: float, z: float) -> np.ndarray:
     """Mass, first moment and inertia about station 0 of a point mass at (x, y, z)."""
     return np.array([m, m * x, m * (y * y + z * z), m * (x * x + z * z), m * (x * x + y * y)])
@@ -61,7 +52,7 @@ def _dry_components(cfg: VehicleConfig) -> np.ndarray:
     m_flap = mc.flaps_mass / len(cfg.flaps)
     for flap in cfg.flaps:
         x = 0.5 * (flap.hinge_bottom + flap.hinge_top)
-        r = ogive_radius(hull, x) + 0.5 * flap.span
+        r = hull_radius(hull, x) + 0.5 * flap.span
         total += _point(m_flap, x, r * math.sin(flap.azimuth), r * math.cos(flap.azimuth))
 
     # Aft structure (skirt, thrust puck, aft dome) as a thin shell over the skirt.
@@ -82,7 +73,7 @@ def _dry_components(cfg: VehicleConfig) -> np.ndarray:
     m = rest - m
     dx = hull.nose_length / _NOSE_SLICES
     xs = top + dx * (np.arange(_NOSE_SLICES) + 0.5)
-    rs = np.array([ogive_radius(hull, x) for x in xs])
+    rs = np.array([hull_radius(hull, x) for x in xs])
     dm = m * rs**2 / np.sum(rs**2)
     transverse = np.sum(dm * (rs**2 / 4 + xs**2))
     total += [m, np.sum(dm * xs), np.sum(dm * rs**2 / 2), transverse, transverse]

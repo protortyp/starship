@@ -8,6 +8,7 @@ import warp as wp
 
 from starship.sim.aero import make_aero_params
 from starship.sim.config import TANK_ORDER, SimConfig
+from starship.sim.hull import make_hull_params
 from starship.sim.mass import make_mass_params
 from starship.sim.physics import (
     Attitude,
@@ -98,15 +99,15 @@ def make_params(config: SimConfig, device) -> Params:
     p.max_pitch = config.max_pitch
     p.max_rate = config.max_rate
     p.max_roll_rate = config.max_roll_rate
-    p.length = v.hull.length
-    p.radius = v.hull.diameter / 2
-    p.nose_length = v.hull.nose_length
-    p.ogive_radius = (v.hull.nose_length**2 + p.radius**2) / (2 * p.radius)
-    p.pad_radius = ld.pad_radius
-    p.max_vertical_speed = ld.max_vertical_speed
-    p.max_horizontal_speed = ld.max_horizontal_speed
-    p.max_tilt = ld.max_tilt
-    p.max_angular_rate = ld.max_angular_rate
+    p.hull = make_hull_params(v.hull)
+    for name in (
+        "pad_radius",
+        "max_vertical_speed",
+        "max_horizontal_speed",
+        "max_tilt",
+        "max_angular_rate",
+    ):
+        setattr(p.landing, name, getattr(ld, name))
     p.spawn = spawn
     p.mass = make_mass_params(v)
     p.propulsion = make_propulsion_params(v, config.dt)
