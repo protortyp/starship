@@ -6,11 +6,13 @@ auto-reset the final state goes to the terminal buffers and the env respawns in 
 Aerodynamics act on the air-relative velocity (`starship.sim.wind`); ground speed is the state.
 """
 
+import math
+
 import warp as wp
 
 from starship.sim.aero import AeroParams, aero_wrench
 from starship.sim.atmosphere import atmosphere
-from starship.sim.config import G0
+from starship.sim.config import G0, TANK_ORDER, SpawnConfig, VehicleConfig
 from starship.sim.flight_stats import FlightStats, track_flight, track_motion
 from starship.sim.hull import HullParams, lowest_point
 from starship.sim.mass import MassParams, mass_properties
@@ -69,6 +71,43 @@ class SpawnParams:
     flap_angle: float
     lit_throttle: float
     tanks: wp.vec4
+
+
+def make_spawn_params(vehicle: VehicleConfig, sp: SpawnConfig) -> SpawnParams:
+    if sp.entry:
+        values = (
+            sp.speed,
+            sp.speed_noise,
+            sp.flight_path_angle,
+            sp.flight_path_angle_noise,
+            sp.heading,
+            sp.heading_noise,
+            sp.entry_drag_area,
+        )
+        if not all(math.isfinite(x) for x in values):
+            raise ValueError("entry spawn parameters must be finite")
+        if (
+            sp.speed_noise < 0
+            or sp.speed <= sp.speed_noise
+            or sp.heading_noise < 0
+            or sp.flight_path_angle_noise < 0
+            or sp.entry_drag_area <= 0
+            or not 0
+            < sp.flight_path_angle - sp.flight_path_angle_noise
+            <= sp.flight_path_angle + sp.flight_path_angle_noise
+            <= math.pi / 2
+        ):
+            raise ValueError("entry spawn needs positive speed/drag area and descending angles")
+    out = SpawnParams()
+    out.entry = int(sp.entry)
+    for name in SpawnParams.vars:
+        if name not in ("entry", "tanks"):
+            setattr(out, name, float(getattr(sp, name)))
+    fill = (sp.main_fill, sp.main_fill, sp.header_fill, sp.header_fill)
+    out.tanks = wp.vec4(
+        *[vehicle.tanks[n].capacity * f for n, f in zip(TANK_ORDER, fill, strict=True)]
+    )
+    return out
 
 
 @wp.struct

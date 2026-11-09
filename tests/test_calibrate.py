@@ -6,10 +6,10 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from starship.sim.calibrate import FitParameters, fit, rmse, simulate
+from starship.calibrate.fit import FitParameters, fit, rmse, simulate
+from starship.calibrate.telemetry import Telemetry, load_telemetry
 from starship.sim.config import SimConfig
 from starship.sim.simulator import Simulator
-from starship.sim.telemetry import Telemetry, load_telemetry
 
 
 @pytest.fixture

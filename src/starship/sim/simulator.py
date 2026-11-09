@@ -1,24 +1,24 @@
 """Batched 6-DOF Starship simulator on a Warp device."""
 
-import math
 from dataclasses import dataclass
 
 import numpy as np
 import warp as wp
 
 from starship.sim.aero import make_aero_params
-from starship.sim.config import TANK_ORDER, SimConfig
+from starship.sim.config import SimConfig
 from starship.sim.hull import make_hull_params
 from starship.sim.mass import make_mass_params
 from starship.sim.physics import (
     Commands,
+    LandingParams,
     Params,
-    SpawnParams,
     State,
     Terminal,
     allocate,
     gather_kernel,
     init_rng_kernel,
+    make_spawn_params,
     reset_kernel,
     step_kernel,
 )
@@ -27,59 +27,7 @@ from starship.sim.wind import init_wind_kernel, make_wind_params
 
 
 def make_params(config: SimConfig, device) -> Params:
-    v, sp, ld = config.vehicle, config.spawn, config.landing
-    if sp.entry:
-        values = (
-            sp.speed,
-            sp.speed_noise,
-            sp.flight_path_angle,
-            sp.flight_path_angle_noise,
-            sp.heading,
-            sp.heading_noise,
-            sp.entry_drag_area,
-        )
-        if not all(math.isfinite(x) for x in values):
-            raise ValueError("entry spawn parameters must be finite")
-        if (
-            sp.speed_noise < 0
-            or sp.speed <= sp.speed_noise
-            or sp.heading_noise < 0
-            or sp.flight_path_angle_noise < 0
-            or sp.entry_drag_area <= 0
-            or not 0
-            < sp.flight_path_angle - sp.flight_path_angle_noise
-            <= sp.flight_path_angle + sp.flight_path_angle_noise
-            <= math.pi / 2
-        ):
-            raise ValueError("entry spawn needs positive speed/drag area and descending angles")
-    spawn = SpawnParams()
-    spawn.entry = int(sp.entry)
-    for name in (
-        "altitude",
-        "altitude_noise",
-        "offset",
-        "offset_noise",
-        "vertical_speed",
-        "vertical_speed_noise",
-        "horizontal_speed",
-        "horizontal_speed_noise",
-        "speed",
-        "speed_noise",
-        "flight_path_angle",
-        "flight_path_angle_noise",
-        "heading",
-        "heading_noise",
-        "entry_drag_area",
-        "pitch",
-        "pitch_noise",
-        "angular_rate_noise",
-        "flap_angle",
-        "lit_throttle",
-    ):
-        setattr(spawn, name, float(getattr(sp, name)))
-    fill = (sp.main_fill, sp.main_fill, sp.header_fill, sp.header_fill)
-    spawn.tanks = wp.vec4(*[v.tanks[n].capacity * f for n, f in zip(TANK_ORDER, fill, strict=True)])
-
+    v = config.vehicle
     p = Params()
     p.dt = config.dt
     p.substeps = config.substeps
@@ -90,15 +38,9 @@ def make_params(config: SimConfig, device) -> Params:
     p.max_rate = config.max_rate
     p.max_roll_rate = config.max_roll_rate
     p.hull = make_hull_params(v.hull)
-    for name in (
-        "pad_radius",
-        "max_vertical_speed",
-        "max_horizontal_speed",
-        "max_tilt",
-        "max_angular_rate",
-    ):
-        setattr(p.landing, name, getattr(ld, name))
-    p.spawn = spawn
+    for name in LandingParams.vars:
+        setattr(p.landing, name, getattr(config.landing, name))
+    p.spawn = make_spawn_params(v, config.spawn)
     p.mass = make_mass_params(v)
     p.propulsion = make_propulsion_params(v, config.dt)
     p.aero = make_aero_params(v, device=device)
