@@ -11,10 +11,9 @@ import math
 import numpy as np
 import warp as wp
 
-from starship.sim.config import HullConfig, VehicleConfig
+from starship.sim.config import TANK_ORDER, HullConfig, VehicleConfig
 from starship.sim.types import MassProps
 
-_TANK_ORDER = ("main_lox", "main_ch4", "header_lox", "header_ch4")
 _NOSE_SLICES = 400
 
 
@@ -90,7 +89,7 @@ def make_mass_params(cfg: VehicleConfig) -> MassParams:
     p.dry_mass = float(dry[0])
     p.dry_moment = float(dry[1])
     p.dry_inertia = wp.vec3(*dry[2:].tolist())
-    tanks = [cfg.tanks[name] for name in _TANK_ORDER]
+    tanks = [cfg.tanks[name] for name in TANK_ORDER]
     heights = [t.top - t.bottom for t in tanks]
     # Radius that holds the full capacity over the tank height; the hull caps the main LOX tank.
     radii = [

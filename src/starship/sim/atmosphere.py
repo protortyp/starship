@@ -9,7 +9,8 @@ import math
 
 import warp as wp
 
-G0 = 9.80665
+from starship.sim.config import G0
+
 R_AIR = 287.05287  # specific gas constant of dry air, J/(kg K)
 GAMMA = 1.4
 EARTH_RADIUS = 6356766.0  # effective radius used by the standard for geopotential altitude

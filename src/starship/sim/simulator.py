@@ -7,7 +7,7 @@ import numpy as np
 import warp as wp
 
 from starship.sim.aero import make_aero_params
-from starship.sim.config import SimConfig
+from starship.sim.config import TANK_ORDER, SimConfig
 from starship.sim.mass import make_mass_params
 from starship.sim.physics import (
     Attitude,
@@ -25,7 +25,6 @@ from starship.sim.propulsion import EngineState, FlapState, make_propulsion_para
 from starship.sim.rigid import Body
 from starship.sim.wind import WindState, init_wind_kernel, make_wind_params
 
-TANK_ORDER = ("main_lox", "main_ch4", "header_lox", "header_ch4")
 COMMAND_FIELDS = {
     "engine_on": wp.vec3,
     "throttle": wp.vec3,

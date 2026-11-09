@@ -7,8 +7,9 @@ error building up.
 
 import warp as wp
 
+from starship.sim.config import G0
+
 EARTH_MEAN_RADIUS = 6371000.0
-G0 = 9.80665
 
 
 @wp.func

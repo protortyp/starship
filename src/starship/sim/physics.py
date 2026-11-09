@@ -10,6 +10,7 @@ import warp as wp
 
 from starship.sim.aero import AeroParams, aero_wrench
 from starship.sim.atmosphere import atmosphere
+from starship.sim.config import G0
 from starship.sim.mass import MassParams, mass_properties
 from starship.sim.propulsion import (
     EngineState,
@@ -23,7 +24,7 @@ from starship.sim.propulsion import (
     flap_step,
     rcs_wrench,
 )
-from starship.sim.rigid import G0, Body, gravity, integrate
+from starship.sim.rigid import Body, gravity, integrate
 from starship.sim.types import add_wrench
 from starship.sim.wind import (
     WindParams,

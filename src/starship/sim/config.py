@@ -16,6 +16,9 @@ from dataclasses import dataclass, field
 
 G0 = 9.80665
 
+# Order of the four propellant masses wherever they travel as one vec4.
+TANK_ORDER = ("main_lox", "main_ch4", "header_lox", "header_ch4")
+
 
 @dataclass
 class HullConfig:
