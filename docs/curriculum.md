@@ -172,3 +172,20 @@ learning rate 1e-6, evaluations every five updates and rollback after one evalua
 than 0.1 below the best. Stage 0 retained roughly 96–100% stochastic catches and passed both PPO
 evaluations, promoting at iteration 10 to stage 1. Larger-approach catches remain at zero in the
 early continuation. The validated stage-0 checkpoint and its successful GIFs are preserved.
+
+Stage-1 postmortem: `catch_demo_stable_local/2026-11-15_14-25-18` completed 3,000 updates
+(196.6M environment steps) at 0% larger-approach catches. The critic lost effective rank to 1/128;
+its transition loss peaked at 446 times the preceding median. Engine use remained [1,0,0] and
+switch entropy was near zero. At checkpoint 2999, a fresh 256-episode audit measured critic
+Monte Carlo EV 0.273 across states and 0.119 at episode start, versus training bootstrapped EV
+0.514. Raw encodings were finite; normalized absolute p99 was 15.65 for body axial velocity,
+10.58 for engine-1/2 spool and 13.12 for dynamic pressure. Thus scale distribution shift and
+critic/exploration failure are measurable concerns, not evidence of billion-scale raw inputs.
+
+`catch_bridge_local/2026-11-15_17-47-33` restarts from the preserved actor and refitted critic,
+with four intermediate approaches before the original larger-approach stage. The 115 m/-8 m/s
+bridge passed both evaluations at iteration 55; early 130 m/-12 m/s training catches are about
+38–40%. Its checkpoint 9 audit found no normalized-channel p99 above 10, though initial-state
+critic EV was -0.094. Continue checking the critic as success/failure diversity changes; do not
+allow a completed failed run to be mistaken for active training. The progress publisher now
+matches the exact training tmux session (the updater's prefix previously caused false “running”).

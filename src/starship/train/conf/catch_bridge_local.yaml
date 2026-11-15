@@ -1,0 +1,13 @@
+defaults:
+  - catch_demo_local
+  - override curriculum: catch_bridge
+  - _self_
+experiment: catch_bridge_local
+iterations: 3000
+eval_interval: 5
+rollback_drop: 0.1
+rollback_patience: 1
+runner:
+  save_interval: 10
+  algorithm:
+    learning_rate: 1.0e-6
