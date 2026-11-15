@@ -70,7 +70,7 @@ A separate `curriculum=catch` adds pivoting arms and hull/fin collision checks; 
 | 0 | Short upright approach, lower fins pass, arms close, pins captured | solved in deterministic holdout: 1,023/1,024 catches (99.9%), learned flight + arm control |
 | 1 | Larger approach errors | solved: 505/512 fresh lit-engine approaches (98.6%) |
 | 2 | Engine ignition | solved: 507/512 deterministic and 248/256 stochastic fresh approaches |
-| 3–5 | Flip, randomized descent, wind | gradual flip curriculum: 500 m / 0–0.5 rad gate passed: fresh 91.0% deterministic, 87.9% stochastic; 45 m/s gate also passed; training 0–0.8 rad tilt; full belly-flop unsolved |
+| 3–5 | Flip, randomized descent, wind | gradual flip curriculum: 500 m / 0–0.5 rad gate passed: fresh 91.0% deterministic, 87.9% stochastic; 0–0.8 rad gate passed (87.6% deterministic holdout); comparing direct 700 m training with smaller altitude steps; full belly-flop unsolved |
 | 6–9 | Late-entry handovers, 5–20 km | not trained |
 
 Findings (2026-11-15): the initial fixed-arm baseline omitted fin collision. Its closed gap was
@@ -601,3 +601,34 @@ on commands, while each outer engine is on about 25% of the time. The slow distr
 update warning concerns noise scales near 0.02, not a frozen actor. Both warnings were
 reviewed without changing entropy or noise solely to silence them. PPO and independent
 audits continue; the full re-entry target still has zero evaluated catches.
+
+
+The wider-tilt gate passes at iteration 2809 in the handover PPO run. The passed-stage-15
+snapshot catches **897/1,024 deterministic** fresh starts (seed 819430) and **422/512
+stochastic** starts (seed 819431), below the internal promotion rate. The next stage
+changes only mean altitude, from 500 to 700 m, retaining 0–0.8 rad pitch, 45 m/s descent,
+cold engines and ±50 m altitude noise. Catch rate falls sharply. At iteration 2899,
+independent stochastic evaluation catches 57/512, with 339 tumbles and 116 crashes;
+initial critic bias is +0.29 and EV 0.388. In a 16-seed deterministic probe of policy 2889,
+14 flights tumble and two collide; forced-open and automatic arms give identical outcomes.
+This transition primarily exposes flight-control generalization, not arm timing or a
+persistently optimistic critic.
+
+A counterfactual altitude sweep retains the exact passed-stage-15 checkpoint bytes and
+changes only mean altitude. With 512 starts at seed 819376, catches are **441 at 500 m,
+221 at 600 m, and 44 at 700 m**. These are configuration interventions, not retrained
+policies. Reports and executed script are archived in `altitude-bridge-probe`. Large
+normalized outliers also occur during the failing flights, but this does not establish
+an encoding-scale cause.
+
+`catch_altitude_bridge_local/2026-11-15_21-42-45` tests 550/600/650 m bridge stages before
+returning to the original 700 m task. It resumes model 2809 at inherited iteration 2809;
+its actor is verified identical to the passed-stage-15 snapshot. In this experimental
+curriculum, stage 16 is 550 m and the old 700 m stage becomes stage 19. All subsequent
+original stages remain, and an exact dataclass comparison verifies identical final sim
+and reward configurations. The complete structured launch config and provenance are
+archived in the run, so stage numbers must be interpreted with that run's config. It
+trains for 2,000 updates with seed 819377 alongside the direct 700 m run; no physics,
+collision rules or final objective are relaxed. Both have independent checkpoint and
+promotion holdouts. The PR-description publisher still follows the direct run pending
+evidence that the bridge improves the same 700 m task.
