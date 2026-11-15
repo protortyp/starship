@@ -113,3 +113,8 @@ closure command. The policy still controls the motor and can collide. Ground tas
 Terminal observations preserve these channels before autoreset. Existing 24/28/31/32-input actors,
 critics, normalizer statistics and Adam moments can be padded to 38 without changing their
 original outputs; loading a 38-input policy into a 32-input environment is rejected.
+
+`--config-name catch_contact_local` tests an additional 100-point structural-contact penalty,
+using the simulator's contact label rather than a geometric heuristic. Default
+`reward.catch_contact_penalty=0` preserves earlier checkpoints' reward definitions. This preset
+retains the base 32 observations and initializes the critic bias at the -300 contact floor.

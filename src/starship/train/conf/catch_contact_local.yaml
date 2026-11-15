@@ -1,0 +1,11 @@
+defaults:
+  - catch_local
+  - _self_
+
+experiment: catch_contact_local
+reward:
+  catch_contact_penalty: 100.0
+runner:
+  algorithm:
+    # Match the new structural-failure floor, keeping large constants out of recurrent features.
+    initial_value: -300.0

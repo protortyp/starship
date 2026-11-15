@@ -32,6 +32,7 @@ REWARD_TERMS = (
 
 @dataclass
 class RewardConfig:
+    catch_contact_penalty: float = 0.0  # additional penalty for swept tower/arm contact
     catch_braking_height: float = 25.0  # brake before the fins clear, giving the arms time to close
     gamma: float = 0.999  # Must equal PPO's discount.
     distance_weight: float = 0.05  # per m
@@ -72,6 +73,7 @@ class RewardConfig:
 
 @wp.struct
 class RewardParams:
+    catch_contact_penalty: float
     catch_braking_height: float
     gamma: float
     distance_weight: float
@@ -171,7 +173,10 @@ def terminal_value(p: Params, r: RewardParams, t: Terminal, i: int, load: float)
             + r.crash_rate_weight * wp.max(wp.length(b.omega) - p.landing.max_angular_rate, 0.0)
             + r.crash_miss_weight * wp.max(miss - allowed_miss, 0.0)
         )
-        return -(r.crash_penalty + r.crash_excess_scale * wp.log(1.0 + excess))
+        contact = 0.0
+        if p.catcher.enabled != 0 and t.catch_failure[i] >= 1 and t.catch_failure[i] <= 6:
+            contact = r.catch_contact_penalty
+        return -(r.crash_penalty + contact + r.crash_excess_scale * wp.log(1.0 + excess))
     if status == TUMBLED:
         return -r.tumble_penalty
     if status == OUT_OF_BOUNDS:
