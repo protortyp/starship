@@ -420,3 +420,15 @@ most failures. This supports testing a smaller altitude transition if direct lea
 checkpoint-449 optimizer-reset control, seed 819267, for 200 updates: only GAE lambda changes
 from 0.98 to 0.995. Gamma, rollout horizon, learning rates, input statistics and physical
 constraints remain unchanged. Outcome selection awaits fresh matched evaluations.
+
+The completed lambda-0.995 experiment catches 750/1,024 versus 749/1,024 for its matched
+lambda-0.98 control (seed 819272): 21 gained and 20 lost catches, paired 95% interval
+-1.17 to +1.37 pp. Initial critic EV is 0.548 versus 0.554. Longer GAE credit is not adopted.
+
+Two longer runs now resume the rescaled checkpoint 649 with seed 819274 for 2,000 updates:
+`catch_conditioned_control_local/2026-11-15_20-03-57` retains actor LR 1e-6;
+`catch_conditioned_lr3_local/2026-11-15_20-03-57` uses 3e-6. Both retain lambda 0.98,
+critic LR 1e-5, frozen normalization, optimizer history and the KL guard. Independent
+512-flight stochastic audits are scheduled every 250 updates; matched comparisons require
+identical initial observations and curriculum stage. The main PR publisher hands off to the
+conditioned control after the original run's final render, continuing description-only GIFs.
