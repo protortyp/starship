@@ -165,7 +165,6 @@ def audit(checkpoint, episodes, seed, output, stage=None, stochastic=False, acti
         raise ValueError("action_seed requires stochastic rollouts")
     digest = hashlib.sha256(checkpoint.read_bytes()).hexdigest()
     cfg = load_run_config(checkpoint.parent)
-    training_batch = cfg.num_envs * cfg.runner.num_steps_per_env
     cfg.device, cfg.num_envs, cfg.eval_envs = "cpu", episodes, episodes
     output.mkdir(parents=True, exist_ok=True)
     runner = make_runner(cfg, output, seed)
@@ -259,7 +258,7 @@ def audit(checkpoint, episodes, seed, output, stage=None, stochastic=False, acti
         "optim/updates",
         "policy/kl_analytic",
     ]
-    cutoff = (runner.current_learning_iteration + 1) * training_batch
+    cutoff = runner.total_env_steps
     scalars = {
         tag: [(step, value) for step, value in entries if step <= cutoff]
         for tag, entries in load_scalars(checkpoint.parent).items()

@@ -172,6 +172,38 @@ def test_training_resumes_from_checkpoint(tmp_path):
     assert resumed.current_learning_iteration == 2
 
 
+@pytest.mark.parametrize("legacy", [False, True])
+def test_resume_preserves_steps_when_batch_size_changes(tmp_path, legacy):
+    cfg = compose_cfg(*SHORT_EPISODES)
+    source = tmp_path / "source"
+    first = make_runner(cfg, source)
+    first.learn(2)
+    checkpoint = source / "model_1.pt"
+    if legacy:
+        saved = torch.load(checkpoint, weights_only=False)
+        del saved["infos"]["total_env_steps"]
+        torch.save(saved, checkpoint)
+        (source / ".hydra").mkdir()
+        OmegaConf.save(cfg, source / ".hydra/config.yaml")
+    expected = 2 * cfg.num_envs * cfg.runner.num_steps_per_env
+    cfg.num_envs = 32
+    cfg.runner.num_steps_per_env = 4
+    resumed = make_runner(cfg, tmp_path / "resumed")
+    resumed.load(str(checkpoint))
+    assert resumed.total_env_steps == expected
+    resumed.learn(1)
+    expected += 32 * 4
+    assert resumed.total_env_steps == expected
+    saved = torch.load(tmp_path / "resumed/model_2.pt", weights_only=False)
+    assert saved["infos"]["total_env_steps"] == expected
+    cfg.num_envs = 16
+    again = make_runner(cfg, tmp_path / "again")
+    again.load(str(tmp_path / "resumed/model_2.pt"))
+    assert again.total_env_steps == expected
+    for runner in (first, resumed, again):
+        runner.writer.close()
+
+
 class CoastingPolicy(torch.nn.Module):
     def reset(self, dones=None):
         pass
