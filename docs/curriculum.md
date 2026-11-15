@@ -70,7 +70,7 @@ A separate `curriculum=catch` adds pivoting arms and hull/fin collision checks; 
 | 0 | Short upright approach, lower fins pass, arms close, pins captured | solved in deterministic holdout: 1,023/1,024 catches (99.9%), learned flight + arm control |
 | 1 | Larger approach errors | solved: 505/512 fresh lit-engine approaches (98.6%) |
 | 2 | Engine ignition | solved: 507/512 deterministic and 248/256 stochastic fresh approaches |
-| 3–5 | Flip, randomized descent, wind | gradual flip curriculum: 350 m / 0–0.5 rad retained at 94.7%; 500 m student 71.0% deterministic, 51.5% stochastic; full belly-flop unsolved |
+| 3–5 | Flip, randomized descent, wind | gradual flip curriculum: 350 m / 0–0.5 rad retained at 97.0%; 500 m student 75.5% deterministic, 70.5% stochastic; full belly-flop unsolved |
 | 6–9 | Late-entry handovers, 5–20 km | not trained |
 
 Findings (2026-11-15): the initial fixed-arm baseline omitted fin collision. Its closed gap was
@@ -509,3 +509,31 @@ The holdout exposed a braking-diagnostic race: its Warp kernel defaulted to CUDA
 writing CPU buffers, occasionally producing incomplete values. The launch now explicitly
 uses CPU and rejects nonfinite physics or nonpositive mass. Previously recorded braking
 estimates may be unreliable; catch outcomes and critic-return metrics use separate paths.
+
+
+`catch_handover_robust_distill_local/2026-11-15_20-58-40` addresses the sampling gap
+by collecting student/teacher mixtures with stochastic student actions, keeping the
+same reference labels and 350 m replay. Internal evaluation selects supervised update
+400. Fresh tests catch 773/1,024 deterministic 500 m starts and 993/1,024 at 350 m
+(seed 819335), plus 722/1,024 stochastic 500 m starts (seed 819336). These are separate
+fresh seed sets, not a paired comparison with the previous student's percentages.
+The stochastic initial critic bias is -0.54 and EV 0.406; the 0.3–0.5 rad group catches
+178/402, identifying the largest-tilt starts as the remaining weakness.
+
+A subsequent critic-only fit selects update 500. On a fresh matched stochastic set
+(seed 819338), both checkpoints catch 338/512 with bitwise-identical actors and identical
+trajectories. Full-flight value RMSE improves 86.96 → 78.08, EV 0.601 → 0.677; initial
+RMSE improves only 113.20 → 112.24. `catch_handover_ppo_local/2026-11-15_21-03-46`
+resumes this calibrated student for 2,000 PPO updates (seed 819339, inherited iteration
+1549), while the older coherent PPO continues for comparison. After 50 updates, an
+independent 512-flight stochastic audit catches 404 (78.9%, seed 819340); its 0.3–0.5 rad
+group catches 122/198. The training PR's description publisher now follows this run.
+
+A 24-seed deterministic arm intervention probe of its policy 1559 catches 18 with learned
+arm commands. Five failures occur before any close command: three tumbles, one hull/tower
+strike and one aft-fin/tower strike. Those failures are unchanged with forced-open arms.
+The sixth reaches the capture plane with closed arms but about 0.90 m pin-alignment error;
+automatic arm timing changes the subsequent flight and succeeds on that seed. This small
+probe supports prioritizing flight recovery and alignment over a general early-closure fix.
+The full traces are in the run's `catch-probe/policy_1559` directory; the full re-entry
+objective remains unsolved and the training PR remains draft.
