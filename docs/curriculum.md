@@ -208,3 +208,11 @@ optimization/data problem, not proof of full value-function mastery. Continue co
 returns with bootstrapped training targets. `catch_bridge_calibrated_local/2026-11-15_17-59-49`
 tests that calibrated critic in PPO with the same actor, frozen encodings, learnable noise floor,
 and less frequent rollback (30% relative drop for three evaluations). Early catches remain ~40%.
+
+Position-scale experiment: lateral target channels had normalized standard deviations only 0.016
+and 0.037 because positions divided by 3,000 were dominated by the normalizer epsilon 0.01.
+`catch_position_local/2026-11-15_18-08-22` changes the denominator to 30 with a function-preserving
+actor/critic input transform. Maximum trace-output changes were 4.3e-6 (actor) and 3.8e-5 (critic);
+256 matched seed-92817 episodes retained identical outcomes and lengths, 106/256 catches. The
+first 100-plus PPO updates still gave roughly 40% catches: better input sensitivity alone has
+not yet solved bridge 2. Do not label this migration as improved learned performance.

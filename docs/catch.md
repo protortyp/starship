@@ -173,3 +173,10 @@ and selects by validation RMSE. It clears stale critic optimizer moments while r
 moments and the original PPO iteration. The saved `model_calibrated.pt` is a supervised critic
 experiment, not additional PPO progress. Run a fresh-seed learning audit before continuation;
 validation-split performance can overstate generalization. This tool does not invoke the teacher.
+
+`uv run python -m starship.train.rescale_position RUN/model_N.pt --position 30 --output NEW_RUN`
+changes the position denominator and rescales actor/critic normalizer statistics plus the three
+LSTM input columns to preserve the initial function, including the normalizer epsilon. Only those
+input weights' optimizer moments are reset; iteration and other moments stay intact. This tests
+optimization sensitivity, not a better starting controller. The output has a matching Hydra config,
+paired checkpoints and transformation provenance. Resume with the same `obs.position` setting.
