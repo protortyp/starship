@@ -6,7 +6,7 @@ import pytest
 
 from starship.sim import Simulator
 from starship.train import ObsConfig, RewardConfig
-from starship.train.actions import ACTION_DIM
+from starship.train.actions import ACTION_DIM, CONTINUOUS, HEAD_NAMES
 from starship.train.catch_probe import measure, replay, report_text
 from starship.train.env import RocketEnv
 from starship.train.runner import export_policy
@@ -68,7 +68,20 @@ def test_probe_exports_deterministic_intervention_and_reward_trace(tmp_path):
     assert "obs_31" in rows[0]
     assert "normalized_obs_31" in rows[0]
     assert rows[-1]["status"] == "timeout"
-    text = report_text({"policy": str(policy), "stage_name": "test", "episodes": [a]})
+    for row in rows:
+        for name in HEAD_NAMES:
+            assert f"requested_{name}" in row
+            if name != "arm_close":
+                assert row[f"requested_{name}"] == row[f"executed_{name}"]
+        for name, low, high in CONTINUOUS:
+            raw = float(row[f"executed_{name}"])
+            expected = low + (high - low) * (0.5 + 0.5 * np.tanh(raw))
+            assert float(row[f"policy_target_{name}"]) == pytest.approx(expected, abs=1e-6)
+    text = report_text(
+        {"policy": str(policy), "stage_name": "test", "episodes": [a], "position_scale": 30}
+    )
+    assert "divided by 30;" in text
+    assert "scaled by 3000" not in text
     assert "never" in text
     assert "timeout" in text
 
@@ -80,6 +93,8 @@ def test_probe_exports_deterministic_intervention_and_reward_trace(tmp_path):
     ).stdout
     for entity in (
         "/decision/close_probability",
+        "/commands/gimbal/gimbal3",
+        "/commands/engines/engine0",
         "/state/aft_fin_clearance_m",
         "/inputs/normalized/obs_31",
         "/reward/reward_terminal",

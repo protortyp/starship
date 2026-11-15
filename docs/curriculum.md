@@ -305,3 +305,19 @@ remain unchanged. Parallel runs `catch_flip_range_fast/2026-11-15_19-02-17` (cri
 and `catch_flip_range_control/2026-11-15_19-02-17` (shared LR 1e-6) start from the identical
 passed actor/critic and must re-establish the stage-7 threshold after reset before advancing.
 The initial observed range success is a counterfactual baseline, not a trained result.
+
+Range failure localization (checkpoint 439, fresh seed 819250): the fast-critic policy catches
+93–100% below initial tilt 0.1 rad, 78% at 0.1–0.125, and only 9% at 0.125–0.15. Its fresh
+all-state/initial critic EV is 0.848/0.609, versus 0.826/0.597 for the shared-rate control;
+catch rates remain similar (401/512 versus 404/512). Replay interventions predominantly hit
+the tower while arms are still open, so arm timing does not explain this failure boundary.
+A matched per-head noise probe (seed 819251, checkpoint 519) failed to improve the high-angle
+subset; increasing gimbal/flap noise reduced total catches. Do not adopt those perturbations.
+
+The replay probe now exports every requested/executed action and post-tanh continuous target,
+with Rerun flight-command plots. Targets are explicitly in the policy frame before mirroring.
+Its position-scale explanation reads the actual observation config (30 for these runs), replacing
+the stale hard-coded 3,000. A reference-controller check at 0.2 rad and 250 m (256 matched
+seed-819252 starts) catches 243 with lit engines versus 4 with cold engines. This identifies an
+ignition/attitude-control interaction, not a physical infeasibility result; broader lit-engine
+starts are being investigated as demonstration data before returning to cold-start control.

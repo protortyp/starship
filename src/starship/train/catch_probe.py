@@ -28,7 +28,7 @@ from starship.sim.mass import mass_properties
 from starship.sim.physics import Params
 from starship.sim.propulsion import FlapState
 from starship.sim.rigid import Body
-from starship.train.actions import ARM_HEAD
+from starship.train.actions import ARM_HEAD, CONTINUOUS, HEAD_NAMES
 from starship.train.checkpoint import load_policy
 from starship.train.env import RocketEnv
 from starship.train.reward import REWARD_TERMS
@@ -180,6 +180,17 @@ def replay(policy_path, cfg, obs_cfg, reward_cfg, seed, mode, output, recording=
                             ),
                             name="Policy inputs",
                         ),
+                        rrb.Vertical(
+                            rrb.TimeSeriesView(name="Engine switches", origin="/commands/engines"),
+                            rrb.TimeSeriesView(
+                                name="Gimbal targets (rad)", origin="/commands/gimbal"
+                            ),
+                            rrb.TimeSeriesView(
+                                name="Throttle and roll RCS", origin="/commands/power"
+                            ),
+                            rrb.TimeSeriesView(name="Flap targets (rad)", origin="/commands/flaps"),
+                            name="Flight commands",
+                        ),
                         rrb.TimeSeriesView(name="Reward components", origin="/reward"),
                     )
                 )
@@ -201,11 +212,15 @@ def replay(policy_path, cfg, obs_cfg, reward_cfg, seed, mode, output, recording=
                 logits = raw_outputs.pop()
                 row["close_probability"] = torch.sigmoid(logits[0, ARM_HEAD]).item()
                 row["policy_close"] = float(action[0, ARM_HEAD])
+                for j, name in enumerate(HEAD_NAMES):
+                    row[f"requested_{name}"] = float(action[0, j])
                 if mode == "open":
                     action[0, ARM_HEAD] = 0
                 elif mode == "automatic":
                     action[0, ARM_HEAD] = row["automatic_close"]
                 row["executed_close"] = float(action[0, ARM_HEAD])
+                for j, name in enumerate(HEAD_NAMES):
+                    row[f"executed_{name}"] = float(action[0, j])
                 if first_close is None and row["executed_close"]:
                     first_close = {
                         key: row[key] for key in ("time_s", *FIELDS, "close_probability")
@@ -214,6 +229,8 @@ def replay(policy_path, cfg, obs_cfg, reward_cfg, seed, mode, output, recording=
                     row[f"obs_{j:02d}"] = raw[0, j].item()
                     row[f"normalized_obs_{j:02d}"] = normalized[0, j].item()
                 obs, reward, done, _ = env.step(action)
+                for j, (name, _, _) in enumerate(CONTINUOUS):
+                    row[f"policy_target_{name}"] = float(env.squashed_actions[0, j])
                 row["reward"] = reward.item()
                 row["terminal_reward"] = env.terminal_reward.item()
                 for key, value in zip(REWARD_TERMS, env.reward_terms[0].tolist(), strict=True):
@@ -242,6 +259,15 @@ def replay(policy_path, cfg, obs_cfg, reward_cfg, seed, mode, output, recording=
                     rr.set_time("sim_time", duration=row["time_s"])
                     for key in (*FIELDS, "close_probability", "executed_close"):
                         rr.log(f"decision/{key}", rr.Scalars(row[key]))
+                    for name in HEAD_NAMES[:3]:
+                        rr.log(f"commands/engines/{name}", rr.Scalars(row[f"executed_{name}"]))
+                    for name, _, _ in CONTINUOUS:
+                        group = (
+                            "gimbal"
+                            if name.startswith("gimbal")
+                            else ("flaps" if name.startswith("flap") else "power")
+                        )
+                        rr.log(f"commands/{group}/{name}", rr.Scalars(row[f"policy_target_{name}"]))
                     for j in range(raw.shape[-1]):
                         rr.log(f"inputs/raw/obs_{j:02d}", rr.Scalars(raw[0, j].item()))
                         rr.log(
@@ -314,6 +340,7 @@ def report_text(report):
         "constant-current-pin-velocity estimate, not a prediction; -1 means no descending pin.",
         "",
         "CSV rows contain pre-action geometry, close probability, requested/executed commands, "
+        "continuous actuator targets in the policy frame (after tanh, before mirroring), "
         "all raw and normalized policy observations, reward components, and post-step geometry. "
         "Terminal values are captured before autoreset. Collision labels identify the first "
         "conservative swept contact detected by the simulator, not measured impact physics.",
@@ -325,7 +352,9 @@ def report_text(report):
         "clearance, individual pin heights or closure-time in the base 32 inputs. With "
         "obs.catch_geometry=true, channels 32-37 add two pin heights, aft-fin clearance, pin "
         "alignment error, closure time and constant-velocity arrival time. Collision labels are "
-        "diagnostics only. Raw position is scaled by 3000; the learned normalizer is also exported "
+        "diagnostics only. Raw position is divided by "
+        f"{report.get('position_scale', 'the configured scale')}; "
+        "the learned normalizer is also exported "
         "to avoid mistaking small raw values for an invisible signal.",
     ]
     return "\n".join(lines) + "\n"
@@ -352,7 +381,13 @@ def main():
     output = args.output or policy.parent / "catch-probe" / policy.stem
     output.mkdir(parents=True, exist_ok=True)
     torch.set_num_threads(2)
-    report = {"policy": str(policy), "stage": stage, "stage_name": name, "episodes": []}
+    report = {
+        "policy": str(policy),
+        "stage": stage,
+        "stage_name": name,
+        "position_scale": obs.position,
+        "episodes": [],
+    }
     for mode in ("policy", "open", "automatic"):
         for seed in range(args.seeds):
             report["episodes"].append(
