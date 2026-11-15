@@ -4,6 +4,7 @@ uv run python -m starship.train.catch_pretrain --output logs/catch_demo_pretrain
 """
 
 import argparse
+import copy
 import json
 import math
 from pathlib import Path
@@ -74,6 +75,7 @@ def demonstrations(cfg, episodes, seed, policy=None, teacher_probability=1.0, te
         "valid": torch.from_numpy(np.stack(masks)),
         "returns": torch.from_numpy(discounted),
         "status": torch.from_numpy(status),
+        "stage": torch.full((episodes,), curriculum.stage, dtype=torch.int),
     }
 
 
@@ -82,7 +84,7 @@ def aggregate(original, added):
     result = {}
     length = max(original["valid"].shape[0], added["valid"].shape[0])
     for key in original:
-        if key == "status":
+        if key in ("status", "stage"):
             result[key] = torch.cat((original[key], added[key]))
             continue
         arrays = []
@@ -93,6 +95,18 @@ def aggregate(original, added):
             arrays.append(padded)
         result[key] = torch.cat(arrays, dim=1)
     return result
+
+
+def demonstration_mixture(cfg, episodes, seed, replay_stages=(), **kwargs):
+    """Keep complete episodes from earlier stages, including their observation distributions."""
+    data = None
+    stages = list(dict.fromkeys([cfg.curriculum.start_stage, *replay_stages]))
+    for index, stage in enumerate(stages):
+        stage_cfg = copy.deepcopy(cfg)
+        stage_cfg.curriculum.start_stage = stage
+        added = demonstrations(stage_cfg, episodes, seed + index * 100000, **kwargs)
+        data = added if data is None else aggregate(data, added)
+    return data
 
 
 def sequence_output(model, obs):
@@ -147,6 +161,7 @@ def main():
     parser.add_argument("--rounds", type=int, default=4)
     parser.add_argument("--teacher", choices=["short", "approach"], default="short")
     parser.add_argument("--stage", type=int, default=0)
+    parser.add_argument("--replay-stage", type=int, action="append", default=[])
     parser.add_argument("--position-scale", type=float)
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--evaluate-every", type=int, default=100)
@@ -177,11 +192,27 @@ def main():
         )
     (args.output / ".hydra").mkdir()
     OmegaConf.save(cfg, args.output / ".hydra/config.yaml")
-    data = demonstrations(cfg, args.episodes, args.seed, teacher=args.teacher)
+    replay_stages = sorted(set(args.replay_stage) - {args.stage})
+    data = demonstration_mixture(cfg, args.episodes, args.seed, replay_stages, teacher=args.teacher)
     teacher_rate = float((data["status"] == 1).float().mean())
-    print(f"demonstrations: {args.episodes} episodes, caught {teacher_rate:.1%}", flush=True)
+    print(
+        f"demonstrations: {data['status'].numel()} episodes, caught {teacher_rate:.1%}", flush=True
+    )
     torch.save(data, args.output / "demonstrations.pt")
     runner = make_runner(cfg, args.output, args.seed)
+    replay_envs = {}
+    for stage in replay_stages:
+        sim, reward = runner.curriculum.configs(stage)
+        replay_envs[stage] = RslRocketEnv(
+            RocketEnv(
+                cfg.eval_envs,
+                sim,
+                OmegaConf.to_object(cfg.obs),
+                reward,
+                device=cfg.device,
+                seed=args.seed + 20000 + stage,
+            )
+        )
     actor, critic = runner.alg.actor, runner.alg.critic
     valid = data["valid"]
     for model in (actor, critic):
@@ -198,15 +229,16 @@ def main():
     critic_opt = torch.optim.Adam(critic.parameters(), lr=3e-4)
     data = {k: v.to(args.device) for k, v in data.items()}
     history = []
-    best = (-1.0, -float("inf"))
+    best = (-1.0, -1.0, -float("inf"))
     total_updates = args.updates * (args.rounds + 1)
     for update in range(1, total_updates + 1):
         if update > 1 and (update - 1) % args.updates == 0:
             round_index = (update - 1) // args.updates
-            added = demonstrations(
+            added = demonstration_mixture(
                 cfg,
                 args.episodes,
                 args.seed + round_index * 1000,
+                replay_stages,
                 policy=actor,
                 teacher_probability=0.5**round_index,
                 teacher=args.teacher,
@@ -231,8 +263,15 @@ def main():
         if update % args.evaluate_every == 0 or update == total_updates:
             metrics = runner.evaluate()
             rate, ret = metrics["eval/env/rate/landed"], metrics["eval/env/return"]
+            replay_rates = {
+                stage: runner.evaluate(env=env)["eval/env/rate/landed"]
+                for stage, env in replay_envs.items()
+            }
+            minimum_rate = min([rate, *replay_rates.values()])
             row = {
                 "update": update,
+                "replay_catch_rates": replay_rates,
+                "minimum_catch_rate": minimum_rate,
                 "loss": loss.item(),
                 "value_loss": value_loss.item(),
                 "catch_rate": rate,
@@ -246,8 +285,8 @@ def main():
             )
             export_policy(actor, args.output / f"policy_demo_{update}.pt")
             (args.output / f"demo_{update}.json").write_text(json.dumps(row, indent=2))
-            if (rate, ret) > best:
-                best = (rate, ret)
+            if (minimum_rate, rate, ret) > best:
+                best = (minimum_rate, rate, ret)
                 # -1 is initialization, not a PPO iteration or a fabricated environment-step count.
                 runner.current_learning_iteration = -1
                 runner.save_all(-1)
@@ -258,7 +297,9 @@ def main():
                         "teacher_rate": teacher_rate,
                         "teacher": args.teacher,
                         "stage": args.stage,
-                        "episodes": args.episodes,
+                        "replay_stages": replay_stages,
+                        "episodes_per_stage": args.episodes,
+                        "episodes": args.episodes * (1 + len(replay_stages)),
                         "aggregation_rounds": args.rounds,
                         "updates_per_round": args.updates,
                         "seed": args.seed,
@@ -269,7 +310,8 @@ def main():
             )
     runner.writer.close()
     print(
-        f"best standalone policy: {args.output / 'policy_-1.pt'} ({best[0]:.1%} catches)",
+        f"best standalone policy: {args.output / 'policy_-1.pt'} "
+        f"({best[0]:.1%} minimum catches across trained stages)",
         flush=True,
     )
 

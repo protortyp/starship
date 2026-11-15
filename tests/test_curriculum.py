@@ -286,3 +286,19 @@ def test_range_curriculum_keeps_easier_attitudes_and_passed_stage_indices():
         assert sim.catch.flap_collisions
     assert previous_upper == pytest.approx(1.5708)
     assert ranged.target_configs() == old.target_configs()
+
+
+def test_tilt_demonstration_curriculum_restores_cold_ignition_and_entry_target():
+    import dataclasses
+
+    cfg = compose_cfg("curriculum=catch_tilt_demo")
+    original_cfg = compose_cfg("curriculum=catch_flip_range")
+    curriculum = Curriculum(cfg, cfg.curriculum)
+    original = Curriculum(original_cfg, original_cfg.curriculum)
+    for stage in range(8):
+        assert curriculum.configs(stage) == original.configs(stage)
+    lit, _ = curriculum.configs(8)
+    cold, _ = curriculum.configs(9)
+    assert lit.spawn.lit_throttle == 0.5
+    assert cold.spawn == dataclasses.replace(lit.spawn, lit_throttle=0)
+    assert curriculum.target_configs() == original.target_configs()
