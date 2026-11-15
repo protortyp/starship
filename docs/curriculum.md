@@ -216,3 +216,26 @@ actor/critic input transform. Maximum trace-output changes were 4.3e-6 (actor) a
 256 matched seed-92817 episodes retained identical outcomes and lengths, 106/256 catches. The
 first 100-plus PPO updates still gave roughly 40% catches: better input sensitivity alone has
 not yet solved bridge 2. Do not label this migration as improved learned performance.
+
+Upright engine-ignition approach solved with network-only control:
+`catch_approach_pretrain/2026-11-15_18-21-43/model_demo_9600.pt` catches 507/512 fresh
+engine-off approaches (seed 487231), 505/512 already-lit approaches (seed 594823), and
+248/256 stochastic engine-off approaches (seed 921893). These start at 200±50 m,
+-30±5 m/s with lateral offsets and use the unchanged arm/fin collision checks. A reference
+controller supplies demonstrations and dataset aggregation; inference uses only the trained
+network. The controller aligns above the arms, allocates thrust across one or three engines,
+and gates closing on pin alignment and speed. It deliberately rejects belly-flop/entry starts.
+Position denominator is 30; frozen normalization and std floor 0.005 preserve the handoff.
+
+Critic quality is not implied by catch success: fresh all-state Monte Carlo EV is -0.395
+(engine-off), -1.583 (lit), and -0.237 (stochastic). Engine-off RMSE is 35.43 against return
+standard deviation about 30; stochastic RMSE is 50.42. Continue critic calibration and fresh
+validation. `learning_audit --stochastic` now measures the sampled policy reproducibly and
+keeps its output separate from deterministic audits. Supervised checkpoints are immutable
+`model_demo_UPDATE.pt`/`policy_demo_UPDATE.pt`, retain PPO iteration -1, and record their
+supervised update separately; PR progress labels these as supervised updates, not PPO steps.
+
+The belly-flop transition remains unsolved. An experimental rate-limited upright controller
+still tumbled in all 256 low-belly-flop trials: one trace accumulated >100 m/s lateral speed
+while turning, then exceeded the 90 degree/s roll limit. Fixed neutral flaps and sideways
+thrust require investigation; no simulator limits have been relaxed to make these pass.

@@ -22,12 +22,17 @@ from starship.train.catch_teacher import teacher_actions
 from starship.train.curriculum import Curriculum
 from starship.train.env import RocketEnv
 from starship.train.rsl_env import RslRocketEnv
-from starship.train.runner import StarshipRunner, standalone_copy
+from starship.train.runner import StarshipRunner, export_policy, standalone_copy
 
 
-def demonstrations(cfg, episodes, seed, policy=None, teacher_probability=1.0):
+def demonstrations(cfg, episodes, seed, policy=None, teacher_probability=1.0, teacher="short"):
+    teaching_actions = teacher_actions
+    if teacher == "approach":
+        from starship.train.catch_approach_teacher import teacher_actions as teaching_actions
+    elif teacher != "short":
+        raise ValueError("unknown demonstration teacher")
     curriculum = Curriculum(cfg, cfg.curriculum)
-    sim, reward = curriculum.configs(0)
+    sim, reward = curriculum.configs()
     env = RocketEnv(episodes, sim, OmegaConf.to_object(cfg.obs), reward, device="cpu", seed=seed)
     rng = np.random.default_rng(seed)
     if policy is not None:
@@ -37,7 +42,7 @@ def demonstrations(cfg, episodes, seed, policy=None, teacher_probability=1.0):
     status = np.zeros(episodes, dtype=np.int32)
     inputs, labels, rewards, masks = [], [], [], []
     for _ in range(env.sim.params.max_steps):
-        action = teacher_actions(env)
+        action = teaching_actions(env)
         inputs.append(env.observe().numpy().copy())
         labels.append(action.numpy().copy())
         masks.append(pending.copy())
@@ -114,7 +119,7 @@ def imitation_loss(logits, targets, valid):
 
 
 def make_runner(cfg, output, seed):
-    sim, reward = Curriculum(cfg, cfg.curriculum).configs(0)
+    sim, reward = Curriculum(cfg, cfg.curriculum).configs()
     obs = OmegaConf.to_object(cfg.obs)
 
     def env(n, rng):
@@ -140,11 +145,18 @@ def main():
     parser.add_argument("--updates", type=int, default=2000)
     parser.add_argument("--batch", type=int, default=16)
     parser.add_argument("--rounds", type=int, default=4)
+    parser.add_argument("--teacher", choices=["short", "approach"], default="short")
+    parser.add_argument("--stage", type=int, default=0)
+    parser.add_argument("--position-scale", type=float)
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--evaluate-every", type=int, default=100)
     args = parser.parse_args()
     if min(args.episodes, args.updates, args.batch, args.evaluate_every) < 1:
         parser.error("counts must be positive")
+    if args.position_scale is not None and (
+        not math.isfinite(args.position_scale) or args.position_scale <= 0
+    ):
+        parser.error("position scale must be finite and positive")
     if args.rounds < 0:
         parser.error("rounds must be nonnegative")
     if args.output.exists() and any(args.output.iterdir()):
@@ -159,11 +171,13 @@ def main():
                 f"device={args.device}",
                 "num_envs=128",
                 "eval_envs=128",
+                f"curriculum.start_stage={args.stage}",
+                *([f"obs.position={args.position_scale}"] if args.position_scale else []),
             ],
         )
     (args.output / ".hydra").mkdir()
     OmegaConf.save(cfg, args.output / ".hydra/config.yaml")
-    data = demonstrations(cfg, args.episodes, args.seed)
+    data = demonstrations(cfg, args.episodes, args.seed, teacher=args.teacher)
     teacher_rate = float((data["status"] == 1).float().mean())
     print(f"demonstrations: {args.episodes} episodes, caught {teacher_rate:.1%}", flush=True)
     torch.save(data, args.output / "demonstrations.pt")
@@ -176,7 +190,8 @@ def main():
         model.train()  # cuDNN recurrent backward requires training mode.
         model.obs_normalizer.eval()
     with torch.no_grad():
-        actor.distribution.log_std.fill_(math.log(0.05))
+        std_floor = cfg.runner.actor.distribution_cfg.get("std_range", [0.05, 2.0])[0]
+        actor.distribution.log_std.fill_(math.log(std_floor))
         output = [m for m in critic.mlp.modules() if isinstance(m, nn.Linear)][-1]
         output.bias.fill_(data["returns"][valid].mean().item())
     actor_opt = torch.optim.Adam(actor.parameters(), lr=3e-4)
@@ -194,6 +209,7 @@ def main():
                 args.seed + round_index * 1000,
                 policy=actor,
                 teacher_probability=0.5**round_index,
+                teacher=args.teacher,
             )
             torch.save(added, args.output / f"demonstrations-round-{round_index}.pt")
             data = aggregate(data, {k: v.to(args.device) for k, v in added.items()})
@@ -224,6 +240,12 @@ def main():
             }
             history.append(row)
             print(json.dumps(row), flush=True)
+            runner.current_learning_iteration = -1
+            runner.save(
+                str(args.output / f"model_demo_{update}.pt"), infos={"supervised_update": update}
+            )
+            export_policy(actor, args.output / f"policy_demo_{update}.pt")
+            (args.output / f"demo_{update}.json").write_text(json.dumps(row, indent=2))
             if (rate, ret) > best:
                 best = (rate, ret)
                 # -1 is initialization, not a PPO iteration or a fabricated environment-step count.
@@ -234,6 +256,8 @@ def main():
                 json.dumps(
                     {
                         "teacher_rate": teacher_rate,
+                        "teacher": args.teacher,
+                        "stage": args.stage,
                         "episodes": args.episodes,
                         "aggregation_rounds": args.rounds,
                         "updates_per_round": args.updates,

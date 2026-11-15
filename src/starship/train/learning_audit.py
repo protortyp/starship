@@ -105,7 +105,7 @@ def discounted_returns(rewards, valid, gamma):
     return result
 
 
-def audit(checkpoint, episodes, seed, output, stage=None):
+def audit(checkpoint, episodes, seed, output, stage=None, stochastic=False):
     digest = hashlib.sha256(checkpoint.read_bytes()).hexdigest()
     cfg = load_run_config(checkpoint.parent)
     training_batch = cfg.num_envs * cfg.runner.num_steps_per_env
@@ -131,13 +131,14 @@ def audit(checkpoint, episodes, seed, output, stage=None):
     pending = torch.ones(episodes, dtype=torch.bool)
     status = torch.zeros(episodes, dtype=torch.int)
     raw, normalized, values, rewards, masks, engines = [], [], [], [], [], []
+    torch.manual_seed(seed)
     with torch.inference_mode():
         for _ in range(env.max_episode_length + 2):
             masks.append(pending.numpy().copy())
             raw.append(obs["policy"].numpy().copy())
             normalized.append(actor.obs_normalizer(obs["policy"]).numpy().copy())
             values.append(runner.alg._values(critic(obs)).squeeze(-1).numpy().copy())
-            action = actor(obs, stochastic_output=False)
+            action = actor(obs, stochastic_output=stochastic)
             engines.append(action[:, :3].numpy().copy())
             obs, reward, done, _ = env.step(action)
             rewards.append(reward.numpy().copy())
@@ -179,7 +180,9 @@ def audit(checkpoint, episodes, seed, output, stage=None):
         "episodes": episodes,
         "stage": runner.curriculum.stage,
         "stage_name": runner.curriculum.name,
-        "mode": "deterministic policy; complete discounted Monte Carlo targets; no bootstrap",
+        "mode": ("stochastic" if stochastic else "deterministic")
+        + " policy; complete discounted Monte Carlo targets; no bootstrap",
+        "stochastic": stochastic,
         "catch_rate": float((status == 1).float().mean()),
         "critic_all_states": value_metrics(values[masks], targets[masks]),
         "critic_initial_states": value_metrics(values[0], targets[0]),
@@ -228,6 +231,7 @@ def main():
     parser.add_argument("--episodes", type=int, default=256)
     parser.add_argument("--seed", type=int, default=12345)
     parser.add_argument("--output", type=Path)
+    parser.add_argument("--stochastic", action="store_true")
     parser.add_argument("--stage", type=int, help="explicit counterfactual curriculum stage")
     args = parser.parse_args()
     if args.episodes < 1:
@@ -240,8 +244,13 @@ def main():
         args.output
         or args.checkpoint.parent
         / "learning-audit"
-        / (args.checkpoint.stem + (f"-stage{args.stage}" if args.stage is not None else "")),
+        / (
+            args.checkpoint.stem
+            + (f"-stage{args.stage}" if args.stage is not None else "")
+            + ("-stochastic" if args.stochastic else "")
+        ),
         stage=args.stage,
+        stochastic=args.stochastic,
     )
 
 
