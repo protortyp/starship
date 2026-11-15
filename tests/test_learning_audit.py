@@ -42,3 +42,13 @@ def test_braking_estimate_is_an_explicit_constant_mass_comparison():
     assert result["engines"]["1"]["height_margin_m_median"] == pytest.approx(5.2)
     assert result["engines"]["3"]["stopping_distance_m_median"] < 4.8
     assert "not a feasibility proof" in result["assumptions"]
+
+
+def test_audit_names_follow_encoding_width_and_geometry_order():
+    from starship.train.encoding import CATCH_OBS_DIM, OBSERVATION_NAMES
+
+    assert len(OBSERVATION_NAMES) == CATCH_OBS_DIM
+    assert len(set(OBSERVATION_NAMES)) == CATCH_OBS_DIM
+    assert (
+        channel_metrics(np.zeros((1, 38)), np.zeros((1, 38)))[35]["name"] == "pin_horizontal_error"
+    )

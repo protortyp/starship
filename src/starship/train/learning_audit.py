@@ -21,6 +21,7 @@ from starship.sim.rigid import gravity
 from starship.train.catch_pretrain import make_runner
 from starship.train.conf import load_run_config
 from starship.train.diagnose import load_scalars
+from starship.train.encoding import OBSERVATION_NAMES
 
 
 @wp.kernel
@@ -77,7 +78,7 @@ def value_metrics(prediction, target):
 def channel_metrics(raw, normalized):
     rows = []
     for i in range(raw.shape[-1]):
-        row = {"channel": i}
+        row = {"channel": i, "name": OBSERVATION_NAMES[i] if i < len(OBSERVATION_NAMES) else str(i)}
         for prefix, values in [("raw", raw[:, i]), ("normalized", normalized[:, i])]:
             finite = values[np.isfinite(values)]
             row[prefix + "_nonfinite"] = int(values.size - finite.size)
@@ -131,12 +132,28 @@ def audit(checkpoint, episodes, seed, output, stage=None, stochastic=False):
     pending = torch.ones(episodes, dtype=torch.bool)
     status = torch.zeros(episodes, dtype=torch.int)
     raw, normalized, values, rewards, masks, engines = [], [], [], [], [], []
+    critic_normalized = []
+    terminal = {
+        name: np.zeros((episodes, *getattr(env, "final_" + name).shape[1:]))
+        for name in (
+            "time",
+            "pos",
+            "vel",
+            "omega",
+            "catch_error",
+            "peak_roll_rate",
+            "peak_horizontal_rate",
+            "flip_altitude",
+            "ignition_altitude",
+        )
+    }
     torch.manual_seed(seed)
     with torch.inference_mode():
         for _ in range(env.max_episode_length + 2):
             masks.append(pending.numpy().copy())
             raw.append(obs["policy"].numpy().copy())
             normalized.append(actor.obs_normalizer(obs["policy"]).numpy().copy())
+            critic_normalized.append(critic.obs_normalizer(obs["policy"]).numpy().copy())
             values.append(runner.alg._values(critic(obs)).squeeze(-1).numpy().copy())
             action = actor(obs, stochastic_output=stochastic)
             engines.append(action[:, :3].numpy().copy())
@@ -144,6 +161,8 @@ def audit(checkpoint, episodes, seed, output, stage=None, stochastic=False):
             rewards.append(reward.numpy().copy())
             ended = done.bool() & pending
             status[ended] = env.final_status[ended]
+            for name, data in terminal.items():
+                data[ended.numpy()] = getattr(env, "final_" + name)[ended].numpy()
             pending &= ~done.bool()
             actor.reset(done)
             critic.reset(done)
@@ -155,6 +174,12 @@ def audit(checkpoint, episodes, seed, output, stage=None, stochastic=False):
     raw, normalized, values = np.stack(raw), np.stack(normalized), np.stack(values)
     targets = discounted_returns(np.stack(rewards), masks, cfg.runner.algorithm.gamma)
     rows = channel_metrics(raw[masks], normalized[masks])
+    critic_normalized = np.stack(critic_normalized)
+    critic_rows = channel_metrics(raw[masks], critic_normalized[masks])
+    with (output / "critic_observations.csv").open("w") as stream:
+        writer = csv.DictWriter(stream, fieldnames=list(critic_rows[0]))
+        writer.writeheader()
+        writer.writerows(critic_rows)
     with (output / "observations.csv").open("w") as stream:
         writer = csv.DictWriter(stream, fieldnames=list(rows[0]))
         writer.writeheader()
@@ -190,6 +215,16 @@ def audit(checkpoint, episodes, seed, output, stage=None, stochastic=False):
         "training_metrics_max_env_steps": cutoff,
         "engine_on_fraction": np.stack(engines)[masks].mean(0).tolist(),
         "observations": rows,
+        "critic_observations": critic_rows,
+        "terminal_status_counts": {str(int(k)): int((status == k).sum()) for k in status.unique()},
+        "terminal_summary": {
+            name: {
+                "median": np.median(data, axis=0).tolist(),
+                "min": np.min(data, axis=0).tolist(),
+                "max": np.max(data, axis=0).tolist(),
+            }
+            for name, data in terminal.items()
+        },
         "training_metrics": {
             tag: {
                 "last": scalars[tag][-1][1],
@@ -203,6 +238,8 @@ def audit(checkpoint, episodes, seed, output, stage=None, stochastic=False):
         output / "trajectories.npz",
         obs=raw,
         normalized=normalized,
+        critic_normalized=critic_normalized,
+        **{"terminal_" + name: data for name, data in terminal.items()},
         values=values,
         returns=targets,
         valid=masks,
@@ -212,7 +249,12 @@ def audit(checkpoint, episodes, seed, output, stage=None, stochastic=False):
         raise RuntimeError("Checkpoint changed during audit; use a frozen numbered checkpoint")
     (output / "report.json").write_text(json.dumps(report, indent=2))
     runner.writer.close()
-    print(json.dumps({k: v for k, v in report.items() if k != "observations"}, indent=2))
+    print(
+        json.dumps(
+            {k: v for k, v in report.items() if k not in ("observations", "critic_observations")},
+            indent=2,
+        )
+    )
     for row in rows:
         if (
             (row["normalized_abs_p99"] or 0) > 10

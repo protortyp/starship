@@ -24,6 +24,48 @@ LEGACY_OBS_DIM = 24
 OBS_DIM = 32
 CATCH_OBS_DIM = 38
 
+# Policy-frame order, including port/starboard reflection when enabled.
+OBSERVATION_NAMES = (
+    "up_body_1",
+    "up_body_2",
+    "up_body_3",
+    "velocity_body_1",
+    "velocity_body_2",
+    "velocity_body_3",
+    "target_body_1",
+    "target_body_2",
+    "target_body_3",
+    "angular_rate_body_1",
+    "angular_rate_body_2",
+    "angular_rate_body_3",
+    "altitude",
+    "flap_aft_starboard",
+    "flap_aft_port",
+    "flap_fwd_starboard",
+    "flap_fwd_port",
+    "spool_0",
+    "spool_1",
+    "spool_2",
+    "throttle",
+    "gimbal_2",
+    "gimbal_3",
+    "fuel_fraction",
+    "log_altitude",
+    "mach",
+    "dynamic_pressure",
+    "log_horizontal_miss",
+    "tower_heading_body_1",
+    "tower_heading_body_2",
+    "tower_heading_body_3",
+    "arm_open_fraction",
+    "pin_height_port",
+    "pin_height_starboard",
+    "lower_fin_clearance",
+    "pin_horizontal_error",
+    "arm_close_time",
+    "pin_arrival_time",
+)
+
 
 @dataclass
 class ObsConfig:
