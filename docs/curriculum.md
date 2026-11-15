@@ -881,3 +881,26 @@ restored count. Legacy checkpoints use their adjacent Hydra config's batch size 
 available, falling back to the current batch for standalone files without configuration.
 This fallback cannot reconstruct earlier batch changes; already affected checkpoints
 need an explicit counter correction before resuming with the fixed code.
+
+### Outside review, live coverage and the 0.9 rad bridge
+
+An independent Astra review is archived under the main run's
+`astra-independent-review-2026-11-16/REVIEW.md`, with a reproducible occupancy analysis.
+In the matched 1,024-flight audit, starts above 0.9 rad constitute 17.8% of episodes but
+only 3.0% of valid transitions because they terminate quickly. This estimates audit
+occupancy, not live PPO gradient allocation. The review prioritizes testing heuristic
+termination during training, measuring actual learning allocation, and discovering
+complete successful hard-start trajectories for subsequent imitation.
+
+`train/coverage` now measures actual rollout transitions by initial tilt and episode age
+(first 2 s, 2–6 s, later), plus starts, completions and catches. It counts unfinished
+episodes, preserves spawn labels across updates, and attributes terminal transitions
+before assigning autoreset labels. Counts reconcile to each rollout batch. These are
+sample counts, not actor/critic loss or gradient shares; those remain separate diagnostics.
+Existing processes need a resume under the new code to emit these metrics.
+
+The bridge run passes its 0–0.9 rad stage at iteration 6099 and advances to 0–1.0 rad.
+Fresh passed-stage holdouts catch 916/1,024 deterministic starts (seed 824036) and
+450/512 stochastic starts (seed 824037). Within 0.8–0.9 rad, catches are only 31/112
+and 14/53 respectively. The aggregate gate therefore does not establish mastery of
+the stage's hardest band. Preserve this distinction when comparing curricula.

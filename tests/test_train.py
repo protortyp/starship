@@ -5,7 +5,7 @@ from omegaconf import OmegaConf
 
 from starship.train import RocketEnv
 from starship.train.actions import ACTION_DIM
-from starship.train.metrics import EpisodeTracker
+from starship.train.metrics import EpisodeTracker, RolloutCoverage
 from starship.train.rsl_env import RslRocketEnv
 from starship.train.runner import StarshipRunner
 
@@ -106,6 +106,14 @@ def test_training_logs_metrics_and_exports_usable_policies(tmp_path):
     assert not missing
     assert 0.0 < runner.last_metrics["policy/ess"] <= 1.0
     assert runner.last_metrics["eval/env/episodes"] == 16
+    assert runner.last_metrics["train/coverage/transitions"] == cfg.num_envs * 8
+    assert (
+        sum(
+            runner.last_metrics[f"train/coverage/tilt_{name}/transitions"]
+            for name in RolloutCoverage.BINS
+        )
+        == cfg.num_envs * 8
+    )
     assert (tmp_path / "policy_1.pt").exists()
     assert (tmp_path / "policy_best.pt").exists()
     assert "eval/best_landed" in runner.last_metrics
