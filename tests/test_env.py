@@ -7,6 +7,7 @@ import torch
 import warp as wp
 
 from starship.sim import CRASHED, LANDED, OUT_OF_BOUNDS, TIMEOUT, TUMBLED, SimConfig, Simulator
+from starship.sim.flight_stats import STATS_FIELDS
 from starship.sim.mass import make_mass_params, sample
 from starship.train import OBS_DIM, ObsConfig, RewardConfig, RocketEnv
 from starship.train.actions import ACTION_DIM, CONTINUOUS, CONTINUOUS_HEADS, ENGINE_HEADS
@@ -31,6 +32,36 @@ def actions(n, engines=0.0):
     result = np.zeros((n, ACTION_DIM), dtype=np.float32)
     result[:, :ENGINE_HEADS] = engines
     return result
+
+
+def test_cutoff_toggle_preserves_safe_rollouts_and_rewards(device):
+    cfg = config(altitude=60, vertical_speed=-30)
+    control = RocketEnv(4, cfg, device=device, seed=771)
+    continued = RocketEnv(
+        4, replace(cfg, terminate_on_attitude_limits=False), device=device, seed=771
+    )
+    completions = 0
+    for _ in range(30):
+        a = control.step(actions(4))
+        b = continued.step(actions(4))
+        for name in ("obs", "reward", "reward_terms", "terminated", "truncated", "final_obs"):
+            np.testing.assert_array_equal(getattr(a, name).numpy(), getattr(b, name).numpy())
+        completions += int(a.terminated.numpy().sum())
+    assert completions > 0
+
+
+def test_limit_telemetry_survives_terminal_autoreset(device):
+    env = RocketEnv(1, config(altitude=3000), device=device)
+    body = env.sim.state.body.numpy()
+    body["omega"][0] = (0, math.radians(50), 0)
+    env.sim.state.body.assign(body)
+    result = env.step(actions(1))
+    assert result.terminated.numpy()[0] == 1
+    stats = env.final_stats.numpy()[0]
+    assert stats[STATS_FIELDS.index("first_limit_causes")] == 2
+    assert stats[STATS_FIELDS.index("first_limit_time")] == pytest.approx(0.01)
+    assert env.sim.state.stats.numpy()[0]["limit_causes"] == 0
+    assert env.sim.state.stats.numpy()[0]["first_limit_time"] == -1
 
 
 def com(cfg):

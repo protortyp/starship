@@ -207,6 +207,11 @@ def audit(checkpoint, episodes, seed, output, stage=None, stochastic=False, acti
             "peak_horizontal_rate",
             "flip_altitude",
             "ignition_altitude",
+            "limit_causes",
+            "first_limit_causes",
+            "first_limit_time",
+            "first_limit_altitude",
+            "peak_transverse_rate",
         )
     }
     torch.manual_seed(seed if action_seed is None else action_seed)
@@ -275,6 +280,16 @@ def audit(checkpoint, episodes, seed, output, stage=None, stochastic=False, acti
         + " policy; complete discounted Monte Carlo targets; no bootstrap",
         "stochastic": stochastic,
         "catch_rate": float((status == 1).float().mean()),
+        "historical_limits": {
+            "termination_enabled": bool(env.cfg.terminate_on_attitude_limits),
+            "violated_episodes": int(np.count_nonzero(terminal["limit_causes"])),
+            "caught_after_violation": int(
+                np.sum((status.numpy() == 1) & (terminal["limit_causes"] != 0))
+            ),
+            "caught_without_violation": int(
+                np.sum((status.numpy() == 1) & (terminal["limit_causes"] == 0))
+            ),
+        },
         "critic_all_states": value_metrics(values[masks], targets[masks]),
         "critic_initial_states": value_metrics(values[0], targets[0]),
         "initial_tilt": initial_tilt_metrics(raw[0], status.numpy(), values[0], targets[0]),

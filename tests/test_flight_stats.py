@@ -320,6 +320,11 @@ def _export_row(row_out: wp.array2d(dtype=float)):
     a.flip_altitude = 10.0
     a.ignition_altitude = 11.0
     a.start_offset = 12.0
+    a.limit_causes = 13
+    a.first_limit_causes = 14
+    a.first_limit_time = 15.0
+    a.first_limit_altitude = 16.0
+    a.peak_transverse_rate = 17.0
     row = stats_vector(a)
     for k in range(row.length):
         row_out[0, k] = row[k]
@@ -328,5 +333,5 @@ def _export_row(row_out: wp.array2d(dtype=float)):
 def test_exported_row_follows_stats_fields_order(device):
     out = wp.zeros((1, len(STATS_FIELDS)), dtype=float, device=device)
     wp.launch(_export_row, dim=1, inputs=[out], device=device)
-    expected = dict(zip(STATS_FIELDS, range(1, 13), strict=True))
+    expected = dict(zip(STATS_FIELDS, range(1, 18), strict=True))
     assert dict(zip(STATS_FIELDS, out.numpy()[0], strict=True)) == expected
