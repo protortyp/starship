@@ -401,3 +401,22 @@ Across valid flight steps, roll-RCS raw mean magnitude p99 is 11.37. The audit e
 and standard deviations and reports both initial and whole-flight saturation. These intervals
 are not transformed standard deviations or measured actuator response, and saturation alone
 does not prove a control error: a full-range command may be appropriate.
+
+After 200 matched PPO updates, the normalization experiment's fresh 1,024-episode stochastic
+holdout (seed 819272) catches 769 with rescaling versus 749 with original statistics. There
+are 42 gained and 22 lost catches: +1.95 pp, paired-bootstrap 95% interval +0.49 to +3.52 pp.
+The gain is modest and neither arm passes 350 m; initial-state critic EV is 0.518 rescaled
+versus 0.554 control. At 100 updates, a separate matched test caught 400/512 versus 389/512.
+The compensated statistics are a promising training intervention, not a solved encoding fix.
+
+Inference-time action caps are rejected: on 256 matched seed-819269 flights at checkpoint 449,
+original commands catch 188, all continuous means capped to ±3 catch 186, ±2 catch 183, and
+roll-RCS-only ±2 catches 188. All reports are labeled counterfactual and preserve the source
+checkpoint. Separately, changing only spawn altitude at this checkpoint (512 episodes,
+seed 819266) catches 454 at 250 m, 439 at 300 m and 373 at 350 m; larger tilts account for
+most failures. This supports testing a smaller altitude transition if direct learning stalls.
+
+`catch_lambda995_local/2026-11-15_19-54-58` tests longer temporal credit from the same
+checkpoint-449 optimizer-reset control, seed 819267, for 200 updates: only GAE lambda changes
+from 0.98 to 0.995. Gamma, rollout horizon, learning rates, input statistics and physical
+constraints remain unchanged. Outcome selection awaits fresh matched evaluations.
