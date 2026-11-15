@@ -128,3 +128,26 @@ def test_capture_reward_and_final_observation_survive_autoreset():
     assert env.final_catch_error.numpy()[0] < 0.01
     assert env.sim.snapshot().status[0] == FLYING
     assert env.sim.snapshot().pos[0, 2] == pytest.approx(cfg.spawn.altitude)
+
+
+def test_catch_curriculum_has_no_cheap_structural_failure_floor():
+    cfg = compose_cfg("curriculum=catch")
+    curriculum = Curriculum(cfg, cfg.curriculum)
+    for stage in range(len(curriculum.stages)):
+        _, reward = curriculum.configs(stage)
+        assert reward.crash_penalty == reward.tumble_penalty == 200
+        assert reward.timeout_penalty == reward.out_of_bounds_penalty == 200
+    # Other tasks retain their own shaping; this experiment changes catch failure ordering.
+    ground = compose_cfg("curriculum=landing")
+    assert Curriculum(ground, ground.curriculum).configs(0)[1].crash_penalty == 20
+    sim_cfg, reward = curriculum.configs(0)
+    env = RocketEnv(1, sim_cfg, reward_config=reward, device="cpu")
+    fixture_cfg = catch_config()
+    fixture_cfg.catch.moving = True
+    fixture_cfg.catch.policy_controlled = True
+    fixture_cfg.catch.flap_collisions = True
+    fixture = at_plane(fixture_cfg)
+    env.sim.copy_from(fixture, [0])
+    env.step(np.zeros((1, ACTION_DIM), dtype=np.float32))
+    assert env.sim.terminal_snapshot().catch_failure[0] == 7
+    assert env.terminal_reward.numpy()[0] <= -200
