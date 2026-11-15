@@ -359,3 +359,13 @@ the actor is unchanged. `catch_tilt_ignition_local/2026-11-15_19-32-20` resumes 
 from this calibrated checkpoint, using the inherited frozen normalizers, actor LR 1e-6,
 critic LR 1e-5 and continuous std 0.02. Promotion and full-entry success still require actual
 policy evaluations; this calibration result alone does not establish either.
+
+Cold-start PPO passed stage 9 and reached the 0–0.3 rad stage. At checkpoint 269,
+512 fresh deterministic episodes (seed 819264) catch 417/512 (81.4%). The new fixed-angle
+initial-state audit exposes the remaining boundary: 251/251 catch below 0.15 rad,
+82/97 at 0.15–0.2, and 84/164 at 0.2–0.3. Complete-return critic EV is 0.757 across
+all states but only 0.437 at spawn and 0.190 within the hardest angle bin; initial bias
+there is -41.36 return units. The easy bins have negative EV despite small absolute errors
+because their return variance is very low, so the report includes RMSE, bias and target
+standard deviation alongside EV. No observation-scale warnings appeared in this audit.
+Training continues; neither this gate promotion nor the aggregate score establishes a full flip.
