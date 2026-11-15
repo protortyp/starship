@@ -151,3 +151,42 @@ def test_catch_curriculum_has_no_cheap_structural_failure_floor():
     env.step(np.zeros((1, ACTION_DIM), dtype=np.float32))
     assert env.sim.terminal_snapshot().catch_failure[0] == 7
     assert env.terminal_reward.numpy()[0] <= -200
+
+
+@pytest.mark.parametrize(
+    ("clearance", "closed", "reason", "extra"),
+    [
+        (30, True, 4, 100),
+        (0.005, False, 7, 0),
+    ],
+)
+def test_structural_contact_penalty_does_not_penalize_missed_pin_gate(
+    clearance,
+    closed,
+    reason,
+    extra,
+):
+    from dataclasses import replace
+
+    from starship.train import RewardConfig
+
+    cfg = catch_config()
+    cfg.catch.moving = cfg.catch.policy_controlled = cfg.catch.flap_collisions = True
+    fixture = at_plane(cfg, clearance=clearance)
+    if closed:
+        fixture.state.arm_angle.zero_()
+    rewards = []
+    for penalty in (0, 100):
+        env = RocketEnv(
+            1,
+            cfg,
+            reward_config=replace(RewardConfig(), catch_contact_penalty=penalty),
+            device="cpu",
+        )
+        env.sim.copy_from(fixture, [0])
+        actions = np.zeros((1, ACTION_DIM), dtype=np.float32)
+        actions[0, -1] = float(closed)
+        env.step(actions)
+        assert env.sim.terminal_snapshot().catch_failure[0] == reason
+        rewards.append(env.terminal_reward.numpy()[0])
+    assert rewards[1] - rewards[0] == pytest.approx(-extra)

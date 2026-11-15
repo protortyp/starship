@@ -122,3 +122,10 @@ Held-open attempts reached the capture plane fast and misaligned; their roughly 
 remain worse than the roughly -195 early contacts. Equal penalty floors alone have not removed
 all incentives for early structural exits. An opt-in 38-input geometry preset is now available
 for a separate observation test; the running 32-input experiment is unchanged.
+
+At checkpoint 600, the 32-input critic-initialized run still hit aft fins in all four probe seeds,
+closing at 3.4–3.6 s. A new `catch_contact_local` preset adds 100 only for simulator-confirmed
+structural contacts (hull/fins against tower/arms); failed capture constraints and ground contact
+retain their existing cost. Its critic bias starts at -300 to match the new contact floor. All
+32 observations, spawn and physics remain unchanged. This tests the remaining contact-vs-capture
+failure incentive; explicit geometry observations remain a separate opt-in experiment.
