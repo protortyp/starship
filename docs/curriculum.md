@@ -564,3 +564,40 @@ checkpoint catches **929/1,024 deterministic** fresh starts (seed 819428) and
 +0.61, though EV is only 0.068. Training advances to stage 15: the initial tilt range
 expands from 0–0.5 to 0–0.8 rad at 500 m and 45 m/s. This is still a gradual flip
 curriculum, not full belly-flop or entry validation.
+
+
+Stage-15 intervention checks (same run, all unchanged physics): policy 2189 catches
+24/32 deterministic probe seeds; failures are four tumbles, three aft-fin/arm strikes
+and one capture-constraint failure. The three fin strikes request closure with negative
+aft-fin clearance. Automatic arm commands catch 26/32, while forced-open arms retain all
+four tumbles and cannot capture. These are small diagnostic samples, not holdouts.
+
+A fixed 500 m / 0.8 rad search finds a successful gimbal3 raw-command bias of -0.5 for
+40 or 80 steps, but the randomized matched test rejects it: on 512 starts (seed 819371),
+source model 2189 catches 408, versus 331/328 with the correction applied only above
+0.5 rad initial tilt. The 40-step intervention gains nine successes but loses 86.
+Likewise, full reference-controller handover after uprighting catches 284/512 versus
+395/512 without it (seed 819372); arm-only reference commands catch 407/512. Neither
+result justifies a new full-controller distillation round.
+
+Policy 2399's larger arm-clearance probe catches 855/1,024 baseline starts (seed 819373).
+Vetoing closure while aft-fin clearance is negative catches 875: 20 gained, none lost,
+paired-bootstrap 95% interval +1.17 to +2.83 percentage points. An automatic-rule close
+veto catches 880 (26 gained, one lost). These are external action interventions, not
+learned-policy results; no runtime safety guard was installed. Early closure is a real
+failure mode, but fixing it alone leaves a substantial flight-control gap.
+
+A later handover test uses policy 2499 and waits for tilt <0.1 rad, angular rate <0.3 rad/s,
+absolute vertical speed <5 m/s and pin height between 12 and 50/100 m. On 512 matched
+starts (seed 819375), baseline catches 451 and the two handovers catch 457/458. The
+100 m variant gains 15, loses eight, and 42 of its 54 failures never meet the handover
+condition. These small net gains do not justify replacing the ongoing PPO run. Executed
+scripts and matched reports are archived under `wide-tilt-control-validation`,
+`wide-tilt-handover-probe`, `arm-clearance-probe` and `late-handover-probe`.
+
+The iteration-2342 health review finds no dead actor/critic units and active MLP/LSTM
+weight updates. The near-zero center-engine entropy warning corresponds to ~99.96%
+on commands, while each outer engine is on about 25% of the time. The slow distribution
+update warning concerns noise scales near 0.02, not a frozen actor. Both warnings were
+reviewed without changing entropy or noise solely to silence them. PPO and independent
+audits continue; the full re-entry target still has zero evaluated catches.
