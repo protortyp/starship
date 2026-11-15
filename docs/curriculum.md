@@ -446,3 +446,38 @@ action seeds 819284–819291) catch 80.7%; 35 starts have mixed outcomes. Estima
 EV ceiling is 0.633, while the critic's individual-return EV is 0.391 and mean-return EV 0.576
 (bias -11.05, mean-target RMSE 71.75). Thus action noise contributes materially, but does not
 explain all critic error. These are matched repeated starts, not 1,024 independent spawn states.
+
+Coherent-control search breaks the 350 m plateau. With conditioned-control checkpoint 899,
+a fixed 350 m / 0.3 rad start tumbles under the original policy. A grid over short throttle
+and pitch-gimbal offsets finds valid catches without changing physics, actuator limits or
+contacts. On 512 fresh matched randomized starts (seed 819294), subtracting 2 from the raw
+throttle command for the first 60 steps catches 507 versus 412: 95 gained, none lost, +18.55 pp
+(paired-bootstrap 95% interval +15.23 to +22.07 pp). This is an external intervention, not a
+standalone policy result. Artifacts are `coherent-control-probe` and
+`coherent-control-validation` under the source run.
+
+Warm-start distillation in `catch_coherent_distill_local/2026-11-15_20-24-56` teaches this
+correction while replaying unmodified 250 m trajectories. Selected update 600 catches 505/512
+fresh deterministic and 491/512 stochastic 350 m starts (seed 819297), but earlier-stage
+retention remains weaker. A 20-step correction of throttle -2 and gimbal3 -0.5, applied only
+when initial tilt exceeds 0.15 rad, works across both altitudes: source-policy interventions
+catch 508/512 at 350 m (seed 819294) and 500/512 at 250 m (seed 819296).
+
+`catch_coherent_pair_distill_local/2026-11-15_20-28-21` trains both stages with that shorter
+correction, frozen input statistics and one round of student/teacher trajectory aggregation.
+The minimum internal catch rate selects supervised update 500. Fresh **network-only** tests
+catch 1,012/1,024 at 350 m and 997/1,024 at 250 m (seed 819300), plus 984/1,024 stochastic
+350 m starts (seed 819301). The untrained next stage, 0–0.5 rad at 350 m, catches 410/512
+(seed 819302). No pulse or external controller is used in these student evaluations. PPO
+iteration remains the inherited 899; supervised updates are separate, and stale PPO Adam
+moments are cleared. Executed research scripts and full demonstration data are archived in
+the run directories. The actor is preserved during a subsequent phase-weighted critic fit;
+fresh calibration validation precedes further PPO. Full belly-flop/entry remains unsolved.
+
+The critic fit selects update 700. On 512 fresh stochastic flights (seed 819304), actor weights
+and outcomes remain identical (487 catches); full-flight value RMSE improves 68.78 → 58.42
+and EV 0.104 → 0.353, while initial RMSE remains about 62.5. The source is preserved.
+`catch_coherent_ppo_local/2026-11-15_20-35-20` resumes from that calibrated student for 2,000
+PPO updates with actor LR 1e-6, critic LR 1e-5 and the full existing curriculum. The older
+learning-rate comparison had no clear winner at 500 updates (407/512 versus 402/512,
+seed 819276), so it does not justify a larger actor rate for this handoff.
