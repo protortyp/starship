@@ -1,4 +1,5 @@
 import csv
+import subprocess
 
 import numpy as np
 import pytest
@@ -54,7 +55,7 @@ def test_probe_exports_deterministic_intervention_and_reward_trace(tmp_path):
     export_policy(runner.alg.actor, policy)
     cfg = policy_config()
     cfg.max_time = 0.3
-    a = replay(policy, cfg, ObsConfig(), RewardConfig(), 0, "open", tmp_path)
+    a = replay(policy, cfg, ObsConfig(), RewardConfig(), 0, "open", tmp_path, recording=True)
     b = replay(policy, cfg, ObsConfig(), RewardConfig(), 0, "open", tmp_path)
     assert a == b
     assert a["first_close"] is None
@@ -70,3 +71,18 @@ def test_probe_exports_deterministic_intervention_and_reward_trace(tmp_path):
     text = report_text({"policy": str(policy), "stage_name": "test", "episodes": [a]})
     assert "never" in text
     assert "timeout" in text
+
+    recorded = subprocess.run(
+        ["rerun", "rrd", "print", str(tmp_path / "open-seed-0.rrd")],
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout
+    for entity in (
+        "/decision/close_probability",
+        "/state/aft_fin_clearance_m",
+        "/inputs/normalized/obs_31",
+        "/reward/reward_terminal",
+        "/outcome",
+    ):
+        assert entity in recorded

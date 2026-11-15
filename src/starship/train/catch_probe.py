@@ -7,6 +7,7 @@ import argparse
 import csv
 import dataclasses
 import json
+from contextlib import ExitStack
 from pathlib import Path
 
 import torch
@@ -122,16 +123,17 @@ def replay(policy_path, cfg, obs_cfg, reward_cfg, seed, mode, output, recording=
     hook = policy.mlp.register_forward_hook(lambda _m, _i, value: raw_outputs.append(value))
     rows = []
     rec = None
-    if recording:
-        import rerun as rr
-        import rerun.blueprint as rrb
+    with ExitStack() as stack:
+        if recording:
+            import rerun as rr
+            import rerun.blueprint as rrb
 
-        from starship.render.rerun_viewer import flap_geometry, log_scene, log_step
-        from starship.sim.mass import make_mass_params
+            from starship.render.rerun_viewer import flap_geometry, log_scene, log_step
+            from starship.sim.mass import make_mass_params
 
-        rec = rr.RecordingStream(f"catch-probe-{mode}-{seed}")
-        rec.save(str(output / f"{mode}-seed-{seed}.rrd"))
-        with rec:
+            rec = rr.RecordingStream(f"catch-probe-{mode}-{seed}")
+            rec.save(str(output / f"{mode}-seed-{seed}.rrd"))
+            stack.enter_context(rec)
             rr.send_blueprint(
                 rrb.Blueprint(
                     rrb.Tabs(
@@ -183,59 +185,60 @@ def replay(policy_path, cfg, obs_cfg, reward_cfg, seed, mode, output, recording=
                 )
             )
             log_scene(cfg, 1)
-        trails = [[]]
-        flaps = flap_geometry(cfg)
-        mass = make_mass_params(cfg.vehicle)
-    obs = env.get_observations()
-    total = 0.0
-    first_close = None
-    with torch.inference_mode():
-        for step in range(env.max_episode_length):
-            row = measure(env.env.sim)
-            row.update(time_s=float(env.env.sim.state.time.numpy()[0]), step=step)
-            raw = obs["policy"].clone()
-            normalized = policy.obs_normalizer(raw).clone()
-            action = policy(obs, stochastic_output=False)
-            logits = raw_outputs.pop()
-            row["close_probability"] = torch.sigmoid(logits[0, ARM_HEAD]).item()
-            row["policy_close"] = float(action[0, ARM_HEAD])
-            if mode == "open":
-                action[0, ARM_HEAD] = 0
-            elif mode == "automatic":
-                action[0, ARM_HEAD] = row["automatic_close"]
-            row["executed_close"] = float(action[0, ARM_HEAD])
-            if first_close is None and row["executed_close"]:
-                first_close = {key: row[key] for key in ("time_s", *FIELDS, "close_probability")}
-            for j in range(raw.shape[-1]):
-                row[f"obs_{j:02d}"] = raw[0, j].item()
-                row[f"normalized_obs_{j:02d}"] = normalized[0, j].item()
-            obs, reward, done, _ = env.step(action)
-            row["reward"] = reward.item()
-            row["terminal_reward"] = env.terminal_reward.item()
-            for key, value in zip(REWARD_TERMS, env.reward_terms[0].tolist(), strict=True):
-                row[f"reward_{key}"] = value
-            total += reward.item()
-            terminal = bool(done.item())
-            end = measure(env.env.sim, terminal=terminal)
-            row.update({f"after_{key}": value for key, value in end.items()})
-            state = env.env.sim.terminal if terminal else env.env.sim.state
-            row["after_time_s"] = float(state.time.numpy()[0])
-            row["status"] = STATUS[int(state.status.numpy()[0])]
-            row["failure"] = CATCH_FAILURES[int(state.catch_failure.numpy()[0])]
-            rows.append(row)
-            if rec:
-                snap = env.env.sim.snapshot()
-                if terminal:
-                    final = env.env.sim.terminal_snapshot()
-                    snap = dataclasses.replace(
-                        snap,
-                        **{
-                            field.name: getattr(final, field.name)
-                            for field in dataclasses.fields(snap)
-                            if hasattr(final, field.name)
-                        },
-                    )
-                with rec:
+            trails = [[]]
+            flaps = flap_geometry(cfg)
+            mass = make_mass_params(cfg.vehicle)
+        obs = env.get_observations()
+        total = 0.0
+        first_close = None
+        with torch.inference_mode():
+            for step in range(env.max_episode_length):
+                row = measure(env.env.sim)
+                row.update(time_s=float(env.env.sim.state.time.numpy()[0]), step=step)
+                raw = obs["policy"].clone()
+                normalized = policy.obs_normalizer(raw).clone()
+                action = policy(obs, stochastic_output=False)
+                logits = raw_outputs.pop()
+                row["close_probability"] = torch.sigmoid(logits[0, ARM_HEAD]).item()
+                row["policy_close"] = float(action[0, ARM_HEAD])
+                if mode == "open":
+                    action[0, ARM_HEAD] = 0
+                elif mode == "automatic":
+                    action[0, ARM_HEAD] = row["automatic_close"]
+                row["executed_close"] = float(action[0, ARM_HEAD])
+                if first_close is None and row["executed_close"]:
+                    first_close = {
+                        key: row[key] for key in ("time_s", *FIELDS, "close_probability")
+                    }
+                for j in range(raw.shape[-1]):
+                    row[f"obs_{j:02d}"] = raw[0, j].item()
+                    row[f"normalized_obs_{j:02d}"] = normalized[0, j].item()
+                obs, reward, done, _ = env.step(action)
+                row["reward"] = reward.item()
+                row["terminal_reward"] = env.terminal_reward.item()
+                for key, value in zip(REWARD_TERMS, env.reward_terms[0].tolist(), strict=True):
+                    row[f"reward_{key}"] = value
+                total += reward.item()
+                terminal = bool(done.item())
+                end = measure(env.env.sim, terminal=terminal)
+                row.update({f"after_{key}": value for key, value in end.items()})
+                state = env.env.sim.terminal if terminal else env.env.sim.state
+                row["after_time_s"] = float(state.time.numpy()[0])
+                row["status"] = STATUS[int(state.status.numpy()[0])]
+                row["failure"] = CATCH_FAILURES[int(state.catch_failure.numpy()[0])]
+                rows.append(row)
+                if rec:
+                    snap = env.env.sim.snapshot()
+                    if terminal:
+                        final = env.env.sim.terminal_snapshot()
+                        snap = dataclasses.replace(
+                            snap,
+                            **{
+                                field.name: getattr(final, field.name)
+                                for field in dataclasses.fields(snap)
+                                if hasattr(final, field.name)
+                            },
+                        )
                     rr.set_time("sim_time", duration=row["time_s"])
                     for key in (*FIELDS, "close_probability", "executed_close"):
                         rr.log(f"decision/{key}", rr.Scalars(row[key]))
@@ -255,32 +258,32 @@ def replay(policy_path, cfg, obs_cfg, reward_cfg, seed, mode, output, recording=
                         rr.log(f"reward/{key}", rr.Scalars(row[key]))
                     rr.log("outcome", rr.TextLog(f"{row['status']}: {row['failure']}"))
                     log_step(cfg, snap, flaps, trails, mass)
-            if terminal:
-                break
-    hook.remove()
-    if rec:
-        rec.flush()
-        rec.disconnect()
-    path = output / f"{mode}-seed-{seed}.csv"
-    with path.open("w") as f:
-        writer = csv.DictWriter(f, fieldnames=list(rows[0]))
-        writer.writeheader()
-        writer.writerows(rows)
-    return {
-        "mode": mode,
-        "seed": seed,
-        "status": rows[-1]["status"],
-        "failure": rows[-1]["failure"],
-        "duration_s": rows[-1]["after_time_s"],
-        "return": total,
-        "first_close": first_close,
-        "preclear_close_steps": sum(
-            r["executed_close"] > 0.5 and r["aft_fin_clearance_m"] < 0 for r in rows
-        ),
-        "steps": len(rows),
-        "reward_totals": {key: sum(r[f"reward_{key}"] for r in rows) for key in REWARD_TERMS},
-        "final_geometry": end,
-    }
+                if terminal:
+                    break
+        hook.remove()
+        if rec:
+            rec.flush()
+            rec.disconnect()
+        path = output / f"{mode}-seed-{seed}.csv"
+        with path.open("w") as f:
+            writer = csv.DictWriter(f, fieldnames=list(rows[0]))
+            writer.writeheader()
+            writer.writerows(rows)
+        return {
+            "mode": mode,
+            "seed": seed,
+            "status": rows[-1]["status"],
+            "failure": rows[-1]["failure"],
+            "duration_s": rows[-1]["after_time_s"],
+            "return": total,
+            "first_close": first_close,
+            "preclear_close_steps": sum(
+                r["executed_close"] > 0.5 and r["aft_fin_clearance_m"] < 0 for r in rows
+            ),
+            "steps": len(rows),
+            "reward_totals": {key: sum(r[f"reward_{key}"] for r in rows) for key in REWARD_TERMS},
+            "final_geometry": end,
+        }
 
 
 def report_text(report):
