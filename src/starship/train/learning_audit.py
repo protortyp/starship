@@ -158,7 +158,9 @@ def discounted_returns(rewards, valid, gamma):
     return result
 
 
-def audit(checkpoint, episodes, seed, output, stage=None, stochastic=False):
+def audit(checkpoint, episodes, seed, output, stage=None, stochastic=False, action_seed=None):
+    if action_seed is not None and not stochastic:
+        raise ValueError("action_seed requires stochastic rollouts")
     digest = hashlib.sha256(checkpoint.read_bytes()).hexdigest()
     cfg = load_run_config(checkpoint.parent)
     training_batch = cfg.num_envs * cfg.runner.num_steps_per_env
@@ -203,7 +205,7 @@ def audit(checkpoint, episodes, seed, output, stage=None, stochastic=False):
             "ignition_altitude",
         )
     }
-    torch.manual_seed(seed)
+    torch.manual_seed(seed if action_seed is None else action_seed)
     with torch.inference_mode():
         for _ in range(env.max_episode_length + 2):
             masks.append(pending.numpy().copy())
@@ -261,6 +263,7 @@ def audit(checkpoint, episodes, seed, output, stage=None, stochastic=False):
         "checkpoint": str(checkpoint),
         "checkpoint_sha256": digest,
         "seed": seed,
+        "action_seed": seed if action_seed is None else action_seed,
         "episodes": episodes,
         "stage": runner.curriculum.stage,
         "stage_name": runner.curriculum.name,
@@ -341,10 +344,15 @@ def main():
     parser.add_argument("--seed", type=int, default=12345)
     parser.add_argument("--output", type=Path)
     parser.add_argument("--stochastic", action="store_true")
+    parser.add_argument(
+        "--action-seed", type=int, help="vary action noise while retaining spawn seed"
+    )
     parser.add_argument("--stage", type=int, help="explicit counterfactual curriculum stage")
     args = parser.parse_args()
     if args.episodes < 1:
         parser.error("episodes must be positive")
+    if args.action_seed is not None and not args.stochastic:
+        parser.error("--action-seed requires --stochastic")
     torch.set_num_threads(2)
     audit(
         args.checkpoint,
@@ -357,9 +365,11 @@ def main():
             args.checkpoint.stem
             + (f"-stage{args.stage}" if args.stage is not None else "")
             + ("-stochastic" if args.stochastic else "")
+            + (f"-actions{args.action_seed}" if args.action_seed is not None else "")
         ),
         stage=args.stage,
         stochastic=args.stochastic,
+        action_seed=args.action_seed,
     )
 
 
