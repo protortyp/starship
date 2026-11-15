@@ -49,6 +49,9 @@ just vast down                                # destroy the instance
 
 Several experiments run side by side with `just vast --name <exp> <cmd>`; see `just vast --help`.
 
+Upper-stage chopstick catching: `uv run starship-train --config-name catch_local`.
+Geometry, curriculum, metrics and model limits: [docs/catch.md](docs/catch.md).
+
 ## Layout
 
 - `src/starship/sim/`: configuration, atmosphere, mass, propulsion, aerodynamics, rigid-body integration and the batched `Simulator`

@@ -1,11 +1,13 @@
 """Batched 6-DOF Starship simulator on a Warp device."""
 
+import math
 from dataclasses import dataclass
 
 import numpy as np
 import warp as wp
 
 from starship.sim.aero import make_aero_params
+from starship.sim.catch import CatchParams
 from starship.sim.config import SimConfig
 from starship.sim.hull import make_hull_params
 from starship.sim.mass import make_mass_params
@@ -27,8 +29,28 @@ from starship.sim.wind import init_wind_kernel, make_wind_params
 
 
 def make_params(config: SimConfig, device) -> Params:
+    c = config.catch
+    p_c = CatchParams()
+    for name in c.__dataclass_fields__:
+        value = getattr(c, name)
+        if not math.isfinite(value):
+            raise ValueError(f"catch {name} must be finite")
+        setattr(p_c, name, int(value) if name == "enabled" else value)
+    if c.enabled and not (
+        0 < c.station < config.vehicle.hull.length
+        and c.height > c.station
+        and 0 < c.tolerance <= c.arm_half_width
+        and c.height_tolerance > 0
+        and c.pin_radius > config.vehicle.hull.diameter / 2 + c.arm_half_width
+        and c.arm_half_length > abs(c.arm_center_x) + c.tolerance
+        and c.tower_half_width > 0
+        and c.tower_height > c.height
+        and c.tower_x + c.tower_half_width < -config.vehicle.hull.diameter / 2
+    ):
+        raise ValueError("invalid catch geometry or capture tolerances")
     v = config.vehicle
     p = Params()
+    p.catcher = p_c
     p.dt = config.dt
     p.substeps = config.substeps
     p.max_steps = max(1, round(config.max_time / (config.dt * config.substeps)))

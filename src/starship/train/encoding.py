@@ -6,12 +6,14 @@ from dataclasses import dataclass
 import warp as wp
 
 from starship.sim.atmosphere import atmosphere
-from starship.sim.physics import State
+from starship.sim.catch import catch_center
+from starship.sim.mass import mass_properties
+from starship.sim.physics import Params, State
 from starship.sim.propulsion import EngineState, FlapState
 from starship.sim.rigid import Body
 
 LEGACY_OBS_DIM = 24
-OBS_DIM = 28
+OBS_DIM = 31
 
 
 @dataclass
@@ -66,6 +68,7 @@ def fuel_fraction(tanks: wp.vec4, landing_load: float) -> float:
 
 @wp.func
 def encode(
+    p: Params,
     b: Body,
     e: EngineState,
     f: FlapState,
@@ -78,8 +81,16 @@ def encode(
 ):
     up = wp.quat_rotate_inv(b.rot, wp.vec3(0.0, 0.0, 1.0))
     vel = wp.quat_rotate_inv(b.rot, b.vel)
-    pad = wp.quat_rotate_inv(b.rot, -b.pos)
-    distance = wp.length(b.pos)
+    relative = b.pos
+    heading = wp.vec3(0.0)
+    if p.catcher.enabled != 0:
+        relative = catch_center(p.catcher, b, mass_properties(p.mass, tanks).com) - wp.vec3(
+            0.0, 0.0, p.catcher.height
+        )
+        # World +x points away from the tower and is invariant under port/starboard reflection.
+        heading = wp.quat_rotate_inv(b.rot, wp.vec3(1.0, 0.0, 0.0))
+    pad = wp.quat_rotate_inv(b.rot, -relative)
+    distance = wp.length(relative)
     if distance > scales.position_clip:
         pad = pad * (scales.position_clip / distance)
     omega = b.omega
@@ -87,6 +98,7 @@ def encode(
     spool = e.spool
     gimbal2 = wp.dot(e.gimbal2, wp.vec3(1.0 / 3.0))
     if mirrored != 0:
+        heading[1] = -heading[1]
         up[1] = -up[1]
         vel[1] = -vel[1]
         pad[1] = -pad[1]
@@ -97,6 +109,7 @@ def encode(
         spool = wp.vec3(spool[0], spool[2], spool[1])
         gimbal2 = -gimbal2
     for j in range(3):
+        obs[i, 28 + j] = heading[j]
         obs[i, j] = up[j]
         obs[i, 3 + j] = vel[j] * scales.velocity
         obs[i, 6 + j] = pad[j] * scales.position
@@ -120,6 +133,7 @@ def encode(
 
 @wp.kernel
 def observe_kernel(
+    p: Params,
     state: State,
     landing_load: wp.array(dtype=float),
     mirrored: wp.array(dtype=int),
@@ -128,6 +142,7 @@ def observe_kernel(
 ):
     i = wp.tid()
     encode(
+        p,
         state.body[i],
         state.engine[i],
         state.flaps[i],

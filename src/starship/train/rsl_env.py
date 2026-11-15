@@ -27,6 +27,7 @@ class RslRocketEnv(VecEnv):
             "actions",
             "squashed_actions",
             "final_status",
+            "final_catch_error",
             "final_steps",
             "final_pos",
             "final_vel",

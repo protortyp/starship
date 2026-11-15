@@ -127,6 +127,26 @@ def log_scene(cfg: SimConfig, n: int) -> None:
     pad = cfg.landing.pad_radius
     ring = [(pad * math.cos(a), pad * math.sin(a), 0.0) for a in np.linspace(0, 2 * np.pi, 49)]
     rr.log("world/pad", rr.LineStrips3D([ring], colors=[(240, 200, 40)]), static=True)
+    if cfg.catch.enabled:
+        c = cfg.catch
+        rr.log(
+            "world/catcher/tower",
+            rr.Boxes3D(
+                centers=[(c.tower_x, 0, c.tower_height / 2)],
+                half_sizes=[(c.tower_half_width, c.tower_half_width, c.tower_height / 2)],
+                colors=[(150, 160, 170)],
+            ),
+            static=True,
+        )
+        rr.log(
+            "world/catcher/arms",
+            rr.Boxes3D(
+                centers=[(c.arm_center_x, side * c.pin_radius, c.height) for side in (-1, 1)],
+                half_sizes=[(c.arm_half_length, c.arm_half_width, 0.5)] * 2,
+                colors=[(240, 180, 40)],
+            ),
+            static=True,
+        )
     g = 3000.0
     rr.log(
         "world/ground",
@@ -139,6 +159,17 @@ def log_scene(cfg: SimConfig, n: int) -> None:
     )
     verts, tris = hull_mesh(cfg)
     for i in range(n):
+        if cfg.catch.enabled:
+            c = cfg.catch
+            rr.log(
+                f"world/rocket/{i}/pins",
+                rr.LineStrips3D(
+                    [[(c.station, -c.pin_radius, 0), (c.station, c.pin_radius, 0)]],
+                    radii=0.2,
+                    colors=[(255, 160, 30)],
+                ),
+                static=True,
+            )
         rr.log(
             f"world/rocket/{i}/hull",
             rr.Mesh3D(vertex_positions=verts, triangle_indices=tris, albedo_factor=HULL_COLOR),

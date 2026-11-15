@@ -5,6 +5,7 @@ from dataclasses import dataclass, fields
 import warp as wp
 
 from starship.sim import CRASHED, LANDED, OUT_OF_BOUNDS, TIMEOUT, TUMBLED
+from starship.sim.catch import catch_center, pin_error, pin_height
 from starship.sim.flight_stats import FlightStats
 from starship.sim.hull import lowest_point
 from starship.sim.mass import mass_properties
@@ -119,19 +120,26 @@ def make_reward_params(config: RewardConfig) -> RewardParams:
 def potential(p: Params, r: RewardParams, b: Body, tanks: wp.vec4) -> wp.vec3:
     com = mass_properties(p.mass, tanks).com
     height = wp.max(lowest_point(p.hull, b, com), 0.0)
+    target = b.pos
+    alignment = 0.0
+    if p.catcher.enabled != 0:
+        height = wp.max(pin_height(p.catcher, b, com) - p.catcher.height, 0.0)
+        target = catch_center(p.catcher, b, com) - wp.vec3(0.0, 0.0, p.catcher.height)
+        side = wp.quat_rotate(b.rot, wp.vec3(0.0, 1.0, 0.0))
+        alignment = 1.0 - wp.abs(side[1])
     safe_speed = wp.sqrt(2.0 * r.safe_deceleration * height) + p.landing.max_vertical_speed
     excess_speed = wp.max(wp.length(b.vel) - safe_speed, 0.0)
     axis_z = wp.quat_rotate(b.rot, wp.vec3(1.0, 0.0, 0.0))[2]
     tilt = wp.acos(wp.clamp(axis_z, -1.0, 1.0))
     fade = wp.clamp(1.0 - height / r.tilt_height, 0.0, 1.0)
-    distance = wp.length(b.pos)
+    distance = wp.length(target)
     if r.distance_saturation > 0.0:
         distance = distance / (1.0 + distance / r.distance_saturation)
     return wp.vec3(
         -r.distance_weight * distance,
         -r.speed_weight * excess_speed
         - r.horizontal_speed_weight * wp.length(wp.vec2(b.vel[0], b.vel[1])),
-        -r.tilt_weight * tilt * fade,
+        -r.tilt_weight * (tilt + alignment) * fade,
     )
 
 
@@ -147,12 +155,17 @@ def terminal_value(p: Params, r: RewardParams, t: Terminal, i: int, load: float)
         horizontal = wp.length(wp.vec2(b.vel[0], b.vel[1]))
         miss = wp.length(wp.vec2(base[0], base[1]))
         tilt = wp.acos(wp.clamp(axis[2], -1.0, 1.0))
+        if p.catcher.enabled != 0:
+            miss = pin_error(p.catcher, b, mass_properties(p.mass, t.tanks[i]).com)
+        allowed_miss = p.landing.pad_radius
+        if p.catcher.enabled != 0:
+            allowed_miss = p.catcher.tolerance
         excess = (
             r.crash_vertical_weight * wp.max(-b.vel[2] - p.landing.max_vertical_speed, 0.0)
             + r.crash_horizontal_weight * wp.max(horizontal - p.landing.max_horizontal_speed, 0.0)
             + r.crash_tilt_weight * wp.max(tilt - p.landing.max_tilt, 0.0)
             + r.crash_rate_weight * wp.max(wp.length(b.omega) - p.landing.max_angular_rate, 0.0)
-            + r.crash_miss_weight * wp.max(miss - p.landing.pad_radius, 0.0)
+            + r.crash_miss_weight * wp.max(miss - allowed_miss, 0.0)
         )
         return -(r.crash_penalty + r.crash_excess_scale * wp.log(1.0 + excess))
     if status == TUMBLED:

@@ -1,4 +1,4 @@
-"""24-to-28 input migration, preserving the learned part of policies and Adam state."""
+"""24/28-to-31 input migration, preserving the learned part of policies and Adam state."""
 
 import torch
 from torch import nn
@@ -11,7 +11,7 @@ _MOMENTS = {"obs_normalizer._mean": 0, "obs_normalizer._var": 1, "obs_normalizer
 
 def _pad(value: torch.Tensor, fill: float = 0) -> torch.Tensor:
     result = value.new_full((*value.shape[:-1], OBS_DIM), fill)
-    result[..., :LEGACY_OBS_DIM] = value
+    result[..., : value.shape[-1]] = value
     return result
 
 
@@ -29,7 +29,7 @@ def migrate_checkpoint(checkpoint: dict, actor: nn.Module, critic: nn.Module, op
                 old.shape != new.shape
                 and old.ndim == new.ndim
                 and old.shape[:-1] == new.shape[:-1]
-                and old.shape[-1] == LEGACY_OBS_DIM
+                and old.shape[-1] in (LEGACY_OBS_DIM, 28)
                 and new.shape[-1] == OBS_DIM
             ):
                 state[key] = _pad(old, _MOMENTS.get(key, 0))
@@ -46,7 +46,7 @@ def migrate_checkpoint(checkpoint: dict, actor: nn.Module, critic: nn.Module, op
                 if (
                     isinstance(value, torch.Tensor)
                     and value.ndim == 2
-                    and value.shape[-1] == LEGACY_OBS_DIM
+                    and value.shape[-1] in (LEGACY_OBS_DIM, 28)
                 ):
                     saved["state"][index][key] = _pad(value)
 
@@ -54,7 +54,7 @@ def migrate_checkpoint(checkpoint: dict, actor: nn.Module, critic: nn.Module, op
 def load_policy(path, device="cpu") -> nn.Module:
     """Load a standalone export for current observations, including pre-entry LSTM actors."""
     policy = torch.load(path, map_location=device, weights_only=False).eval()
-    if getattr(policy, "obs_dim", None) != LEGACY_OBS_DIM:
+    if getattr(policy, "obs_dim", None) not in (LEGACY_OBS_DIM, 28):
         return policy
     if getattr(policy, "is_recurrent", False):
         layer = policy.rnn.rnn

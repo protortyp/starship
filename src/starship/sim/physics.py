@@ -12,6 +12,7 @@ import warp as wp
 
 from starship.sim.aero import AeroParams, aero_wrench
 from starship.sim.atmosphere import atmosphere
+from starship.sim.catch import CatchParams, pin, pin_error, pin_height, structure_collision
 from starship.sim.config import G0, TANK_ORDER, SpawnConfig, VehicleConfig
 from starship.sim.flight_stats import FlightStats, track_flight, track_motion
 from starship.sim.hull import HullParams, lowest_point
@@ -131,6 +132,7 @@ class Params:
     max_roll_rate: float
     hull: HullParams
     landing: LandingParams
+    catcher: CatchParams
     spawn: SpawnParams
     mass: MassParams
     propulsion: PropulsionParams
@@ -222,6 +224,8 @@ def spawn(p: Params, s: State, tid: int):
     vz = sp.vertical_speed + sp.vertical_speed_noise * wp.randf(rng, -1.0, 1.0)
     pitch = sp.pitch + sp.pitch_noise * wp.randf(rng, -1.0, 1.0)
     heading = wp.randf(rng, 0.0, 2.0 * wp.pi)
+    if p.catcher.enabled != 0:
+        heading = sp.heading + sp.heading_noise * wp.randf(rng, -1.0, 1.0)
     w = sp.angular_rate_noise
     b = Body()
     b.pos = wp.vec3(offset * wp.cos(bearing), offset * wp.sin(bearing), alt)
@@ -336,6 +340,7 @@ def advance(p: Params, s: State, c: Commands, tid: int):
         w = add_wrench(w, thrust)
         w = add_wrench(w, rcs_wrench(p.propulsion, c.rcs[tid]))
         force = wp.quat_rotate(b.rot, w.force) - wp.vec3(0.0, 0.0, gravity(b.pos[2]) * mp.mass)
+        previous_body = b
         b = integrate(b, force, w.torque, mp.mass, mp.inertia, p.dt)
         a = track_motion(a, b, v_air, p.dt)
         air_speed_sq = wp.dot(v_air, v_air)
@@ -349,8 +354,47 @@ def advance(p: Params, s: State, c: Commands, tid: int):
         )
         tanks = draw_propellant(p.propulsion, tanks, mdot * supply, p.dt)
         t += p.dt
+        if p.catcher.enabled != 0:
+            # Interpolate to the first pin-plane crossing: no high-speed tunnelling through it.
+            h0 = pin_height(p.catcher, previous_body, mp.com)
+            h1 = pin_height(p.catcher, b, mp.com)
+            if h0 > p.catcher.height and h1 <= p.catcher.height:
+                alpha = (h0 - p.catcher.height) / (h0 - h1)
+                b.pos = wp.lerp(previous_body.pos, b.pos, alpha)
+                b.rot = wp.quat_slerp(previous_body.rot, b.rot, alpha)
+                status = CRASHED
+                axis = wp.quat_rotate(b.rot, wp.vec3(1.0, 0.0, 0.0))
+                safe = (
+                    pin_error(p.catcher, b, mp.com) <= p.catcher.tolerance
+                    and axis[2] >= wp.cos(p.landing.max_tilt)
+                    and wp.length(b.omega) <= p.landing.max_angular_rate
+                )
+                for side in range(2):
+                    point = pin(p.catcher, b, mp.com, float(2 * side - 1))
+                    lever = wp.vec3(
+                        p.catcher.station - mp.com, float(2 * side - 1) * p.catcher.pin_radius, 0.0
+                    )
+                    velocity = b.vel + wp.quat_rotate(b.rot, wp.cross(b.omega, lever))
+                    safe = (
+                        safe
+                        and wp.abs(point[2] - p.catcher.height) <= p.catcher.height_tolerance
+                        and velocity[2] <= 0.0
+                        and -velocity[2] <= p.landing.max_vertical_speed
+                        and wp.length(wp.vec2(velocity[0], velocity[1]))
+                        <= p.landing.max_horizontal_speed
+                    )
+                if safe:
+                    status = LANDED
+                if structure_collision(p.catcher, b, mp.com, p.hull.length, p.hull.radius):
+                    status = CRASHED
+                break
+            if structure_collision(p.catcher, b, mp.com, p.hull.length, p.hull.radius):
+                status = CRASHED
+                break
         if lowest_point(p.hull, b, mp.com) <= 0.0:
             status = touchdown_status(p.landing, b, mp.com)
+            if p.catcher.enabled != 0:
+                status = CRASHED
             break
         horizontal = wp.sqrt(b.pos[0] * b.pos[0] + b.pos[1] * b.pos[1])
         if b.pos[2] > p.max_altitude or horizontal > p.max_offset:

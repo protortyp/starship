@@ -176,13 +176,16 @@ def test_entry_stages_preserve_legacy_and_raise_handover():
         assert reward.distance_saturation == 1000
 
 
-def test_checkpoint_migration_preserves_actions_values_and_optimizer(tmp_path, monkeypatch):
+@pytest.mark.parametrize("old_dim", [LEGACY_OBS_DIM, 28])
+def test_checkpoint_migration_preserves_actions_values_and_optimizer(
+    tmp_path, monkeypatch, old_dim
+):
     cfg = test_train.compose_cfg("num_envs=8")
     make_env = test_train.make_env
 
     def legacy_env(*args):
         env = make_env(*args)
-        env._obs = env._obs[:, :LEGACY_OBS_DIM]
+        env._obs = env._obs[:, :old_dim]
         return env
 
     with monkeypatch.context() as patch:
@@ -208,19 +211,19 @@ def test_checkpoint_migration_preserves_actions_values_and_optimizer(tmp_path, m
         model.eval()
         for name in ("_mean", "_var", "_std"):
             torch.testing.assert_close(
-                getattr(model.obs_normalizer, name)[:, :24],
+                getattr(model.obs_normalizer, name)[:, :old_dim],
                 getattr(previous.obs_normalizer, name),
                 rtol=0,
                 atol=0,
             )
             assert torch.all(
-                getattr(model.obs_normalizer, name)[:, 24:] == (0 if name == "_mean" else 1)
+                getattr(model.obs_normalizer, name)[:, old_dim:] == (0 if name == "_mean" else 1)
             )
         assert model.obs_normalizer.count == 3_000_000_000
-        assert not model.rnn.rnn.weight_ih_l0[:, 24:].any()
+        assert not model.rnn.rnn.weight_ih_l0[:, old_dim:].any()
     for _ in range(5):
         obs = resumed.env.get_observations()
-        legacy = TensorDict({"policy": obs["policy"][:, :24]}, batch_size=[8])
+        legacy = TensorDict({"policy": obs["policy"][:, :old_dim]}, batch_size=[8])
         with torch.no_grad():
             expected = old.alg.actor(legacy)
             torch.testing.assert_close(resumed.alg.actor(obs), expected, rtol=0, atol=1e-7)
@@ -232,7 +235,7 @@ def test_checkpoint_migration_preserves_actions_values_and_optimizer(tmp_path, m
     for state in resumed.alg.optimizer.state.values():
         for key in ("exp_avg", "exp_avg_sq"):
             if state[key].ndim == 2 and state[key].shape[-1] == OBS_DIM:
-                assert not state[key][:, 24:].any()
+                assert not state[key][:, old_dim:].any()
     resumed._reset_rollout()
     resumed.alg.train_mode()
     test_train.collect(resumed)

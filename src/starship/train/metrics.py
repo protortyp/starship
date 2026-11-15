@@ -96,7 +96,11 @@ class EpisodeTracker:
                         torch.arccos(body_axis_z(env.final_rot[keep]).clamp(-1.0, 1.0))
                     ),
                     "rate_dps": torch.rad2deg(env.final_omega[keep].norm(dim=-1)),
-                    "miss": pos[:, :2].norm(dim=-1),
+                    "miss": (
+                        env.final_catch_error[keep]
+                        if env.cfg.catch.enabled
+                        else pos[:, :2].norm(dim=-1)
+                    ),
                     "fuel_t": env.final_tanks[keep].sum(dim=-1) / 1000.0,
                     "engine_duty": self._engine_steps[keep] / steps[:, None],
                     "action_mean": self._action_sum[keep] / steps[:, None],
@@ -152,6 +156,9 @@ class EpisodeTracker:
         out["reward/terminal"] = ep["terminal"].mean().item()
         for name, code in OUTCOMES.items():
             out[f"rate/{name}"] = (ep["status"] == code).float().mean().item()
+        if self.env.cfg.catch.enabled:
+            out["rate/caught"] = out["rate/landed"]
+            out["catch/pin_error_m"] = ep["miss"].mean().item()
         for i, name in enumerate(ENGINE_NAMES):
             out[f"actuators/{name}_duty"] = ep["engine_duty"][:, i].mean().item()
         for i, (name, _, _) in enumerate(CONTINUOUS):
@@ -215,7 +222,8 @@ class EpisodeTracker:
                 "horizontal_speed": ep["vh"] > lim.max_horizontal_speed,
                 "tilt": ep["tilt_deg"] > math.degrees(lim.max_tilt),
                 "rate": ep["rate_dps"] > math.degrees(lim.max_angular_rate),
-                "miss": ep["miss"] > lim.pad_radius,
+                "miss": ep["miss"]
+                > (sim_cfg.catch.tolerance if sim_cfg.catch.enabled else lim.pad_radius),
             }
             for name, hit in broken.items():
                 out[f"crashed/breaks_{name}"] = hit[crashed].float().mean().item()
