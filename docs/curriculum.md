@@ -70,7 +70,7 @@ A separate `curriculum=catch` adds pivoting arms and hull/fin collision checks; 
 | 0 | Short upright approach, lower fins pass, arms close, pins captured | solved in deterministic holdout: 1,023/1,024 catches (99.9%), learned flight + arm control |
 | 1 | Larger approach errors | solved: 505/512 fresh lit-engine approaches (98.6%) |
 | 2 | Engine ignition | solved: 507/512 deterministic and 248/256 stochastic fresh approaches |
-| 3–5 | Flip, randomized descent, wind | gradual flip curriculum: 500 m / 0–0.5 rad gate passed: fresh 91.0% deterministic, 87.9% stochastic; 0–0.8 rad gate passed (87.6% deterministic holdout); comparing direct 700 m training with smaller altitude steps; full belly-flop unsolved |
+| 3–5 | Flip, randomized descent, wind | gradual flip curriculum: 700 m / 0–0.8 rad / 45 m/s gate passed under corrected catch physics (fresh 89.2% deterministic, 85.2% stochastic); training 60 m/s descent; full belly-flop unsolved |
 | 6–9 | Late-entry handovers, 5–20 km | not trained |
 
 Findings (2026-11-15): the initial fixed-arm baseline omitted fin collision. Its closed gap was
@@ -766,3 +766,26 @@ Evidence and scripts are in the student run's `catch-probe/policy_3999`,
 `catch-probe/policy_3999-fixed-mass-crossing`, and
 `learning-audit/model_3949-fixed-mass-crossing` directories. Earlier results in this log
 used the old crossing detector; corrected-physics training must be identified separately.
+
+
+### Corrected-physics 700 m promotion
+
+`catch_plane_fixed_local/2026-11-15_22-55-59` resumes model 4289 with the catch-plane
+correction, preserving the optimizer, curriculum and frozen actor/critic normalizers.
+The separate bridge continuation, `catch_bridge_plane_fixed_local/2026-11-15_22-56-45`,
+resumes model 4419 at its 650 m stage; both retain the original final re-entry target.
+The main run passes original stage 16 (700 ±50 m, cold engines, tilt 0–0.8 rad,
+descent 45 ±5 m/s) at iteration 4604. Fresh immutable passed-stage holdouts catch
+913/1,024 deterministic starts (seed 822032) and 436/512 stochastic starts (seed 822033).
+These are below the 90% training gate; promotion does not establish robust mastery.
+Training proceeds to original stage 17, descent 60 ±5 m/s at the same altitude and tilt.
+
+A prior counterfactual stage-17 probe of model 4389 catches 389/512 stochastic starts
+(seed 819710), with initial critic bias +40.00 and explained variance 0.121. No smaller
+velocity step is inserted: transfer is already substantial, but the critic needs monitoring
+as it adapts. The matched critic comparison on the existing 700 m stage also distinguishes
+sample variation from regression: on identical 512 starts (spawn 819720, actions 819721),
+models 4389 and 4489 catch 443 and 445; initial-state RMSE improves from 77.54 to 74.22,
+and explained variance from 0.336 to 0.381. The lower explained variance seen in separate
+fresh audits is not by itself evidence that the critic deteriorated. Reports and scripts
+are in the main run's `next-stage-probe`, `matched-critic-trend`, and `promotion-holdouts`.
