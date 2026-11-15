@@ -1,0 +1,5 @@
+defaults:
+  - catch_flip_range_local
+  - override curriculum: catch_tilt_demo
+  - _self_
+experiment: catch_tilt_demo_local

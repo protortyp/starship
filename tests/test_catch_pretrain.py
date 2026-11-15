@@ -91,3 +91,17 @@ def test_upright_approach_teacher_rejects_unvalidated_belly_flop_spawns():
         cfg = compose("catch_bridge_local", overrides=["curriculum.start_stage=7"])
     with pytest.raises(ValueError, match="upright, non-entry"):
         demonstrations(cfg, 1, 0, teacher="approach")
+
+
+def test_mixture_retains_cold_engine_inputs_without_mutating_target_stage():
+    from starship.train.catch_pretrain import demonstration_mixture
+
+    with initialize_config_module("starship.train.conf", version_base=None):
+        cfg = compose("catch_tilt_demo_local", overrides=["curriculum.start_stage=8"])
+    data = demonstration_mixture(cfg, 4, 819255, replay_stages=[6, 6, 8], teacher="approach")
+    assert cfg.curriculum.start_stage == 8
+    assert data["stage"].tolist() == [8] * 4 + [6] * 4
+    assert data["status"].shape == (8,)
+    assert (data["obs"][0, :4, 17] == 1).all()
+    assert (data["obs"][0, 4:, 17] == 0).all()
+    assert not ((~data["valid"][:-1]) & data["valid"][1:]).any()

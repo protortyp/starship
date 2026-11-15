@@ -321,3 +321,18 @@ the stale hard-coded 3,000. A reference-controller check at 0.2 rad and 250 m (2
 seed-819252 starts) catches 243 with lit engines versus 4 with cold engines. This identifies an
 ignition/attitude-control interaction, not a physical infeasibility result; broader lit-engine
 starts are being investigated as demonstration data before returning to cold-start control.
+
+Lit-angle demonstrations (`catch_tilt_pretrain/2026-11-15_19-17-26`): the network at supervised
+update 6,700 catches 512/512 fresh lit-engine starts over 0–0.2 rad at 250±50 m (seed 819254),
+but only 1/512 matched cold starts. The single-stage result therefore does not solve ignition.
+`catch_tilt_demo` explicitly follows the lit stage with the same spawn envelope and cold engines,
+then retains the wider flip/entry target. It does not relax collision or actuator constraints.
+
+`catch_pretrain --stage 8 --replay-stage 6` now mixes complete cold-upright episodes with the
+lit-angle demonstrations, including each stage again in dataset aggregation. Normalizer fitting
+sees both distributions; episode labels preserve provenance and padding never joins histories.
+Both stages are evaluated independently, and the minimum catch rate selects the checkpoint, so
+success on the new task cannot hide forgetting the earlier one. The target curriculum stage stays
+8 in saved checkpoints; replay evaluation does not change it. The mixed run
+`catch_tilt_replay_pretrain/2026-11-15_19-23-34` is ongoing; neither mixed-task success nor
+transfer to cold tilted starts is assumed from the lit-only result.
