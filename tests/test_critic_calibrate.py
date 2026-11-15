@@ -40,3 +40,39 @@ def test_critic_fit_preserves_actor_and_normalizers_and_resets_only_critic_momen
     saved = torch.load(tmp_path / "model_calibrated.pt", weights_only=False)
     assert saved["iter"] == runner.current_learning_iteration
     runner.writer.close()
+
+
+def test_initial_weighting_emphasizes_early_errors_without_using_autoresets():
+    from starship.train.critic_calibrate import calibration_loss
+
+    values = torch.tensor([[100.0, 100.0], [0.0, 0.0], [0.0, 99999.0]])
+    targets = torch.zeros_like(values)
+    valid = torch.tensor([[True, True], [True, True], [True, False]])
+    ordinary = calibration_loss(values, targets, valid, initial_steps=1)
+    weighted = calibration_loss(values, targets, valid, initial_steps=1, initial_weight=0.5)
+    torch.testing.assert_close(ordinary, torch.tensor(0.4))
+    torch.testing.assert_close(weighted, torch.tensor(0.7))
+
+
+def test_calibration_keeps_source_checkpoint_when_every_candidate_is_worse(tmp_path, monkeypatch):
+    from starship.train import critic_calibrate
+
+    with initialize_config_module("starship.train.conf", version_base=None):
+        cfg = compose("catch_demo_local", overrides=["device=cpu", "num_envs=8", "eval_envs=8"])
+    runner = make_runner(cfg, tmp_path, 0)
+    before = {k: v.clone() for k, v in runner.alg.critic.state_dict().items()}
+
+    def worsen(critic, *_):
+        output = [m for m in critic.mlp.modules() if isinstance(m, torch.nn.Linear)][-1]
+        with torch.no_grad():
+            output.bias.fill_(1e6)
+        return 1e12
+
+    monkeypatch.setattr(critic_calibrate, "critic_step", worsen)
+    obs = runner.env.get_observations()["policy"].repeat(2, 1, 1)
+    data = {"obs": obs, "returns": torch.zeros(2, 8), "valid": torch.ones(2, 8, dtype=torch.bool)}
+    report = fit(runner, data, tmp_path, updates=1, initial_weight=0.5)
+    saved = torch.load(tmp_path / "model_calibrated.pt", weights_only=False)
+    assert report["selected_update"] == 0
+    assert all(torch.equal(value, saved["critic_state_dict"][key]) for key, value in before.items())
+    runner.writer.close()

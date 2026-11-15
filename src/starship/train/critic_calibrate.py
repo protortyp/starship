@@ -19,9 +19,19 @@ from starship.train.conf import load_run_config
 from starship.train.learning_audit import value_metrics
 
 
-def critic_step(critic, optimizer, obs, targets, valid):
+def calibration_loss(values, targets, valid, initial_steps=20, initial_weight=0.0):
+    """Blend ordinary per-transition MSE with the start of each complete episode."""
+    error = ((values - targets) / 100).square()
+    ordinary = error[valid].mean()
+    if initial_weight == 0:
+        return ordinary
+    initial = error[:initial_steps][valid[:initial_steps]].mean()
+    return (1 - initial_weight) * ordinary + initial_weight * initial
+
+
+def critic_step(critic, optimizer, obs, targets, valid, initial_steps=20, initial_weight=0.0):
     values = sequence_output(critic, obs).squeeze(-1)
-    loss = ((values - targets)[valid] / 100).square().mean()
+    loss = calibration_loss(values, targets, valid, initial_steps, initial_weight)
     optimizer.zero_grad()
     loss.backward()
     nn.utils.clip_grad_norm_(critic.parameters(), 1.0)
@@ -29,7 +39,19 @@ def critic_step(critic, optimizer, obs, targets, valid):
     return float(loss.detach())
 
 
-def fit(runner, data, output, updates=2000, batch=16, seed=8512, learning_rate=3e-4):
+def fit(
+    runner,
+    data,
+    output,
+    updates=2000,
+    batch=16,
+    seed=8512,
+    learning_rate=3e-4,
+    initial_steps=20,
+    initial_weight=0.0,
+):
+    if initial_steps < 1 or not np.isfinite(initial_weight) or not 0 <= initial_weight <= 1:
+        raise ValueError("initial_steps must be positive and initial_weight must be in [0, 1]")
     episodes = data["valid"].shape[1]
     if not all(torch.isfinite(data[k][data["valid"]]).all() for k in ("obs", "returns")):
         raise ValueError("calibration data must be finite")
@@ -53,9 +75,21 @@ def fit(runner, data, output, updates=2000, batch=16, seed=8512, learning_rate=3
                     values[mask].cpu().numpy(), targets[mask].cpu().numpy()
                 ),
                 "initial": value_metrics(values[0].cpu().numpy(), targets[0].cpu().numpy()),
+                "initial_window": value_metrics(
+                    values[:initial_steps][mask[:initial_steps]].cpu().numpy(),
+                    targets[:initial_steps][mask[:initial_steps]].cpu().numpy(),
+                ),
             }
 
+    def selection_score(metrics):
+        return (1 - initial_weight) * metrics["all_states"]["rmse"] ** 2 + initial_weight * metrics[
+            "initial_window"
+        ]["rmse"] ** 2
+
     history = [{"update": 0, **evaluate()}]
+    best = selection_score(history[0])
+    # Calibration is allowed to decline every fitted candidate and retain the source.
+    runner.save(str(output / "model_calibrated.pt"))
     with torch.no_grad():
         values = sequence_output(critic, data["obs"][:, training]).squeeze(-1)
         mask = data["valid"][:, training]
@@ -63,9 +97,12 @@ def fit(runner, data, output, updates=2000, batch=16, seed=8512, learning_rate=3
         layer = [m for m in critic.mlp.modules() if isinstance(m, nn.Linear)][-1]
         layer.bias.add_(shift)
     optimizer = torch.optim.Adam(critic.parameters(), lr=learning_rate)
-    best = float("inf")
     report = {
         "seed": seed,
+        "initial_steps": initial_steps,
+        "initial_weight": initial_weight,
+        "selection": "weighted all-state/initial-window validation MSE",
+        "selected_update": 0,
         "train_episode_indices": training.cpu().tolist(),
         "validation_episode_indices": held.cpu().tolist(),
         "bias_correction": shift.item(),
@@ -81,13 +118,15 @@ def fit(runner, data, output, updates=2000, batch=16, seed=8512, learning_rate=3
             data["obs"][:, selected],
             data["returns"][:, selected],
             data["valid"][:, selected],
+            initial_steps,
+            initial_weight,
         )
         if update % 100 == 0 or update == updates:
             row = {"update": update, "training_loss": loss, **evaluate()}
             history.append(row)
             print(json.dumps(row), flush=True)
-            if row["all_states"]["rmse"] < best:
-                best = row["all_states"]["rmse"]
+            if selection_score(row) < best:
+                best = selection_score(row)
                 if not all(
                     torch.equal(v, actor_before[k])
                     for k, v in runner.alg.actor.state_dict().items()
@@ -113,13 +152,22 @@ def main():
     parser.add_argument("--batch", type=int, default=16)
     parser.add_argument("--seed", type=int, default=8512)
     parser.add_argument("--learning-rate", type=float, default=3e-4)
+    parser.add_argument("--initial-steps", type=int, default=20)
+    parser.add_argument(
+        "--initial-weight",
+        type=float,
+        default=0.0,
+        help="fraction of loss/validation score assigned to the initial window",
+    )
     args = parser.parse_args()
     if (
-        min(args.updates, args.batch) < 1
+        min(args.updates, args.batch, args.initial_steps) < 1
+        or not np.isfinite(args.initial_weight)
+        or not 0 <= args.initial_weight <= 1
         or not np.isfinite(args.learning_rate)
         or args.learning_rate <= 0
     ):
-        parser.error("counts and learning rate must be positive and finite")
+        parser.error("counts/rate must be positive and finite; initial weight must be in [0, 1]")
     provenance = json.loads((args.audit / "report.json").read_text())
     if Path(provenance["checkpoint"]).resolve() != args.checkpoint.resolve():
         parser.error("audit must come from the exact checkpoint being calibrated")
@@ -141,7 +189,17 @@ def main():
         parser.error("counterfactual-stage audits cannot calibrate a different checkpoint stage")
     with np.load(args.audit / "trajectories.npz") as arrays:
         data = {k: torch.from_numpy(arrays[k]).to(args.device) for k in ["obs", "returns", "valid"]}
-    fit(runner, data, args.output, args.updates, args.batch, args.seed, args.learning_rate)
+    fit(
+        runner,
+        data,
+        args.output,
+        args.updates,
+        args.batch,
+        args.seed,
+        args.learning_rate,
+        args.initial_steps,
+        args.initial_weight,
+    )
     runner.writer.close()
 
 
