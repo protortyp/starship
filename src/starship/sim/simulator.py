@@ -102,12 +102,14 @@ class Snapshot:
     time: np.ndarray
     steps: np.ndarray
     status: np.ndarray
+    catch_failure: np.ndarray
     arm_angle: np.ndarray  # symmetric arm opening angle, radians
     wind: np.ndarray  # (N, 3) air velocity at the vehicle, world
 
 
 @dataclass
 class TerminalSnapshot:
+    catch_failure: np.ndarray
     arm_angle: np.ndarray
     flaps: np.ndarray
     spool: np.ndarray
@@ -231,12 +233,14 @@ class Simulator:
             steps=s.steps.numpy().copy(),
             status=s.status.numpy().copy(),
             wind=np.array(s.wind.numpy()["wind"]),
+            catch_failure=s.catch_failure.numpy().copy(),
             arm_angle=s.arm_angle.numpy().copy(),
         )
 
     def terminal_snapshot(self) -> TerminalSnapshot:
         t = self.terminal
         return TerminalSnapshot(
+            catch_failure=t.catch_failure.numpy().copy(),
             arm_angle=t.arm_angle.numpy().copy(),
             flaps=np.array(t.flaps.numpy()["angle"]),
             spool=np.array(t.engine.numpy()["spool"]),
