@@ -336,3 +336,26 @@ success on the new task cannot hide forgetting the earlier one. The target curri
 8 in saved checkpoints; replay evaluation does not change it. The mixed run
 `catch_tilt_replay_pretrain/2026-11-15_19-23-34` is ongoing; neither mixed-task success nor
 transfer to cold tilted starts is assumed from the lit-only result.
+
+Mixed-stage validation: `catch_tilt_replay_pretrain/2026-11-15_19-23-34/model_demo_8900.pt`
+was selected by a 100% minimum internal catch rate across the two demonstrated tasks. Fresh
+seed-819259 evaluation catches 504/512 cold upright approaches and 511/512 lit tilted approaches.
+At update 5,800, a separate fresh test already caught 379/512 cold tilted approaches absent
+from the demonstrations, versus the lit-only policy's 1/512 on its earlier cold-tilt test.
+Those tests use different seeds/checkpoints; the transfer result is progress, not a paired
+causal estimate or proof of a full flip.
+
+The selected actor is preserved unchanged except for continuous std 0.02 in
+`catch_tilt_warmstart/2026-11-15_19-29-03/model_-1.pt`, explicitly advanced to the cold-tilt
+stage with PPO iteration still -1. A 1,024-episode stochastic audit (seed 819260) catches
+55.4%, with critic all-state EV -0.029 and initial bias +156.45 return units. This run needs
+critic calibration before PPO; the cold tilted task is not marked solved. The same early-window
+calibration and fresh-seed validation used in the successful earlier comparison are applied
+before this handoff. Moving-arm geometry, collisions and the final entry curriculum are unchanged.
+
+The cold-tilt critic fit selects update 1,800. Fresh stochastic evaluation on 512 episodes
+(seed 819261) catches 54.7%, with all-state EV 0.372, initial EV 0.463 and initial bias +13.69;
+the actor is unchanged. `catch_tilt_ignition_local/2026-11-15_19-32-20` resumes PPO at stage 9
+from this calibrated checkpoint, using the inherited frozen normalizers, actor LR 1e-6,
+critic LR 1e-5 and continuous std 0.02. Promotion and full-entry success still require actual
+policy evaluations; this calibration result alone does not establish either.
