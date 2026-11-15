@@ -248,8 +248,7 @@ class StarshipRunner(OnPolicyRunner):
         self._reset_rollout()
         # The checkpoint carries the old learning rate; the configured one should win.
         self.alg.learning_rate = self.cfg["algorithm"]["learning_rate"]
-        for group in self.alg.optimizer.param_groups:
-            group["lr"] = self.alg.learning_rate
+        self.alg.apply_learning_rates()
         self.next_iteration = self.current_learning_iteration + 1
         # Keeps TensorBoard's env-step axis continuous, assuming the same batch size as before.
         self.total_env_steps = (

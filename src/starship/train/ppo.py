@@ -55,6 +55,7 @@ class InstrumentedPPO(PPO):
         initial_value: float | None = None,
         freeze_observation_normalization: bool = False,
         diagnostics_interval: int = 0,
+        critic_learning_rate: float | None = None,
         max_kl: float | None = None,
         **kwargs,
     ):
@@ -62,7 +63,19 @@ class InstrumentedPPO(PPO):
             raise ValueError("max_kl must be positive or None")
         if initial_value is not None and (not math.isfinite(initial_value) or value_normalization):
             raise ValueError("initial_value must be finite and requires value_normalization=false")
+        if critic_learning_rate is not None and (
+            not math.isfinite(critic_learning_rate) or critic_learning_rate <= 0
+        ):
+            raise ValueError("critic_learning_rate must be positive and finite or None")
         super().__init__(*args, **kwargs)
+        self.critic_learning_rate = critic_learning_rate
+        if critic_learning_rate is not None:
+            shared = self.optimizer.param_groups[0]
+            self.optimizer.param_groups = [
+                {**shared, "params": list(self.actor.parameters())},
+                {**shared, "params": list(self.critic.parameters())},
+            ]
+        self.apply_learning_rates()
         if initial_value is not None:
             # Fit the failure baseline with the output bias, not saturated recurrent features.
             output = [m for m in self.critic.mlp.modules() if isinstance(m, nn.Linear)][-1]
@@ -80,6 +93,15 @@ class InstrumentedPPO(PPO):
         if value_normalization:
             self.critic.value_norm = ValueNormalizer().to(self.device)
             self.value_norm = self.critic.value_norm
+
+    def apply_learning_rates(self):
+        """Actor scheduling and checkpoint restore must preserve the configured critic rate."""
+        for index, group in enumerate(self.optimizer.param_groups):
+            group["lr"] = (
+                self.critic_learning_rate
+                if index == 1 and self.critic_learning_rate is not None
+                else self.learning_rate
+            )
 
     def _activation_diagnostics(self, max_envs: int = 4096) -> dict[str, float]:
         """Unit, rank and gate diagnostics on a random rollout step and its stored hidden state."""
@@ -197,8 +219,7 @@ class InstrumentedPPO(PPO):
                         self.learning_rate = max(1e-5, self.learning_rate / 1.5)
                     elif 0.0 < kl_mean < self.desired_kl / 2.0:
                         self.learning_rate = min(1e-2, self.learning_rate * 1.5)
-                    for group in self.optimizer.param_groups:
-                        group["lr"] = self.learning_rate
+                    self.apply_learning_rates()
 
                 log_ratio = log_prob - torch.squeeze(batch.old_actions_log_prob)
                 ratio = torch.exp(log_ratio)

@@ -36,6 +36,7 @@ runner:
     # Fixed: rsl_rl's adaptive schedule pinned the lr at its 1e-2 ceiling and stalled (docs/curriculum.md).
     # 1e-4 wrecked a 58 % belly-flop policy within two updates; 3e-5 with a KL stop holds it.
     learning_rate: 3.0e-5
+    critic_learning_rate: null  # Optional independent critic rate; null retains shared Adam group.
     schedule: fixed
     desired_kl: 0.01
     max_kl: 0.01
