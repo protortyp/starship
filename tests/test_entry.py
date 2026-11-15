@@ -176,7 +176,7 @@ def test_entry_stages_preserve_legacy_and_raise_handover():
         assert reward.distance_saturation == 1000
 
 
-@pytest.mark.parametrize("old_dim", [LEGACY_OBS_DIM, 28])
+@pytest.mark.parametrize("old_dim", [LEGACY_OBS_DIM, 28, 31])
 def test_checkpoint_migration_preserves_actions_values_and_optimizer(
     tmp_path, monkeypatch, old_dim
 ):

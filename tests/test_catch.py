@@ -75,7 +75,7 @@ def test_fast_crossing_cannot_tunnel_past_catch_gate():
 def test_catch_observations_expose_heading_and_target():
     env = RocketEnv(2, catch_config(), device="cpu")
     obs = env.observe().numpy()
-    np.testing.assert_allclose(np.linalg.norm(obs[:, 28:], axis=1), 1, atol=1e-6)
+    np.testing.assert_allclose(np.linalg.norm(obs[:, 28:31], axis=1), 1, atol=1e-6)
     ground = RocketEnv(2, device="cpu").observe().numpy()
     np.testing.assert_array_equal(ground[:, 28:], 0)
     result = env.step(np.zeros((2, 11), dtype=np.float32))

@@ -236,6 +236,15 @@ class LandingConfig:
 @dataclass
 class CatchConfig:
     enabled: bool = False
+    # False retains the original fixed-arm baseline when loading old run configs.
+    moving: bool = False
+    flap_collisions: bool = False
+    open_angle: float = math.radians(30.0)
+    angular_speed: float = math.radians(15.0)  # finite-rate, symmetric tower controller
+    close_max_tilt: float = math.radians(10.0)
+    close_max_offset: float = 2.0
+    close_clearance: float = 0.5  # aft-fin top must be this far below the arms
+    flap_half_thickness: float = 0.05
     height: float = 80.0
     station: float = 35.0
     pin_radius: float = 7.0

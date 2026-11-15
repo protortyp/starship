@@ -1,5 +1,5 @@
 # @package curriculum
-# Fixed-arm upper-stage catch. SI values are training assumptions; see docs/catch.md.
+# Moving-arm upper-stage catch. SI values are training assumptions; see docs/catch.md.
 enabled: true
 promote_landed: 0.9
 promote_evals: 2
@@ -7,10 +7,12 @@ stages:
   - name: 0 short upright catch approach
     overrides:
       - sim.catch.enabled=true
-      - sim.spawn.altitude=110
-      - sim.spawn.altitude_noise=10
-      - sim.spawn.vertical_speed=-10
-      - sim.spawn.vertical_speed_noise=2
+      - sim.catch.moving=true
+      - sim.catch.flap_collisions=true
+      - sim.spawn.altitude=105
+      - sim.spawn.altitude_noise=5
+      - sim.spawn.vertical_speed=-5
+      - sim.spawn.vertical_speed_noise=1
       - sim.spawn.pitch=0
       - sim.spawn.pitch_noise=0.01
       - sim.spawn.offset_noise=0.25

@@ -63,15 +63,24 @@
 
 ## Upper-stage catch (local RTX 3090)
 
-A separate `curriculum=catch` adds fixed-arm capture and tower collisions; see [catch.md](catch.md).
+A separate `curriculum=catch` adds pivoting arms and hull/fin collision checks; see [catch.md](catch.md).
 
 | Stage | Task | Status |
 |---|---|---|
-| 0 | Short upright catch approach | training locally; not solved |
+| 0 | Short upright approach, lower fins pass, arms close, pins captured | moving-arm local run starting; not solved |
 | 1–5 | Approach errors, ignition, flip, randomized descent, wind | not trained |
 | 6–9 | Late-entry handovers, 5–20 km | not trained |
 
-Local validation (2026-11-15): 231 tests passed, 2 skipped. GPU smoke evaluation and export passed.
-The 4,096-env / 4-minibatch update exhausted the 24 GB RTX 3090; 1,024 envs / 8 minibatches
-completed three 128-step updates at 80–106k environment steps/s. `catch_local` uses this smaller
-batch. Initial untrained catch rate is 0%; no capture stage has passed yet.
+Findings (2026-11-15): the initial fixed-arm baseline omitted fin collision. Its closed gap was
+11 m but its 45° lower fins spanned 15.4 m. It reached iteration 1902 at 0% catches and was stopped;
+its checkpoints/GIFs are not evidence of a physically valid catch. The moving-arm replacement opens
+to 30°, closes at 15°/s only after both lower fins clear, includes swept collision of all four fins,
+and exposes arm opening to the policy. A scripted 2 m/s descent clears the geometry and closes the
+arms before reaching the pins; that test does not establish learned flight performance.
+
+GPU sizing: 4,096 envs / 4 minibatches exhausted the 24 GB GPU immediately. The initial 1,024-env /
+8-minibatch smoke test fitted, but the long run produced allocation spikes as episode lengths
+changed. The moving-arm local preset reduces this to 512 envs / 16 minibatches with 128-step rollouts.
+
+Validation: 237 tests passed, 2 skipped; the local CUDA smoke run completed three policy updates,
+evaluations and Rerun recordings. No moving-arm catch stage has passed evaluation yet.
