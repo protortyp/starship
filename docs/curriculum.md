@@ -667,3 +667,27 @@ harder altitude; their different update counts and training histories prevent in
 this as an equal-budget causal efficiency comparison. Results and executed script are in
 the bridge run's `matched-altitude-comparison` directory. Both curricula retain the original
 full re-entry target, which remains unsolved.
+
+The bridge subsequently passes its 600 m training gate. Its immutable passed-stage-17
+checkpoint catches 895/1,024 deterministic starts (seed 820134) and 397/512 stochastic
+starts (seed 820135), then trains at 650 m. These holdouts remain below the training gate;
+promotion alone is not evidence of robust mastery. Meanwhile, direct-700 m training
+continues from model 3549 in `catch_handover_continue_local/2026-11-15_22-05-53`.
+Model 3799 catches 146/512 stochastic starts; its initial-state critic explained variance
+is 0.653 and bias is +1.68 return units. Predicting outcomes increasingly well has not yet
+solved the early-turn control failure.
+
+A short-control search on continuation policy 3599 identifies lower initial throttle as
+useful at 700 m. On 1,024 fresh matched deterministic starts (seed 819605), a raw throttle
+bias of -1 for the first 80 steps raises catches from 293 to 387. A separate expanded
+search selects raw throttle -2 and gimbal-3 +0.5 for the first 80 steps. On another fresh
+1,024 matched starts (seed 819606), that intervention raises catches from 284 to 433
+(196 gains, 47 losses); a four-second throttle -3 alternative catches 394 (145 gains,
+35 losses). Initial observations are asserted identical for each comparison. These are
+counterfactual action interventions through ordinary actuator and collision constraints,
+not learned-policy success rates or evidence of changed physics. Search-set hindsight
+unions are not deployable performance. Scripts and paired results are archived under the
+continuation run's `initial-control-search*`, `initial-control-validation`, and
+`expanded-control-validation` directories. A separate student-distillation experiment
+uses the eight-second intervention as labels with passed-500 m replay and stochastic
+student rollouts; fresh policy-only validation is required before any PPO handoff.
