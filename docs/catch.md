@@ -144,3 +144,23 @@ and permits continuous exploration std down to 0.005. The checkpoint's saved log
 set it deliberately when preparing the initialization checkpoint. Ordinary PPO presets continue
 updating normalization. Changing observation scales after cloning can invalidate the learned
 controller even when all network weights are held fixed.
+
+## Audit observation scales and critic predictions
+
+`uv run python -m starship.train.learning_audit RUN/model_2999.pt --episodes 256` loads the
+paired actor/critic checkpoint and its actual curriculum stage. It records complete deterministic
+on-policy episodes, comparing critic predictions with discounted Monte Carlo returns (no
+bootstrap). `--stage N` explicitly tests that checkpoint on a different stage. Reports include
+explained variance, bias and RMSE across all states and separately at episode start, raw and
+normalized per-channel ranges/outliers, engine use, and initial stopping-distance estimates.
+The latter assume constant initial mass and vertical full thrust; they omit spool delay, tilt,
+drag, fuel burn and collisions and are not a feasibility proof. TensorBoard metrics are restricted
+to steps at or before the selected checkpoint; bootstrapped training EV and Monte Carlo EV are
+different diagnostics. JSON, observation CSV and complete trajectory arrays are written under
+`RUN/learning-audit/` so results remain inspectable. Zero return variance yields undefined EV,
+not a spurious success score.
+
+`--config-name catch_bridge_local` separately tests four intermediate approaches before the
+original catch stage 1: 115 m/-8 m/s, 130 m/-12 m/s, 160 m/-18 m/s, and 200 m/-25 m/s. Original
+later catch stages are preserved. This uses the validated warm-start, frozen normalization and
+narrow exploration; it does not reset the original catch curriculum or claim later stages solved.
