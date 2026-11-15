@@ -7,6 +7,7 @@ import time
 from pathlib import Path
 
 import torch
+from omegaconf import OmegaConf
 from rsl_rl.runners import OnPolicyRunner
 from torch.utils.tensorboard import SummaryWriter
 
@@ -250,14 +251,24 @@ class StarshipRunner(OnPolicyRunner):
         self.alg.learning_rate = self.cfg["algorithm"]["learning_rate"]
         self.alg.apply_learning_rates()
         self.next_iteration = self.current_learning_iteration + 1
-        # Keeps TensorBoard's env-step axis continuous, assuming the same batch size as before.
-        self.total_env_steps = (
-            self.next_iteration * self.cfg["num_steps_per_env"] * self.env.num_envs
-        )
+        self.total_env_steps = (infos or {}).get("total_env_steps")
+        if self.total_env_steps is None:
+            # Legacy checkpoints did not store the counter. Prefer their source batch,
+            # not the potentially different batch of this continuation/evaluation.
+            batch = self.cfg["num_steps_per_env"] * self.env.num_envs
+            source_config = Path(path).parent / ".hydra/config.yaml"
+            if source_config.exists():
+                saved = OmegaConf.load(source_config)
+                batch = saved.num_envs * saved.runner.num_steps_per_env
+            self.total_env_steps = self.next_iteration * batch
         return infos
 
     def save(self, path: str, infos: dict | None = None) -> None:
-        infos = {**(infos or {}), "best_eval": self.best_eval}
+        infos = {
+            **(infos or {}),
+            "best_eval": self.best_eval,
+            "total_env_steps": self.total_env_steps,
+        }
         if self.curriculum is not None:
             infos = {**(infos or {}), "curriculum": self.curriculum.state_dict()}
         super().save(path, infos)

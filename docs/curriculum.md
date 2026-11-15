@@ -861,3 +861,23 @@ standard deviation is about 0.02. Unmodified easier-start outcomes match exactly
 This does not support simply increasing independent noise, nor establish whether
 training with different or temporally coherent exploration would help. Artifacts are
 in `early-noise-probe`; both existing PPO experiments continue unchanged.
+
+### Batch-size throughput and step accounting
+
+A short benchmark with both existing jobs running measures approximately 28k, 45k,
+69k and 114k training transitions/s for 512, 1,024, 2,048 and 4,096 environments.
+The 4,096-environment case uses 13.5 GB total device memory. These are shared-GPU
+throughput measurements with fresh benchmark policies, not learning-efficiency results.
+`catch_large_batch_local/2026-11-16_00-08-48` starts a separate 4,096-environment trial
+from main model 5719, retaining 128-step rollouts, optimizer settings, frozen normalizers
+and all curriculum simulator/reward configurations. Compare added transitions and wall
+time: equal update counts process eight times as much data in this trial.
+
+This exposes a legacy counter bug: resume reconstructed total transitions as iteration
+count times the new batch size, inflating this trial's initial console/TensorBoard axis.
+Its `step-accounting.json` records the correction; model 5729 has 5,242,880 newly added
+transitions. New checkpoints persist `total_env_steps`, and learning audits use that
+restored count. Legacy checkpoints use their adjacent Hydra config's batch size when
+available, falling back to the current batch for standalone files without configuration.
+This fallback cannot reconstruct earlier batch changes; already affected checkpoints
+need an explicit counter correction before resuming with the fixed code.
