@@ -42,6 +42,8 @@ def initial_physics(p: Params, state: State, out: wp.array2d(dtype=float)):
 
 def braking_estimates(physics):
     height, vz, mass, thrust, g = physics.T
+    if not np.isfinite(physics).all() or np.any(mass <= 0):
+        raise ValueError("braking estimates require finite physics and positive mass")
     result = {}
     for engines in (1, 2, 3):
         acceleration = engines * thrust / mass - g
@@ -179,7 +181,10 @@ def audit(checkpoint, episodes, seed, output, stage=None, stochastic=False, acti
     critic.reset()
     physics = wp.zeros((episodes, 5), dtype=float, device="cpu")
     wp.launch(
-        initial_physics, dim=episodes, inputs=[env.env.sim.params, env.env.sim.state, physics]
+        initial_physics,
+        dim=episodes,
+        inputs=[env.env.sim.params, env.env.sim.state, physics],
+        device="cpu",
     )
     braking = braking_estimates(physics.numpy())
     obs = env.get_observations()

@@ -44,6 +44,14 @@ def test_braking_estimate_is_an_explicit_constant_mass_comparison():
     assert "not a feasibility proof" in result["assumptions"]
 
 
+@pytest.mark.parametrize("mass", [0.0, -1.0, np.nan, np.inf])
+def test_braking_estimate_rejects_incomplete_or_invalid_physics(mass):
+    from starship.train.learning_audit import braking_estimates
+
+    with pytest.raises(ValueError, match="finite physics and positive mass"):
+        braking_estimates(np.array([[10.0, -10.0, mass, 20.0, 10.0]]))
+
+
 def test_audit_names_follow_encoding_width_and_geometry_order():
     from starship.train.encoding import CATCH_OBS_DIM, OBSERVATION_NAMES
 

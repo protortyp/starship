@@ -70,7 +70,7 @@ A separate `curriculum=catch` adds pivoting arms and hull/fin collision checks; 
 | 0 | Short upright approach, lower fins pass, arms close, pins captured | solved in deterministic holdout: 1,023/1,024 catches (99.9%), learned flight + arm control |
 | 1 | Larger approach errors | solved: 505/512 fresh lit-engine approaches (98.6%) |
 | 2 | Engine ignition | solved: 507/512 deterministic and 248/256 stochastic fresh approaches |
-| 3–5 | Flip, randomized descent, wind | gradual flip curriculum training; full belly-flop unsolved |
+| 3–5 | Flip, randomized descent, wind | gradual flip curriculum: 350 m / 0–0.5 rad retained at 94.7%; 500 m student 71.0% deterministic, 51.5% stochastic; full belly-flop unsolved |
 | 6–9 | Late-entry handovers, 5–20 km | not trained |
 
 Findings (2026-11-15): the initial fixed-arm baseline omitted fin collision. Its closed gap was
@@ -481,3 +481,31 @@ and EV 0.104 → 0.353, while initial RMSE remains about 62.5. The source is pre
 PPO updates with actor LR 1e-6, critic LR 1e-5 and the full existing curriculum. The older
 learning-rate comparison had no clear winner at 500 updates (407/512 versus 402/512,
 seed 819276), so it does not justify a larger actor rate for this handoff.
+
+
+The coherent PPO continuation passed the 350 m / 0–0.5 rad gate, but its passed-stage
+checkpoint catches only 919/1,024 fresh starts (seed 819327). At 500 m, independent
+512-flight stochastic audits improve from 20.1% at iteration 1049 to 37.7% at 1549;
+initial critic EV improves from -0.084 to 0.167. Terminal fuel measurements rule out
+fuel exhaustion as the dominant failure. Replacing engine/throttle commands alone with
+the approach teacher makes catches worse. A full-controller handover after tilt <0.1 rad
+and angular speed <0.3 rad/s is more useful: on matched 1,024 starts (seed 819329),
+policy 989 catches 197 alone versus 594 with handover; policy 1549 catches 421 versus
+735. Increasing the reference controller's unaligned holding altitude from 35 m to
+60/100/150 m worsens its matched 512-flight result. These interventions change actions,
+not physics, and are training-data experiments rather than standalone learned results.
+
+`catch_handover_distill_local/2026-11-15_20-54-32` distills policy 1549 plus that handover,
+with policy 989 replay at 350 m and one student/teacher trajectory aggregation round.
+Internal evaluation selects supervised update 1200. Fresh network-only tests catch
+727/1,024 at 500 m and 970/1,024 at 350 m (seed 819331). Stochastic 500 m evaluation
+falls to 527/1,024 (seed 819332): robustness to action sampling remains an issue, and
+its initial critic overestimates returns by 58.36. PPO ancestry remains iteration 1549;
+these supervised updates are not PPO steps. The original PPO run continues for comparison.
+Scripts, demonstrations, immutable candidates and holdout reports are archived in these
+run directories. Full re-entry remains unsolved.
+
+The holdout exposed a braking-diagnostic race: its Warp kernel defaulted to CUDA while
+writing CPU buffers, occasionally producing incomplete values. The launch now explicitly
+uses CPU and rejects nonfinite physics or nonpositive mass. Previously recorded braking
+estimates may be unreliable; catch outcomes and critic-return metrics use separate paths.
