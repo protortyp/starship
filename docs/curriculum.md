@@ -70,7 +70,7 @@ A separate `curriculum=catch` adds pivoting arms and hull/fin collision checks; 
 | 0 | Short upright approach, lower fins pass, arms close, pins captured | solved in deterministic holdout: 1,023/1,024 catches (99.9%), learned flight + arm control |
 | 1 | Larger approach errors | solved: 505/512 fresh lit-engine approaches (98.6%) |
 | 2 | Engine ignition | solved: 507/512 deterministic and 248/256 stochastic fresh approaches |
-| 3–5 | Flip, randomized descent, wind | gradual flip curriculum: 700 m / 0–0.8 rad / 45 m/s gate passed under corrected catch physics (fresh 89.2% deterministic, 85.2% stochastic); training 60 m/s descent; full belly-flop unsolved |
+| 3–5 | Flip, randomized descent, wind | gradual flip curriculum: 700 m / 0–0.8 rad / 60 m/s gate passed under corrected catch physics (fresh 88.6% deterministic, 85.9% stochastic); comparing direct 1.1 rad training with 0.9/1.0 rad bridge stages; full belly-flop unsolved |
 | 6–9 | Late-entry handovers, 5–20 km | not trained |
 
 Findings (2026-11-15): the initial fixed-arm baseline omitted fin collision. Its closed gap was
@@ -789,3 +789,44 @@ models 4389 and 4489 catch 443 and 445; initial-state RMSE improves from 77.54 t
 and explained variance from 0.336 to 0.381. The lower explained variance seen in separate
 fresh audits is not by itself evidence that the critic deteriorated. Reports and scripts
 are in the main run's `next-stage-probe`, `matched-critic-trend`, and `promotion-holdouts`.
+
+
+### Faster-descent promotion and wider-tilt gap
+
+The corrected main run passes original stage 17 (700 m, descent 60 ±5 m/s, tilt 0–0.8 rad)
+at iteration 4764. Fresh passed-stage holdouts catch 907/1,024 deterministic starts
+(seed 822034) and 440/512 stochastic starts (seed 822035). The first fresh audit after
+training on this speed (model 4689, seed 819704) catches 433/512; initial critic bias is
++3.64, compared with +40.00 in the earlier counterfactual transfer probe. These use different
+checkpoints and spawn seeds, so the comparison is descriptive rather than paired.
+
+A counterfactual wider-tilt probe of model 4689 (original stage 18, seed 819730) catches
+305/512 overall but zero of 153 starts above 0.8 rad. Of those hard starts, 150 exceed the
+40°/s transverse angular-rate limit, typically near upright after about 4.09 seconds;
+median absolute roll rate is only 0.025 rad/s. Aggregate initial critic explained variance
+is 0.708: predicting which starts fail does not supply a successful turn-control strategy.
+Direct 1.1 rad PPO remains active, with models 4789 and 4889 catching 321/512 and 323/512
+fresh stochastic starts respectively.
+
+Offline interventions retain ordinary actuator limits, collision checks and termination
+rules. On policy 4779's 128-start exploration set (seed 819741), all 30 starts above 0.8 rad
+tumble without intervention. The best delayed fixed pulse catches four of those starts;
+a pitch-rate governor using current thrust and inertia catches at most two, mostly turning
+some early tumbles into later crashes. Neither intervention is installed in training or
+distilled. Scripts and outcomes are archived as `turn-braking-search` and
+`turn-rate-governor-probe` in the main run.
+
+The altitude comparison passes 650 m at iteration 4839: fresh holdouts catch 900/1,024
+deterministic starts (seed 823036) and 428/512 stochastic starts (seed 823037). It moves
+to 700 m but its model 4919 catches only 282/512 in the fresh stochastic audit. Its
+checkpoints are preserved and this comparison is retired in favor of a more relevant
+tilt-curriculum experiment; this is a resource-allocation choice, not an equal-budget
+sample-efficiency conclusion.
+
+`catch_tilt_bridge_local/2026-11-15_23-24-03` resumes main model 4769, adds 0–0.9 and
+0–1.0 rad stages before original 0–1.1 rad, and trains for 2,000 updates (seed 819760).
+Original stage 18 becomes stage 20, and original final stage 30 becomes stage 32.
+Full simulator and reward dataclass equality is verified for both the restored 1.1 rad
+stage and final re-entry target. The first resumed checkpoint preserves frozen actor and
+critic normalizers exactly. Direct 1.1 rad training continues as the comparison; success on
+the easier bridge stage must not be reported as success on the common harder task.
