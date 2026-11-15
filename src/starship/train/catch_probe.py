@@ -118,7 +118,7 @@ def measure(sim, terminal=False):
 
 def replay(policy_path, cfg, obs_cfg, reward_cfg, seed, mode, output, recording=False):
     env = RslRocketEnv(RocketEnv(1, cfg, obs_cfg, reward_cfg, device="cpu", seed=seed))
-    policy = load_policy(policy_path)
+    policy = load_policy(policy_path, obs_dim=env.env.obs_dim)
     raw_outputs = []
     hook = policy.mlp.register_forward_hook(lambda _m, _i, value: raw_outputs.append(value))
     rows = []
@@ -314,7 +314,7 @@ def report_text(report):
         "constant-current-pin-velocity estimate, not a prediction; -1 means no descending pin.",
         "",
         "CSV rows contain pre-action geometry, close probability, requested/executed commands, "
-        "all 32 raw and normalized policy observations, reward components, and post-step geometry. "
+        "all raw and normalized policy observations, reward components, and post-step geometry. "
         "Terminal values are captured before autoreset. Collision labels identify the first "
         "conservative swept contact detected by the simulator, not measured impact physics.",
         "",
@@ -322,7 +322,9 @@ def report_text(report):
         "(6-8), angular velocity (9-11), COM altitude (12), fins (13-16), "
         "engines (17-22), fuel (23), "
         "entry channels (24-27), tower heading (28-30), arm opening (31). It has no explicit fin "
-        "clearance, individual pin heights, closure-time or collision-reason input. Those are "
+        "clearance, individual pin heights or closure-time in the base 32 inputs. With "
+        "obs.catch_geometry=true, channels 32-37 add two pin heights, aft-fin clearance, pin "
+        "alignment error, closure time and constant-velocity arrival time. Collision labels are "
         "diagnostics only. Raw position is scaled by 3000; the learned normalizer is also exported "
         "to avoid mistaking small raw values for an invisible signal.",
     ]

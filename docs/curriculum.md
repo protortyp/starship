@@ -115,3 +115,10 @@ initialization: `catch_value_init_local` retains these rewards and observations 
 only the critic's final bias to -200. The intent is to represent the constant failure baseline in
 the bias instead of driving recurrent features into saturation. Saved checkpoint values still
 override this initializer on resume. This is an optimization experiment, not a solved catch.
+
+At checkpoint 400 of the critic-initialization run, all eight probe seeds delayed closure to
+2.6–2.8 s, compared with t=0 at checkpoint 150, but still collided with uncleared fins or the hull.
+Held-open attempts reached the capture plane fast and misaligned; their roughly -236 returns
+remain worse than the roughly -195 early contacts. Equal penalty floors alone have not removed
+all incentives for early structural exits. An opt-in 38-input geometry preset is now available
+for a separate observation test; the running 32-input experiment is unchanged.

@@ -6,7 +6,15 @@ from dataclasses import dataclass
 import warp as wp
 
 from starship.sim.atmosphere import atmosphere
-from starship.sim.catch import catch_center
+from starship.sim.catch import (
+    catch_center,
+    flap_axes,
+    flap_center,
+    flap_half_size,
+    pin,
+    pin_error,
+    projected_radius,
+)
 from starship.sim.mass import mass_properties
 from starship.sim.physics import Params, State
 from starship.sim.propulsion import EngineState, FlapState
@@ -14,6 +22,7 @@ from starship.sim.rigid import Body
 
 LEGACY_OBS_DIM = 24
 OBS_DIM = 32
+CATCH_OBS_DIM = 38
 
 
 @dataclass
@@ -31,10 +40,12 @@ class ObsConfig:
     log_scale: float = 3.0
     dynamic_pressure: float = 5000.0
     mirror: bool = True
+    catch_geometry: bool = False
 
 
 @wp.struct
 class ObsScales:
+    catch_geometry: int
     position: float
     velocity: float
     angular_rate: float
@@ -53,6 +64,9 @@ def make_obs_scales(config: ObsConfig | None = None) -> ObsScales:
     config = config or ObsConfig()
     scales = ObsScales()
     for name in ObsScales.vars:
+        if name == "catch_geometry":
+            scales.catch_geometry = int(config.catch_geometry)
+            continue
         value = getattr(config, name)
         if not math.isfinite(value) or value <= 0:
             raise ValueError(f"observation scale {name} must be finite and positive")
@@ -80,6 +94,41 @@ def encode(
     obs: wp.array2d(dtype=float),
     i: int,
 ):
+    if scales.catch_geometry != 0:
+        for j in range(OBS_DIM, CATCH_OBS_DIM):
+            obs[i, j] = 0.0
+        if p.catcher.enabled != 0:
+            com = mass_properties(p.mass, tanks).com
+            c = p.catcher
+            side = -1.0
+            if mirrored != 0:
+                side = 1.0
+            obs[i, 32] = wp.clamp((pin(c, b, com, side)[2] - c.height) / 50.0, -10.0, 10.0)
+            obs[i, 33] = wp.clamp((pin(c, b, com, -side)[2] - c.height) / 50.0, -10.0, 10.0)
+            top = -1.0e10
+            for j in range(2):
+                center = flap_center(p.aero, b, com, f.angle, j)
+                extent = projected_radius(
+                    flap_axes(p.aero, b, f.angle, j),
+                    flap_half_size(c, p.aero, j),
+                    wp.vec3(0.0, 0.0, 1.0),
+                )
+                top = wp.max(top, center[2] + extent)
+            obs[i, 34] = wp.clamp((c.height - 1.0 - top) / 50.0, -10.0, 10.0)
+            obs[i, 35] = wp.min(pin_error(c, b, com) / 10.0, 10.0)
+            if c.moving != 0:
+                obs[i, 36] = arm_angle / (2.0 * c.angular_speed)
+            eta = -1.0
+            for j in range(2):
+                sign = float(2 * j - 1)
+                lever = wp.vec3(c.station - com, sign * c.pin_radius, 0.0)
+                vz = (b.vel + wp.quat_rotate(b.rot, wp.cross(b.omega, lever)))[2]
+                height = pin(c, b, com, sign)[2] - c.height
+                if vz < -1.0e-6 and height >= 0.0:
+                    arrival = height / -vz
+                    if eta < 0.0 or arrival < eta:
+                        eta = arrival
+            obs[i, 37] = wp.min(eta, 30.0) / 10.0
     obs[i, 31] = 0.0
     if p.catcher.enabled != 0 and p.catcher.moving != 0:
         obs[i, 31] = arm_angle / p.catcher.open_angle

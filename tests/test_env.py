@@ -87,15 +87,17 @@ def test_heading_invariance(device):
     np.testing.assert_allclose(obs[0], obs[1], atol=1e-6)
 
 
-def mirror_pair(env):
+def mirror_pair(env, world_axis=0):
     s = env.sim.state
     b = s.body.numpy()
     b[1] = b[0]
     for name in ("pos", "vel"):
-        b[name][1, 0] *= -1
+        b[name][1, world_axis] *= -1
     b["omega"][1] *= (-1, 1, -1)
     rotation = np.array(wp.quat_to_matrix(wp.quat(*b["rot"][0]))).reshape(3, 3)
-    reflected = np.diag([-1, 1, 1]) @ rotation @ np.diag([1, -1, 1])
+    world_reflection = np.eye(3)
+    world_reflection[world_axis, world_axis] = -1
+    reflected = world_reflection @ rotation @ np.diag([1, -1, 1])
     b["rot"][1] = wp.quat_from_matrix(wp.mat33(*reflected.flatten()))
     s.body.assign(b)
     e = s.engine.numpy()
