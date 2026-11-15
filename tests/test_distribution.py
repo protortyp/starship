@@ -8,7 +8,15 @@ from rsl_rl.storage import RolloutStorage
 from tensordict import TensorDict
 from torch.distributions import Bernoulli, Normal, kl_divergence
 
-from starship.train.actions import ACTION_DIM, CONTINUOUS_HEADS, ENGINE_HEADS, HEAD_NAMES
+from starship.train.actions import (
+    ACTION_DIM,
+    ARM_HEAD,
+    BINARY_HEADS,
+    CONTINUOUS_HEADS,
+    ENGINE_HEADS,
+    HEAD_NAMES,
+    LEGACY_ACTION_DIM,
+)
 from starship.train.distribution import HybridDistribution
 from starship.train.ppo import InstrumentedPPO
 
@@ -22,7 +30,7 @@ def make(seed=0, batch=(5,)):
 
 
 def reference(dist, out):
-    logits, mean = out[..., :ENGINE_HEADS], out[..., ENGINE_HEADS:]
+    logits, mean = dist._split(out)
     std = dist.log_std.exp().expand_as(mean)
     return Bernoulli(logits=logits), Normal(mean, std)
 
@@ -44,12 +52,12 @@ def test_shapes(batch):
     assert dist.entropy.shape == batch
     assert dist.log_prob(sample).shape == batch
     logits, mean, std = dist.params
-    assert logits.shape == (*batch, ENGINE_HEADS)
+    assert logits.shape == (*batch, BINARY_HEADS)
     assert mean.shape == std.shape == (*batch, CONTINUOUS_HEADS)
-    assert torch.equal(mean, out[..., ENGINE_HEADS:])
-    assert torch.equal(dist.mean[..., :ENGINE_HEADS], torch.sigmoid(logits))
-    assert torch.equal(dist.mean[..., ENGINE_HEADS:], mean)
-    assert torch.equal(dist.std[..., ENGINE_HEADS:], std)
+    assert torch.equal(mean, out[..., ENGINE_HEADS:LEGACY_ACTION_DIM])
+    assert torch.allclose(dist.mean[..., :ENGINE_HEADS], torch.sigmoid(logits[..., :ENGINE_HEADS]))
+    assert torch.equal(dist.mean[..., ENGINE_HEADS:LEGACY_ACTION_DIM], mean)
+    assert torch.equal(dist.std[..., ENGINE_HEADS:LEGACY_ACTION_DIM], std)
 
 
 def test_initial_std_and_clamp():
@@ -68,22 +76,21 @@ def test_log_prob_matches_torch_reference():
     dist, out = make()
     bern, normal = reference(dist, out)
     actions = dist.sample()
-    expected = bern.log_prob(actions[..., :ENGINE_HEADS]).sum(-1) + normal.log_prob(
-        actions[..., ENGINE_HEADS:]
-    ).sum(-1)
+    binary, continuous = dist._split(actions)
+    expected = bern.log_prob(binary).sum(-1) + normal.log_prob(continuous).sum(-1)
     assert torch.allclose(dist.log_prob(actions), expected, atol=1e-6)
 
 
 def test_entropy_matches_torch_reference():
     dist, out = make()
     bern, normal = reference(dist, out)
-    per_head = torch.cat([bern.entropy(), normal.entropy()], dim=-1)
+    per_head = dist._pack(bern.entropy(), normal.entropy())
     assert torch.allclose(dist.entropy_per_head, per_head, atol=1e-6)
     assert torch.allclose(dist.entropy, per_head.sum(-1), atol=1e-6)
     dist.update(torch.zeros(1, ACTION_DIM))
     gauss = 0.5 * math.log(2 * math.pi * math.e * 0.25)
     assert dist.entropy.item() == pytest.approx(
-        ENGINE_HEADS * math.log(2) + CONTINUOUS_HEADS * gauss
+        BINARY_HEADS * math.log(2) + CONTINUOUS_HEADS * gauss
     )
 
 
@@ -113,8 +120,8 @@ def test_kl_zero_for_identical_params_and_positive_otherwise():
 def test_kl_is_finite_for_saturated_logits():
     dist, _ = make()
     mean, std = torch.zeros(1, CONTINUOUS_HEADS), torch.full((1, CONTINUOUS_HEADS), 0.5)
-    old = (torch.tensor([[40.0, -40.0, 0.0]]), mean, std)
-    new = (torch.tensor([[-40.0, 40.0, 0.5]]), mean, std)
+    old = (torch.tensor([[40.0, -40.0, 0.0, 0.0]]), mean, std)
+    new = (torch.tensor([[-40.0, 40.0, 0.5, 0.0]]), mean, std)
     kl = dist.kl_divergence(old, new)
     assert torch.isfinite(kl).all()
     assert kl.item() == pytest.approx(40.0 + 40.0 + 0.0310, rel=1e-3)
@@ -122,7 +129,8 @@ def test_kl_is_finite_for_saturated_logits():
 
 def test_deterministic_output_and_export_module():
     dist, out = make()
-    expected = torch.cat([(out[..., :ENGINE_HEADS] > 0).float(), out[..., ENGINE_HEADS:]], -1)
+    logits, means = dist._split(out)
+    expected = dist._pack((logits > 0).float(), means)
     assert torch.equal(dist.deterministic_output(out), expected)
     module = dist.as_deterministic_output_module()
     assert torch.equal(module(out), expected)
@@ -168,7 +176,7 @@ def test_ppo_smoke_update_on_random_data():
         assert math.isfinite(metrics[key]), key
     for i, head in enumerate(HEAD_NAMES):
         assert math.isfinite(metrics[f"explore/entropy_head/{head}"])
-        if i < ENGINE_HEADS:
+        if i < ENGINE_HEADS or i == ARM_HEAD:
             assert 0.0 < metrics[f"explore/on_prob/{head}"] < 1.0
         else:
             assert metrics[f"explore/std/{head}"] == pytest.approx(0.5, abs=0.05)

@@ -6,6 +6,7 @@ import pytest
 from starship.sim import CRASHED, FLYING, LANDED, SimConfig, Simulator
 from starship.sim.mass import make_mass_params, sample
 from starship.sim.rigid import orientation
+from starship.train.actions import ACTION_DIM
 from starship.train.curriculum import Curriculum
 from starship.train.env import RocketEnv
 from tests.test_train import compose_cfg
@@ -78,7 +79,7 @@ def test_catch_observations_expose_heading_and_target():
     np.testing.assert_allclose(np.linalg.norm(obs[:, 28:31], axis=1), 1, atol=1e-6)
     ground = RocketEnv(2, device="cpu").observe().numpy()
     np.testing.assert_array_equal(ground[:, 28:], 0)
-    result = env.step(np.zeros((2, 11), dtype=np.float32))
+    result = env.step(np.zeros((2, ACTION_DIM), dtype=np.float32))
     assert np.isfinite(result.reward.numpy()).all()
 
 
@@ -119,7 +120,7 @@ def test_capture_reward_and_final_observation_survive_autoreset():
     env = RocketEnv(1, cfg, device="cpu")
     fixture = at_plane(cfg)
     env.sim.state.body.assign(fixture.state.body.numpy())
-    result = env.step(np.zeros((1, 11), dtype=np.float32))
+    result = env.step(np.zeros((1, ACTION_DIM), dtype=np.float32))
     assert env.final_status.numpy()[0] == LANDED
     assert result.terminal_reward.numpy()[0] == pytest.approx(150)
     assert result.terminated.numpy()[0] == 1

@@ -61,6 +61,7 @@ class EpisodeTracker:
         self._terminal = torch.zeros(n, device=device)
         self._terms = torch.zeros(n, len(REWARD_TERMS), device=device)
         self._engine_steps = torch.zeros(n, len(ENGINE_NAMES), device=device)
+        self._arm_steps = torch.zeros(n, device=device)
         self._action_sum = torch.zeros(n, len(CONTINUOUS), device=device)
         self._saturated = torch.zeros(n, len(CONTINUOUS), device=device)
         self._finished: list[dict[str, torch.Tensor]] = []
@@ -73,6 +74,7 @@ class EpisodeTracker:
         self._terminal += env.terminal_reward
         self._terms += env.reward_terms
         self._engine_steps += env.engine_on
+        self._arm_steps += env.arm_close
         a = env.squashed_actions
         self._action_sum += a
         near_end = (a < self._lows + self._margin) | (a > self._highs - self._margin)
@@ -102,6 +104,7 @@ class EpisodeTracker:
                         else pos[:, :2].norm(dim=-1)
                     ),
                     "fuel_t": env.final_tanks[keep].sum(dim=-1) / 1000.0,
+                    "arm_close_duty": self._arm_steps[keep] / steps,
                     "engine_duty": self._engine_steps[keep] / steps[:, None],
                     "action_mean": self._action_sum[keep] / steps[:, None],
                     "saturated": self._saturated[keep] / steps[:, None],
@@ -127,6 +130,7 @@ class EpisodeTracker:
                 self._terminal,
                 self._terms,
                 self._engine_steps,
+                self._arm_steps,
                 self._action_sum,
                 self._saturated,
             ):
@@ -156,6 +160,8 @@ class EpisodeTracker:
         out["reward/terminal"] = ep["terminal"].mean().item()
         for name, code in OUTCOMES.items():
             out[f"rate/{name}"] = (ep["status"] == code).float().mean().item()
+        if self.env.cfg.catch.policy_controlled:
+            out["actuators/arm_close_duty"] = ep["arm_close_duty"].mean().item()
         if self.env.cfg.catch.enabled:
             out["rate/caught"] = out["rate/landed"]
             out["catch/pin_error_m"] = ep["miss"].mean().item()

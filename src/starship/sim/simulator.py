@@ -36,7 +36,11 @@ def make_params(config: SimConfig, device) -> Params:
         if not math.isfinite(value):
             raise ValueError(f"catch {name} must be finite")
         setattr(
-            p_c, name, int(value) if name in ("enabled", "moving", "flap_collisions") else value
+            p_c,
+            name,
+            int(value)
+            if name in ("enabled", "moving", "policy_controlled", "flap_collisions")
+            else value,
         )
     if c.enabled and not (
         0 < c.station < config.vehicle.hull.length
@@ -60,6 +64,8 @@ def make_params(config: SimConfig, device) -> Params:
         or (c.moving and not c.flap_collisions)
     ):
         raise ValueError("moving catch requires valid motion limits and flap collisions")
+    if c.policy_controlled and not (c.enabled and c.moving and c.flap_collisions):
+        raise ValueError("policy arm control requires moving catch and flap collisions")
     v = config.vehicle
     p = Params()
     p.catcher = p_c

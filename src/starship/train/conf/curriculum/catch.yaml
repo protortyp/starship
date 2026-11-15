@@ -8,6 +8,7 @@ stages:
     overrides:
       - sim.catch.enabled=true
       - sim.catch.moving=true
+      - sim.catch.policy_controlled=true
       - sim.catch.flap_collisions=true
       - sim.spawn.altitude=105
       - sim.spawn.altitude_noise=5

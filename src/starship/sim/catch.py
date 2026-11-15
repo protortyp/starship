@@ -14,6 +14,7 @@ from starship.sim.rigid import Body
 class CatchParams:
     enabled: int
     moving: int
+    policy_controlled: int
     flap_collisions: int
     open_angle: float
     angular_speed: float
@@ -142,6 +143,16 @@ def boxes_overlap(
             ):
                 return False
     return True
+
+
+@wp.func
+def commanded_arm_step(c: CatchParams, angle: float, close: float, dt: float) -> float:
+    """Policy command only: no automatic clearance gate or override. Collisions remain active."""
+    target = c.open_angle
+    if close > 0.5:
+        target = 0.0
+    change = wp.clamp(target - angle, -c.angular_speed * dt, c.angular_speed * dt)
+    return wp.clamp(angle + change, 0.0, c.open_angle)
 
 
 @wp.func

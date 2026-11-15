@@ -1,5 +1,5 @@
 """Policy head for rsl_rl's pluggable output distributions: independent Bernoulli engine switches
-followed by a diagonal Gaussian over the continuous actuator commands."""
+and arm-close switches, plus a diagonal Gaussian over the continuous actuator commands."""
 
 import math
 from typing import NamedTuple
@@ -10,7 +10,13 @@ from torch import nn
 from torch.distributions import Bernoulli, Normal
 from torch.nn import functional as F
 
-from starship.train.actions import ACTION_DIM, CONTINUOUS_HEADS, ENGINE_HEADS
+from starship.train.actions import (
+    ACTION_DIM,
+    ARM_HEAD,
+    CONTINUOUS_HEADS,
+    ENGINE_HEADS,
+    LEGACY_ACTION_DIM,
+)
 
 
 class _Heads(NamedTuple):
@@ -19,9 +25,9 @@ class _Heads(NamedTuple):
 
 
 class HybridDistribution(Distribution):
-    """The MLP outputs ENGINE_HEADS logits followed by CONTINUOUS_HEADS Gaussian means; the
+    """The MLP outputs engine logits, continuous means, then an arm-close logit; the
     Gaussian std is a learnable, state-independent parameter per continuous head. Actions are
-    (..., ACTION_DIM): 0/1 engine flags, then unbounded pre-tanh samples (see actions.py)."""
+    (..., ACTION_DIM): engine flags, pre-tanh samples, then a 0/1 arm-close flag."""
 
     def __init__(
         self,
@@ -45,7 +51,14 @@ class HybridDistribution(Distribution):
 
     @staticmethod
     def _split(x: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
-        return x[..., :ENGINE_HEADS], x[..., ENGINE_HEADS:]
+        binary = x[..., :ENGINE_HEADS]
+        if x.shape[-1] == ACTION_DIM:
+            binary = torch.cat([binary, x[..., ARM_HEAD:]], dim=-1)
+        return binary, x[..., ENGINE_HEADS:LEGACY_ACTION_DIM]
+
+    @staticmethod
+    def _pack(binary: torch.Tensor, continuous: torch.Tensor) -> torch.Tensor:
+        return torch.cat([binary[..., :ENGINE_HEADS], continuous, binary[..., ENGINE_HEADS:]], -1)
 
     def update(self, mlp_output: torch.Tensor) -> None:
         logits, mean = self._split(mlp_output)
@@ -54,11 +67,11 @@ class HybridDistribution(Distribution):
 
     def sample(self) -> torch.Tensor:
         engine, continuous = self._distribution
-        return torch.cat([engine.sample(), continuous.sample()], dim=-1)
+        return self._pack(engine.sample(), continuous.sample())
 
     def deterministic_output(self, mlp_output: torch.Tensor) -> torch.Tensor:
         logits, mean = self._split(mlp_output)
-        return torch.cat([(logits > 0.0).to(mean.dtype), mean], dim=-1)
+        return self._pack((logits > 0.0).to(mean.dtype), mean)
 
     def as_deterministic_output_module(self) -> nn.Module:
         return _DeterministicOutput(ENGINE_HEADS)
@@ -71,13 +84,13 @@ class HybridDistribution(Distribution):
     def mean(self) -> torch.Tensor:
         """Engine on-probabilities followed by the Gaussian means, shape (..., ACTION_DIM)."""
         engine, continuous = self._distribution
-        return torch.cat([engine.probs, continuous.mean], dim=-1)
+        return self._pack(engine.probs, continuous.mean)
 
     @property
     def std(self) -> torch.Tensor:
         engine, continuous = self._distribution
         p = engine.probs
-        return torch.cat([torch.sqrt(p * (1.0 - p)), continuous.stddev], dim=-1)
+        return self._pack(torch.sqrt(p * (1.0 - p)), continuous.stddev)
 
     @property
     def entropy(self) -> torch.Tensor:
@@ -87,7 +100,7 @@ class HybridDistribution(Distribution):
     def entropy_per_head(self) -> torch.Tensor:
         """Entropy of each head's decision, shape (..., ACTION_DIM)."""
         engine, continuous = self._distribution
-        return torch.cat([engine.entropy(), continuous.entropy()], dim=-1)
+        return self._pack(engine.entropy(), continuous.entropy())
 
     @property
     def params(self) -> tuple[torch.Tensor, ...]:
@@ -126,6 +139,5 @@ class _DeterministicOutput(nn.Module):
         self.engine_heads = engine_heads
 
     def forward(self, mlp_output: torch.Tensor) -> torch.Tensor:
-        logits = mlp_output[..., : self.engine_heads]
-        mean = mlp_output[..., self.engine_heads :]
-        return torch.cat([(logits > 0.0).to(mean.dtype), mean], dim=-1)
+        logits, mean = HybridDistribution._split(mlp_output)
+        return HybridDistribution._pack((logits > 0.0).to(mean.dtype), mean)

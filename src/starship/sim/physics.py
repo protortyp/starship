@@ -14,6 +14,7 @@ from starship.sim.aero import AeroParams, aero_wrench
 from starship.sim.atmosphere import atmosphere
 from starship.sim.catch import (
     CatchParams,
+    commanded_arm_step,
     pin,
     pin_error,
     pin_height,
@@ -153,6 +154,7 @@ class Params:
 
 @wp.struct
 class Commands:
+    arm_close: wp.array(dtype=float)  # binary: 0 opens, 1 closes, held for the control step
     engine_on: wp.array(dtype=wp.vec3)
     throttle: wp.array(dtype=wp.vec3)
     gimbal2: wp.array(dtype=wp.vec3)
@@ -341,7 +343,10 @@ def advance(p: Params, s: State, c: Commands, tid: int):
         previous_flaps = f.angle
         old_arm_angle = arm_angle
         if p.catcher.enabled != 0:
-            arm_angle = tower_step(p.catcher, p.aero, b, mp.com, f.angle, arm_angle, p.dt)
+            if p.catcher.policy_controlled != 0:
+                arm_angle = commanded_arm_step(p.catcher, arm_angle, c.arm_close[tid], p.dt)
+            else:
+                arm_angle = tower_step(p.catcher, p.aero, b, mp.com, f.angle, arm_angle, p.dt)
         f = flap_step(p.propulsion, f, c.flaps[tid])
         v_air_world = b.vel
         if p.wind.active != 0:

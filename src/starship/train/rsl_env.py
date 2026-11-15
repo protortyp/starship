@@ -47,6 +47,7 @@ class RslRocketEnv(VecEnv):
         self.final_wind_speed, self.final_turbulence = wind[:, 0], wind[:, 1]
         # Physical engine order; final_mirrored identifies the policy frame of ended episodes.
         self.engine_on = wp.to_torch(env.sim.commands.engine_on)
+        self.arm_close = wp.to_torch(env.sim.commands.arm_close)
         self._obs = wp.to_torch(env.obs)
         self._terminated = wp.to_torch(env.terminated)
         self._truncated = wp.to_torch(env.truncated)

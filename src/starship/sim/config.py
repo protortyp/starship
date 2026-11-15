@@ -238,6 +238,7 @@ class CatchConfig:
     enabled: bool = False
     # False retains the original fixed-arm baseline when loading old run configs.
     moving: bool = False
+    policy_controlled: bool = False  # otherwise retain the automatic-tower baseline
     flap_collisions: bool = False
     open_angle: float = math.radians(30.0)
     angular_speed: float = math.radians(15.0)  # finite-rate, symmetric tower controller
