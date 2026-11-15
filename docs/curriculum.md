@@ -369,3 +369,26 @@ there is -41.36 return units. The easy bins have negative EV despite small absol
 because their return variance is very low, so the report includes RMSE, bias and target
 standard deviation alongside EV. No observation-scale warnings appeared in this audit.
 Training continues; neither this gate promotion nor the aggregate score establishes a full flip.
+
+The matched stochastic checkpoint-269/359 comparison uses seed 819265 and verifies identical
+initial observations: catches improve from 404/512 to 437/512 (42 gained, 9 lost), a 6.45 pp
+gain with paired-bootstrap 95% interval 3.91–9.18 pp. Initial-state critic EV improves from
+0.344 to 0.404. The run subsequently passes the 0–0.3 rad gate and reaches stage 11 (350 m).
+
+Stage-11 checkpoint 449 catches 373/512 fresh deterministic starts (seed 819266). Above
+0.2 rad it catches only 61/176; normalized tower-heading, attitude and lateral-target p99
+magnitudes reach 13–23. A 16-seed arm intervention probe yields the same 9 catches, 5 tumbles
+and 2 hull/tower contacts under policy versus automatic closure. This points to flight control
+rather than early closure in these sampled failures.
+
+A normalization experiment preserves the function while changing input coordinates: fit means
+and variances on the checkpoint's 130,502 valid audited transitions, then compensate the LSTM
+input weight and bias for `(x - mean) / (std + eps)`. The maximum recorded-sequence output
+change is 1.46e-5 for the actor and 2.98e-4 for the critic; all 512 matched rollout terminal
+statuses remain identical, while the largest normalized p99 falls below 5. This establishes
+behavior preservation, not improved learning. Both 200-update arms reset Adam history, resume
+checkpoint 449 with seed 819267, and keep normalizers frozen. Runs are
+`catch_normalizer_control_local/2026-11-15_19-44-49` and
+`catch_normalizer_rescaled_local/2026-11-15_19-44-49`; checkpoint handoffs and intervention
+provenance are in the corresponding `catch_normalizer_{control,rescaled}_handoff` directories.
+The main run continues independently; the normalization change is experimental, not adopted.
