@@ -384,16 +384,22 @@ def advance(p: Params, s: State, c: Commands, tid: int):
             wp.length(w.force) / (mp.mass * G0),
             wp.length(thrust.force) > 0.0,
         )
+        previous_tanks = tanks
         tanks = draw_propellant(p.propulsion, tanks, mdot * supply, p.dt)
         t += p.dt
         if p.catcher.enabled != 0:
             # Interpolate to the first pin-plane crossing: no high-speed tunnelling through it.
             h0 = pin_height(p.catcher, previous_body, mp.com)
-            h1 = pin_height(p.catcher, b, mp.com)
+            # Fuel burn moves the COM-relative pin even within a physics step.
+            # Using the old COM twice can miss a crossing between the two tests.
+            end_com = mass_properties(p.mass, tanks).com
+            h1 = pin_height(p.catcher, b, end_com)
             if h0 > p.catcher.height and h1 <= p.catcher.height:
                 alpha = (h0 - p.catcher.height) / (h0 - h1)
                 b.pos = wp.lerp(previous_body.pos, b.pos, alpha)
                 b.rot = wp.quat_slerp(previous_body.rot, b.rot, alpha)
+                tanks = wp.lerp(previous_tanks, tanks, alpha)
+                mp = mass_properties(p.mass, tanks)
                 arm_angle = wp.lerp(old_arm_angle, arm_angle, alpha)
                 f.angle = wp.lerp(previous_flaps, f.angle, alpha)
                 status = CRASHED
