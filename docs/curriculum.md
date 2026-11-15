@@ -691,3 +691,52 @@ continuation run's `initial-control-search*`, `initial-control-validation`, and
 `expanded-control-validation` directories. A separate student-distillation experiment
 uses the eight-second intervention as labels with passed-500 m replay and stochastic
 student rollouts; fresh policy-only validation is required before any PPO handoff.
+
+The eight-second correction transfers to a standalone recurrent policy in
+`catch_700_control_distill_local/2026-11-15_22-19-07`. Training uses frozen input statistics,
+500 m passed-policy replay, and stochastic student/teacher rollouts, with another data
+collection round after 1,000 supervised updates. Internal selection chooses update 1900;
+PPO iteration 3599 is retained separately. Fresh matched 1,024-start tests compare it with
+its unmodified source model 3599, asserting identical initial observations:
+
+| Task | Actions | Source catches | Student catches | Gained / lost | Seed |
+|---|---|---:|---:|---:|---:|
+| 700 m | deterministic | 321 | 480 | 183 / 24 | 819611 |
+| 700 m | stochastic | 298 | 427 | 176 / 47 | 819612 |
+| 500 m, tilt 0–0.8 rad | deterministic | 874 | 919 | 67 / 22 | 819611 |
+| 500 m, tilt 0–0.8 rad | stochastic | 830 | 910 | 119 / 39 | 819612 |
+
+Critic-only calibration preserves every actor tensor and its input statistics. Another
+512 stochastic starts (seed 819614) give identical trajectories and 223 catches before
+and after calibration. All-state value RMSE improves from 102.18 to 92.27, explained
+variance from 0.590 to 0.665; initial-state RMSE improves from 101.03 to 99.41, with bias
+-10.35 to +1.21. The calibrated checkpoint starts a 2,000-update PPO continuation in
+`catch_700_student_ppo_local/2026-11-15_22-24-15`, seed 819620. Its first numbered checkpoint
+retains both frozen normalizers exactly. PR 67's fixed-seed Rerun GIFs now follow this
+run, with no success filtering. The direct-700 m and altitude-bridge comparisons continue.
+
+A 32-start deterministic arm probe of student policy 3609 finds 13 catches, seven tumbles,
+five capture-constraint failures, four aft-fin/arm strikes and three tower contacts.
+Automatic arm control catches only 12. All four policy aft-fin/arm strikes occur while
+rising at about 1.4–5.8 m/s into fully closed arms, after the first close command had
+positive fin clearance. These are rebound failures, not evidence that every fin strike
+comes from closing before the initial downward fin passage. CSV geometry and actuator
+traces are in `catch-probe/policy_3609`.
+
+A matched 512-start final-descent intervention (seed 819630) switches to the reference
+controller only after tilt <0.1 rad, angular rate <0.3 rad/s, |vertical speed| <5 m/s and
+pin height in (12,50), (12,100), or (2,50) m. Catches increase from 237 to 251, 251 and
+252 respectively; the last setting gains 24 and loses nine, with 216 remaining failures
+never reaching its handover condition. This modest counterfactual gain does not solve
+the larger early-turn failure population and is not installed as a runtime override.
+Scripts and comparisons are archived under the student PPO run's `late-handover-probe`.
+
+After 50 more PPO updates, student model 3649 catches 285/512 fresh stochastic starts
+(seed 819621). A separate same-task comparison uses 1,024 identical 700 m initial states
+and common stochastic action seeds (spawn 819640, actions 819641): student policy 3649
+catches 575, continued direct-training policy 3979 catches 368, and bridge policy 3759
+(currently trained at 650 m) catches 316. Different training histories and budgets mean
+this is a checkpoint comparison, not a causal sample-efficiency claim. The weaker direct
+continuation is retired with its checkpoints preserved; student PPO and altitude-bridge
+PPO remain active. Executed scripts, policy hashes and trajectories are archived in the
+student run's `matched-policy-comparison` directory.
