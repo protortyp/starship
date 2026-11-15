@@ -164,3 +164,12 @@ not a spurious success score.
 original catch stage 1: 115 m/-8 m/s, 130 m/-12 m/s, 160 m/-18 m/s, and 200 m/-25 m/s. Original
 later catch stages are preserved. This uses the validated warm-start, frozen normalization and
 narrow exploration; it does not reset the original catch curriculum or claim later stages solved.
+
+`uv run python -m starship.train.critic_calibrate RUN/model_N.pt --audit RUN/learning-audit/model_N
+--output NEW_DIRECTORY` tests whether the critic can fit those complete returns while preserving
+the actor and both observation normalizers. It checks the audit's checkpoint SHA-256, splits whole
+episodes into training and validation sets, corrects the mean bias using only training episodes,
+and selects by validation RMSE. It clears stale critic optimizer moments while retaining actor
+moments and the original PPO iteration. The saved `model_calibrated.pt` is a supervised critic
+experiment, not additional PPO progress. Run a fresh-seed learning audit before continuation;
+validation-split performance can overstate generalization. This tool does not invoke the teacher.
