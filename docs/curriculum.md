@@ -830,3 +830,34 @@ Full simulator and reward dataclass equality is verified for both the restored 1
 stage and final re-entry target. The first resumed checkpoint preserves frozen actor and
 critic normalizers exactly. Direct 1.1 rad training continues as the comparison; success on
 the easier bridge stage must not be reported as success on the common harder task.
+
+### Wider-tilt learning and exploration checks
+
+On identical 512 starts and stochastic draws (spawn 819780, actions 819781), main-run
+models 4789 and 5189 catch 333 and 339: 19 gains and 13 losses over 400 PPO updates.
+This small net gain is not convincing evidence of broad improvement. Above 0.8 rad,
+catches change from 0/135 to 1/135; all 99 starts above 0.9 rad tumble in both checkpoints.
+Initial critic RMSE improves from 67.97 to 58.46 and explained variance from 0.717 to
+0.786, while the critic remains weak within the difficult tilt band. Exact recurrent
+replay matches saved actor and critic outputs. Actor cell-candidate saturation at spawn
+is effectively unchanged (55.07% to 55.08%); saturation alone does not identify a cause.
+The paired outcomes, finer tilt bins, recurrent reports and health snapshot are archived
+under the main run's `matched-wide-tilt-progress`.
+
+A torque decomposition on policy 4779's 128-start exploration set (seed 819741) shows
+that engines continue accelerating the turn while aerodynamic torque opposes it. For
+the 30 hard starts, median pitch rate reaches 0.55 rad/s at 3.5 seconds while engine
+angular acceleration is still +0.32 rad/s². Instantaneous opposite-gimbal authority
+could brake, but that bound ignores actuator lag. Some survivors subsequently reverse
+too aggressively. Analytical pitch PD and governor-to-approach handovers do not solve
+the catch; no controller is adopted. Evidence is in `turn-torque-probe`, `pitch-pd-probe`
+and `governor-handover-probe`.
+
+An inference-only exploration probe of policy 5189 uses 512 matched starts (spawn
+819790, actions 819791). Only starts above 0.8 rad receive larger independent throttle
+and pitch-gimbal deviations during the first six seconds. Baseline, 0.05, 0.1 and 0.2
+raw standard deviations catch respectively 5, 6, 5 and 5 of 148 hard starts; baseline
+standard deviation is about 0.02. Unmodified easier-start outcomes match exactly.
+This does not support simply increasing independent noise, nor establish whether
+training with different or temporally coherent exploration would help. Artifacts are
+in `early-noise-probe`; both existing PPO experiments continue unchanged.
