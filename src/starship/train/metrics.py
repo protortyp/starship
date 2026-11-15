@@ -43,6 +43,66 @@ def body_axis_z(rot: torch.Tensor) -> torch.Tensor:
     return 2.0 * (x * z - w * y)
 
 
+class RolloutCoverage:
+    """Count actual training transitions by spawn tilt and age, including unfinished episodes."""
+
+    BINS = ("0_to_0.7", "0.7_to_0.8", "0.8_to_0.9", "0.9_to_1.1", "1.1_to_pi")
+    PHASES = ("first_2s", "2_to_6s", "after_6s")
+
+    def __init__(self, observations: torch.Tensor, control_dt: float):
+        self.control_dt = control_dt
+        self.edges = observations.new_tensor([0.7, 0.8, 0.9, 1.1])
+        self.labels = self._labels(observations)
+        self.age = torch.zeros_like(self.labels)
+        self.ones = torch.ones_like(self.labels)
+        self.transitions = torch.zeros(15, dtype=torch.long, device=observations.device)
+        self.starts = torch.zeros(5, dtype=torch.long, device=observations.device)
+        self.completed = torch.zeros_like(self.starts)
+        self.caught = torch.zeros_like(self.starts)
+        self.starts.scatter_add_(0, self.labels, self.ones)
+
+    def _labels(self, observations):
+        tilt = torch.acos(observations[:, 0].clamp(-1, 1))
+        return torch.bucketize(tilt, self.edges, right=True)
+
+    def step(self, dones, next_observations, final_status):
+        # Labels belong to the pre-action episode, even on its terminal transition.
+        elapsed = self.age * self.control_dt
+        phase = (elapsed >= 2).long() + (elapsed >= 6).long()
+        self.transitions.scatter_add_(0, self.labels * 3 + phase, self.ones)
+        done = dones.bool()
+        self.completed.scatter_add_(0, self.labels, done.long())
+        self.caught.scatter_add_(0, self.labels, (done & (final_status == LANDED)).long())
+        # The next observation already contains autoresets. Only now assign new labels.
+        self.labels = torch.where(done, self._labels(next_observations), self.labels)
+        self.starts.scatter_add_(0, self.labels, done.long())
+        self.age = torch.where(done, 0, self.age + 1)
+
+    def summarize(self):
+        counts = self.transitions.reshape(5, 3).cpu().tolist()
+        total = sum(sum(row) for row in counts)
+        if not total:
+            return {}
+        starts, completed, caught = (
+            x.cpu().tolist() for x in (self.starts, self.completed, self.caught)
+        )
+        result = {"train/coverage/transitions": float(total)}
+        for i, name in enumerate(self.BINS):
+            prefix = f"train/coverage/tilt_{name}"
+            result[f"{prefix}/transitions"] = float(sum(counts[i]))
+            result[f"{prefix}/transition_share"] = sum(counts[i]) / total
+            result[f"{prefix}/starts"] = float(starts[i])
+            result[f"{prefix}/completed"] = float(completed[i])
+            result[f"{prefix}/caught"] = float(caught[i])
+            if completed[i]:
+                result[f"{prefix}/catch_rate"] = caught[i] / completed[i]
+            for j, phase in enumerate(self.PHASES):
+                result[f"{prefix}/{phase}/transitions"] = float(counts[i][j])
+        for counter in (self.transitions, self.starts, self.completed, self.caught):
+            counter.zero_()
+        return result
+
+
 class EpisodeTracker:
     """Tracks running sums per env and collects stats of every episode that finishes."""
 

@@ -13,7 +13,7 @@ from torch.utils.tensorboard import SummaryWriter
 
 from starship.train.checkpoint import migrate_checkpoint
 from starship.train.curriculum import Curriculum
-from starship.train.metrics import EpisodeTracker
+from starship.train.metrics import EpisodeTracker, RolloutCoverage
 from starship.train.rsl_env import RslRocketEnv
 
 
@@ -69,6 +69,7 @@ class StarshipRunner(OnPolicyRunner):
         self.eval_env = eval_env
         self.eval_interval = eval_interval
         self.tracker = EpisodeTracker(env)
+        self.coverage = RolloutCoverage(env.get_observations()["policy"], self.tracker.policy_dt)
         self.total_env_steps = 0
         self.next_iteration = 0
         # Best eval so far as (stage, landed rate, return); runs can collapse late, so keep the
@@ -107,6 +108,9 @@ class StarshipRunner(OnPolicyRunner):
         episodes = self.tracker.total_episodes
         self.tracker = EpisodeTracker(self.env)
         self.tracker.total_episodes = episodes
+        self.coverage = RolloutCoverage(
+            self.env.get_observations()["policy"], self.tracker.policy_dt
+        )
 
     def _apply_stage(self) -> None:
         """Configure training and eval envs for the current curriculum stage."""
@@ -163,6 +167,7 @@ class StarshipRunner(OnPolicyRunner):
                     obs, rewards, dones, extras = env.step(actions)
                     alg.process_env_step(obs, rewards, dones, extras)
                     self.tracker.step(dones)
+                    self.coverage.step(dones, obs["policy"], env.final_status)
                     dones_in_batch += int(dones.sum())
                     reward_sum += float(rewards.mean())
                 self._sync()
@@ -179,6 +184,7 @@ class StarshipRunner(OnPolicyRunner):
             self.current_learning_iteration = it
             self.next_iteration = it + 1
             metrics.update(self.tracker.summarize("train/env"))
+            metrics.update(self.coverage.summarize())
             metrics["train/iteration"] = float(it)
             metrics["train/env_steps"] = float(self.total_env_steps)
             metrics["train/episodes"] = float(self.tracker.total_episodes)
