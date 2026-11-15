@@ -137,3 +137,10 @@ These supervised updates are not reported as PPO iterations or PPO environment s
 normal training with `checkpoint=/absolute/path/to/model_-1.pt`; PPO starts at iteration zero.
 Teacher catch rate and standalone-policy catch rate are separate metrics; only the latter can
 support a claim that the learned policy catches.
+
+For a validated demonstration warm-start, `--config-name catch_demo_local` preserves the actor
+and critic observation statistics (`runner.algorithm.freeze_observation_normalization=true`)
+and permits continuous exploration std down to 0.005. The checkpoint's saved log-std still wins;
+set it deliberately when preparing the initialization checkpoint. Ordinary PPO presets continue
+updating normalization. Changing observation scales after cloning can invalidate the learned
+controller even when all network weights are held fixed.

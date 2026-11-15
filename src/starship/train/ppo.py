@@ -53,6 +53,7 @@ class InstrumentedPPO(PPO):
         *args,
         value_normalization: bool = False,
         initial_value: float | None = None,
+        freeze_observation_normalization: bool = False,
         diagnostics_interval: int = 0,
         max_kl: float | None = None,
         **kwargs,
@@ -67,6 +68,7 @@ class InstrumentedPPO(PPO):
             output = [m for m in self.critic.mlp.modules() if isinstance(m, nn.Linear)][-1]
             with torch.no_grad():
                 output.bias.fill_(initial_value)
+        self.freeze_observation_normalization = freeze_observation_normalization
         self.max_kl = max_kl
         # Every `diagnostics_interval` updates, log network health under plasticity/* (0 = off).
         self.diagnostics_interval = diagnostics_interval
@@ -323,7 +325,8 @@ class InstrumentedPPO(PPO):
             metrics["value/advantage_std"] = st.advantages.std().item()
 
         obs = st.observations.flatten(0, 1)
-        self.actor.update_normalization(obs)
-        self.critic.update_normalization(obs)
+        if not self.freeze_observation_normalization:
+            self.actor.update_normalization(obs)
+            self.critic.update_normalization(obs)
         st.clear()
         return metrics
