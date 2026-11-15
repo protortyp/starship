@@ -22,7 +22,13 @@ from starship.sim.catch import (
     tower_step,
 )
 from starship.sim.config import G0, TANK_ORDER, SpawnConfig, VehicleConfig
-from starship.sim.flight_stats import FlightStats, track_flight, track_motion
+from starship.sim.flight_stats import (
+    FlightStats,
+    attitude_limit_causes,
+    track_attitude_limits,
+    track_flight,
+    track_motion,
+)
 from starship.sim.hull import HullParams, lowest_point
 from starship.sim.mass import MassParams, mass_properties
 from starship.sim.propulsion import (
@@ -142,6 +148,7 @@ class Params:
     max_pitch: float  # from vertical; beyond it the vehicle counts as tumbling
     max_rate: float
     max_roll_rate: float
+    terminate_on_attitude_limits: int
     hull: HullParams
     landing: LandingParams
     catcher: CatchParams
@@ -272,9 +279,12 @@ def spawn(p: Params, s: State, tid: int):
     a = track_motion(FlightStats(), b, wp.vec3(0.0), 0.0)
     a.flip_altitude = -1.0
     a.ignition_altitude = -1.0
+    a.first_limit_time = -1.0
+    a.first_limit_altitude = -1.0
     if sp.lit_throttle > 0.0:
         a.ignition_altitude = b.pos[2]
     a.start_offset = wp.length(wp.vec2(b.pos[0], b.pos[1]))
+    a = track_attitude_limits(a, b, 0.0, p.max_pitch, p.max_rate, p.max_roll_rate)
     s.stats[tid] = a
 
     e = EngineState()
@@ -472,15 +482,16 @@ def advance(p: Params, s: State, c: Commands, tid: int):
         if b.pos[2] > p.max_altitude or horizontal > p.max_offset:
             status = OUT_OF_BOUNDS
             break
-        axis_z = wp.quat_rotate(b.rot, wp.vec3(1.0, 0.0, 0.0))[2]
-        transverse = wp.sqrt(b.omega[1] * b.omega[1] + b.omega[2] * b.omega[2])
+        a = track_attitude_limits(a, b, t, p.max_pitch, p.max_rate, p.max_roll_rate)
         if (
-            axis_z < wp.cos(p.max_pitch)
-            or transverse > p.max_rate
-            or wp.abs(b.omega[0]) > p.max_roll_rate
+            p.terminate_on_attitude_limits != 0
+            and attitude_limit_causes(b, p.max_pitch, p.max_rate, p.max_roll_rate) != 0
         ):
             status = TUMBLED
             break
+    # Include terminal pose after catch-plane interpolation. Time and angular velocity
+    # follow the existing full-substep convention (timing precision is one physics step).
+    a = track_attitude_limits(a, b, t, p.max_pitch, p.max_rate, p.max_roll_rate)
     if status == FLYING and s.steps[tid] + 1 >= p.max_steps:
         status = TIMEOUT
     s.catch_failure[tid] = catch_failure

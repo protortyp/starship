@@ -904,3 +904,23 @@ Fresh passed-stage holdouts catch 916/1,024 deterministic starts (seed 824036) a
 450/512 stochastic starts (seed 824037). Within 0.8–0.9 rad, catches are only 31/112
 and 14/53 respectively. The aggregate gate therefore does not establish mastery of
 the stage's hardest band. Preserve this distinction when comparing curricula.
+
+### Historical attitude-limit telemetry
+
+`sim.terminate_on_attitude_limits` defaults to true, preserving the existing training
+task. Setting it false permits recovery beyond the heuristic tilt/transverse/roll
+limits; actuator dynamics, collision checks, capture requirements, bounds and timeout
+are unchanged. This is a different experimental flight rule, not proof of success
+under the original limits. The first ablation must hold its stage, reward and optimizer
+settings fixed and compare actual catches under both rules.
+
+Every spawn and physics substep records historical violations independently of the
+termination switch. Exported statistics include cumulative and first-event cause bits
+(1 tilt, 2 transverse rate, 4 roll), first time/altitude, and peak body transverse rate.
+The metadata survives continued flight and terminal autoreset. Capture poses follow
+the simulator's existing interpolation, while time/angular velocity retain the
+full-substep convention; timing precision is one physics step, not an exact continuous
+crossing time. Live metrics distinguish catches with/without historical violations.
+`limits/violated_share` uses all completed episodes; individual cause shares use only
+violating episodes. Learning audits export the per-episode evidence and explicitly
+record whether heuristic termination was enabled.

@@ -263,3 +263,62 @@ def test_roll_has_its_own_limit(omega_deg, tumbles):
     sim.state.body.assign(body)
     sim.step()
     assert (sim.snapshot().status[0] == TUMBLED) == tumbles
+
+
+@pytest.mark.parametrize(("omega_deg", "cause"), [((0, 50, 0), 2), ((120, 0, 0), 4)])
+def test_optional_attitude_cutoff_preserves_dynamics_and_records_first_crossing(omega_deg, cause):
+    cfg = config(altitude=3000.0, pitch=0.0, vertical_speed=0.0)
+    cfg.substeps = 1
+    control = Simulator(1, cfg, device=DEVICE)
+    continued = Simulator(1, replace(cfg, terminate_on_attitude_limits=False), device=DEVICE)
+    for sim in (control, continued):
+        body = sim.state.body.numpy()
+        body["omega"][0] = tuple(np.radians(omega_deg))
+        sim.state.body.assign(body)
+        sim.step()
+    assert control.snapshot().status[0] == TUMBLED
+    assert continued.snapshot().status[0] == FLYING
+    for field in ("pos", "rot", "vel", "omega", "tanks", "spool", "flaps"):
+        np.testing.assert_array_equal(
+            getattr(control.snapshot(), field), getattr(continued.snapshot(), field)
+        )
+    for sim in (control, continued):
+        stats = sim.state.stats.numpy()[0]
+        assert stats["first_limit_causes"] == cause
+        assert stats["limit_causes"] == cause
+        assert stats["first_limit_time"] == pytest.approx(cfg.dt)
+        assert stats["first_limit_altitude"] > 2900
+    # A later safe sample must not erase the earlier violation or restart the episode.
+    body = continued.state.body.numpy()
+    body["omega"][0] = (0, 0, 0)
+    continued.state.body.assign(body)
+    continued.step()
+    assert continued.snapshot().time[0] == pytest.approx(2 * cfg.dt)
+    stats = continued.state.stats.numpy()[0]
+    assert stats["first_limit_time"] == pytest.approx(cfg.dt)
+    assert stats["limit_causes"] == cause
+    body = continued.state.body.numpy()
+    body["omega"][0] = tuple(np.radians((120, 0, 0) if cause == 2 else (0, 50, 0)))
+    continued.state.body.assign(body)
+    continued.step()
+    stats = continued.state.stats.numpy()[0]
+    assert stats["limit_causes"] == 6
+    assert stats["first_limit_causes"] == cause
+    assert stats["first_limit_time"] == pytest.approx(cfg.dt)
+    continued.reset()
+    stats = continued.state.stats.numpy()[0]
+    assert stats["limit_causes"] == 0
+    assert stats["first_limit_time"] == -1
+
+
+def test_disabling_attitude_cutoff_keeps_ground_collision():
+    cfg = config(altitude=100.0, pitch=np.pi, vertical_speed=-100.0)
+    cfg.terminate_on_attitude_limits = False
+    sim = Simulator(1, cfg, device=DEVICE)
+    assert sim.state.stats.numpy()[0]["first_limit_time"] == 0
+    for _ in range(100):
+        sim.step()
+        if sim.snapshot().status[0] != FLYING:
+            break
+    assert sim.snapshot().status[0] == CRASHED
+    assert sim.state.stats.numpy()[0]["limit_causes"] & 1

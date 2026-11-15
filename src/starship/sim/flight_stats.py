@@ -18,6 +18,11 @@ STATS_FIELDS = (
     "flip_altitude",
     "ignition_altitude",
     "start_offset",
+    "limit_causes",
+    "first_limit_causes",
+    "first_limit_time",
+    "first_limit_altitude",
+    "peak_transverse_rate",
 )
 
 
@@ -37,6 +42,42 @@ class FlightStats:
     flip_altitude: float  # m at the first flip to upright, -1 if none
     ignition_altitude: float  # m when thrust first appears, -1 if never
     start_offset: float  # m, horizontal distance to the pad at spawn
+    limit_causes: int  # cumulative bits: 1 tilt, 2 transverse rate, 4 roll rate
+    first_limit_causes: int
+    first_limit_time: float  # s; -1 if no historical attitude/rate limit crossed
+    first_limit_altitude: float  # m; -1 if none
+    peak_transverse_rate: float  # body pitch/yaw rate, rad/s
+
+
+@wp.func
+def attitude_limit_causes(b: Body, max_pitch: float, max_rate: float, max_roll: float) -> int:
+    axis_z = wp.quat_rotate(b.rot, wp.vec3(1.0, 0.0, 0.0))[2]
+    transverse = wp.sqrt(b.omega[1] * b.omega[1] + b.omega[2] * b.omega[2])
+    causes = 0
+    if axis_z < wp.cos(max_pitch):
+        causes = causes | 1
+    if transverse > max_rate:
+        causes = causes | 2
+    if wp.abs(b.omega[0]) > max_roll:
+        causes = causes | 4
+    return causes
+
+
+@wp.func
+def track_attitude_limits(
+    a: FlightStats, b: Body, time: float, max_pitch: float, max_rate: float, max_roll: float
+) -> FlightStats:
+    causes = attitude_limit_causes(b, max_pitch, max_rate, max_roll)
+    a.peak_transverse_rate = wp.max(
+        a.peak_transverse_rate, wp.sqrt(b.omega[1] * b.omega[1] + b.omega[2] * b.omega[2])
+    )
+    if causes != 0:
+        if a.first_limit_causes == 0:
+            a.first_limit_causes = causes
+            a.first_limit_time = time
+            a.first_limit_altitude = b.pos[2]
+        a.limit_causes = a.limit_causes | causes
+    return a
 
 
 @wp.func
@@ -96,4 +137,9 @@ def stats_vector(a: FlightStats) -> vec_stats:
         a.flip_altitude,
         a.ignition_altitude,
         a.start_offset,
+        float(a.limit_causes),
+        float(a.first_limit_causes),
+        a.first_limit_time,
+        a.first_limit_altitude,
+        a.peak_transverse_rate,
     )

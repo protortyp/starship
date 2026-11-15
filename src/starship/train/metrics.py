@@ -21,6 +21,7 @@ ATTITUDE_METRICS = {
     "horizontal_travel_deg": ("horizontal_travel", 180.0 / math.pi),
     "peak_roll_rate_dps": ("peak_roll_rate", 180.0 / math.pi),
     "peak_horizontal_rate_dps": ("peak_horizontal_rate", 180.0 / math.pi),
+    "peak_transverse_rate_dps": ("peak_transverse_rate", 180.0 / math.pi),
     "flips": ("flips", 1.0),
     "reflips": ("reflips", 1.0),
 }
@@ -179,6 +180,9 @@ class EpisodeTracker:
                     "altitude": pos[:, 2],
                     "roll_rate_dps": torch.rad2deg(env.final_omega[keep][:, 0].abs()),
                     "transverse_rate_dps": torch.rad2deg(env.final_omega[keep][:, 1:].norm(dim=-1)),
+                    "limit_causes": env.final_limit_causes[keep].long(),
+                    "first_limit_time": env.final_first_limit_time[keep],
+                    "first_limit_altitude": env.final_first_limit_altitude[keep],
                     "wind/surface_speed": env.final_wind_speed[keep],
                     "wind/turbulence": env.final_turbulence[keep],
                 }
@@ -231,6 +235,17 @@ class EpisodeTracker:
             out[f"actuators/{name}_mean"] = ep["action_mean"][:, i].mean().item()
             out[f"actuators/{name}_saturated"] = ep["saturated"][:, i].mean().item()
         landed, crashed = ep["status"] == LANDED, ep["status"] == CRASHED
+        violated = ep["limit_causes"] != 0
+        out["limits/violated_share"] = violated.float().mean().item()
+        out["limits/caught_after_violation"] = float((landed & violated).sum())
+        out["limits/caught_without_violation"] = float((landed & ~violated).sum())
+        if violated.any():
+            out["limits/first_time_s"] = ep["first_limit_time"][violated].mean().item()
+            out["limits/first_altitude_m"] = ep["first_limit_altitude"][violated].mean().item()
+            for name, bit in (("tilt", 1), ("transverse_rate", 2), ("roll_rate", 4)):
+                out[f"limits/{name}_share"] = (
+                    ((ep["limit_causes"][violated] & bit) != 0).float().mean().item()
+                )
         for key in ATTITUDE_METRICS:
             values = ep[f"attitude/{key}"]
             out[f"attitude/{key}"] = values.mean().item()

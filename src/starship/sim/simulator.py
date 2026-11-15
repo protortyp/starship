@@ -77,6 +77,7 @@ def make_params(config: SimConfig, device) -> Params:
     p.max_pitch = config.max_pitch
     p.max_rate = config.max_rate
     p.max_roll_rate = config.max_roll_rate
+    p.terminate_on_attitude_limits = int(config.terminate_on_attitude_limits)
     p.hull = make_hull_params(v.hull)
     for name in LandingParams.vars:
         setattr(p.landing, name, getattr(config.landing, name))

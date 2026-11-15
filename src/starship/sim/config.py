@@ -277,3 +277,4 @@ class SimConfig:
     max_pitch: float = math.radians(115.0)
     max_rate: float = math.radians(40.0)
     max_roll_rate: float = math.radians(90.0)
+    terminate_on_attitude_limits: bool = True  # heuristic training cutoff, not physical damage
