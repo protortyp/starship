@@ -632,3 +632,21 @@ trains for 2,000 updates with seed 819377 alongside the direct 700 m run; no phy
 collision rules or final objective are relaxed. Both have independent checkpoint and
 promotion holdouts. The PR-description publisher still follows the direct run pending
 evidence that the bridge improves the same 700 m task.
+
+Recurrent phase auditing: `uv run python -m starship.train.recurrent_audit <learning-audit dir>`
+replays the exact checkpoint from zero hidden state, verifies saved actor means and critic
+values, and reports spawn, initial-window, later-flight and terminal-window gate saturation.
+It masks autoreset frames and checks checkpoint SHA; `--window-steps` defaults to 20,
+`--batch` bounds replay memory, and `--checkpoint` supports an identical relocated checkpoint
+with its run config. Initial and terminal windows can overlap on short episodes. The
+`cell_saturated` metric is the tanh cell-candidate gate, not the stored cell state.
+
+The fixed-policy altitude sweep shows actor cell-candidate saturation at spawn rising
+from 34.5% at 500 m to 39.3% at 600 m and 43.7% at 700 m. After the first two seconds,
+the corresponding fractions are 3.6%, 11.7% and 34.9%; the final two seconds of 700 m
+flights reach 57.8%. Thus saturation is already altitude-dependent before flight diverges,
+but much of the aggregate increase accompanies later failure. Successful 500 m flights
+also start with substantial saturation, so this does not establish an encoding defect.
+Replay outputs match the recorded actor/critic outputs exactly for these three datasets,
+the trained 700 m model 2999 and the 550 m bridge model 2859. Full reports and the original
+multi-run research script are archived in the handover run's `lstm-phase-audit` directory.
