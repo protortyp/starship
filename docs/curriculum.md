@@ -107,3 +107,11 @@ collision geometry and policy arm control. Set catch crash/tumble/timeout/out-of
 penalty floors to 200; crash severity still adds cost. This removes the 20-vs-200 structural-exit
 discount while preserving success rewards. Evaluate arm decisions and flight outcomes before
 adding explicit geometry features. This experiment is not yet evidence of a solved stage.
+
+The reward-only run `catch_reward_local/2026-11-15_13-35-16` still collided early at checkpoint
+100 (8/8 probe seeds). At iteration 145 the critic feature rank was 1/128, with 69% cell and 77%
+output-gate saturation, while fitting a new roughly -200 failure baseline. Next isolate critic
+initialization: `catch_value_init_local` retains these rewards and observations but initializes
+only the critic's final bias to -200. The intent is to represent the constant failure baseline in
+the bias instead of driving recurrent features into saturation. Saved checkpoint values still
+override this initializer on resume. This is an optimization experiment, not a solved catch.
