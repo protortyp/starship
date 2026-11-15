@@ -322,3 +322,21 @@ def test_initial_value_rejects_invalid_or_normalized_baseline(tmp_path, value, n
     cfg.runner.algorithm.initial_value = value
     with pytest.raises(ValueError, match="initial_value must be finite"):
         make_runner(cfg, tmp_path)
+
+
+@pytest.mark.parametrize("frozen", [False, True])
+def test_optional_freeze_preserves_warmstart_observation_scales(tmp_path, frozen):
+    cfg = compose_cfg(
+        *SHORT_EPISODES,
+        "runner.algorithm.learning_rate=0",
+        f"+runner.algorithm.freeze_observation_normalization={str(frozen).lower()}",
+    )
+    runner = make_runner(cfg, tmp_path)
+    before = {
+        name: model.obs_normalizer.count.clone()
+        for name, model in [("actor", runner.alg.actor), ("critic", runner.alg.critic)]
+    }
+    runner.learn(1)
+    for name, model in [("actor", runner.alg.actor), ("critic", runner.alg.critic)]:
+        assert (model.obs_normalizer.count == before[name]).item() == frozen
+    runner.writer.close()

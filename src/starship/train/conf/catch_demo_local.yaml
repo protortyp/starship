@@ -1,0 +1,13 @@
+defaults:
+  - catch_contact_local
+  - _self_
+
+experiment: catch_demo_local
+# Pass checkpoint=/.../holdout/exploration-005/model_-1.pt from the validated warm-start.
+runner:
+  actor:
+    distribution_cfg:
+      std_range: [0.005, 2.0]
+  algorithm:
+    learning_rate: 1.0e-5
+    freeze_observation_normalization: true

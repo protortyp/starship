@@ -139,3 +139,9 @@ success. Initial behavior cloning (`catch_demo_pretrain/2026-11-15_14-14-20`, 25
 2,000 supervised updates) achieved 0% standalone catches: the best-return checkpoint cleared the
 fins but drifted into an arm with its hull on both probed seeds. Next test aggregates corrective
 labels on learner-visited states; the neural policy alone remains the evaluation target.
+
+PPO handoff diagnostic: with learning rate zero, two updates of observation normalization alone
+reduced the cloned policy's evaluation catch rate to 0%. Repeating with frozen actor/critic input
+statistics retained 100% deterministic evaluation and 98.8% stochastic training catches. The
+`catch_demo_local` preset freezes these statistics and permits std 0.005; ordinary training defaults
+are unchanged. The next continuation uses the validated network with these handoff settings.
