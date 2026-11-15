@@ -19,6 +19,7 @@ from starship.sim.catch import catch_center
 from starship.sim.mass import mass_properties
 from starship.sim.physics import Params, State
 from starship.sim.rigid import gravity
+from starship.train.actions import CONTINUOUS, ENGINE_HEADS, LEGACY_ACTION_DIM
 from starship.train.catch_pretrain import make_runner
 from starship.train.conf import load_run_config
 from starship.train.diagnose import load_scalars
@@ -100,6 +101,31 @@ def channel_metrics(raw, normalized):
     return rows
 
 
+def continuous_action_metrics(means, std):
+    """Measure saturation and transformed +/-sigma span, not actuator response noise."""
+    means = np.asarray(means, dtype=np.float64)
+    std = np.asarray(std, dtype=np.float64)
+    span = (np.tanh(means + std) - np.tanh(means - std)) / 2
+    rows = []
+    for i, (name, low, high) in enumerate(CONTINUOUS):
+        # Half the transformed +/-sigma interval as a fraction of the full actuator range.
+        half_width = span[:, i] / 2
+        rows.append(
+            {
+                "name": name,
+                "samples": len(means),
+                "pre_tanh_mean_abs_p99": float(np.quantile(np.abs(means[:, i]), 0.99)),
+                "pre_tanh_std": float(std[i]),
+                "saturated_mean_fraction": float(np.mean(np.abs(np.tanh(means[:, i])) > 0.99)),
+                "sigma_interval_half_width_range_fraction_median": float(np.median(half_width)),
+                "sigma_interval_half_width_actuator_units_median": float(
+                    np.median(half_width) * (high - low)
+                ),
+            }
+        )
+    return rows
+
+
 def initial_tilt_metrics(initial_obs, status, values, returns):
     """Fixed physical-angle bins expose failures hidden by aggregate success."""
     tilt = np.arccos(np.clip(initial_obs[:, 0], -1, 1))
@@ -159,6 +185,10 @@ def audit(checkpoint, episodes, seed, output, stage=None, stochastic=False):
     status = torch.zeros(episodes, dtype=torch.int)
     raw, normalized, values, rewards, masks, engines = [], [], [], [], [], []
     critic_normalized = []
+    action_means = []
+    action_std = (
+        actor.distribution.log_std.detach().clamp(*actor.distribution.log_std_range).exp().numpy()
+    )
     terminal = {
         name: np.zeros((episodes, *getattr(env, "final_" + name).shape[1:]))
         for name in (
@@ -182,6 +212,8 @@ def audit(checkpoint, episodes, seed, output, stage=None, stochastic=False):
             critic_normalized.append(critic.obs_normalizer(obs["policy"]).numpy().copy())
             values.append(runner.alg._values(critic(obs)).squeeze(-1).numpy().copy())
             action = actor(obs, stochastic_output=stochastic)
+            mean = actor.distribution.mean if stochastic else action
+            action_means.append(mean[:, ENGINE_HEADS:LEGACY_ACTION_DIM].numpy().copy())
             engines.append(action[:, :3].numpy().copy())
             obs, reward, done, _ = env.step(action)
             rewards.append(reward.numpy().copy())
@@ -202,6 +234,7 @@ def audit(checkpoint, episodes, seed, output, stage=None, stochastic=False):
     rows = channel_metrics(raw[masks], normalized[masks])
     critic_normalized = np.stack(critic_normalized)
     critic_rows = channel_metrics(raw[masks], critic_normalized[masks])
+    action_means = np.stack(action_means)
     with (output / "critic_observations.csv").open("w") as stream:
         writer = csv.DictWriter(stream, fieldnames=list(critic_rows[0]))
         writer.writeheader()
@@ -238,6 +271,11 @@ def audit(checkpoint, episodes, seed, output, stage=None, stochastic=False):
         "critic_all_states": value_metrics(values[masks], targets[masks]),
         "critic_initial_states": value_metrics(values[0], targets[0]),
         "initial_tilt": initial_tilt_metrics(raw[0], status.numpy(), values[0], targets[0]),
+        "continuous_action_note": "Policy-frame target intervals from tanh(mean +/- std); "
+        "not post-tanh standard deviations or physical actuator response. "
+        "Saturation means abs(tanh(mean)) > 0.99.",
+        "continuous_actions": continuous_action_metrics(action_means[masks], action_std),
+        "initial_continuous_actions": continuous_action_metrics(action_means[0], action_std),
         "initial_braking_estimates": braking,
         "training_metrics_max_env_steps": cutoff,
         "engine_on_fraction": np.stack(engines)[masks].mean(0).tolist(),
@@ -266,6 +304,8 @@ def audit(checkpoint, episodes, seed, output, stage=None, stochastic=False):
         obs=raw,
         normalized=normalized,
         critic_normalized=critic_normalized,
+        continuous_action_means=action_means,
+        continuous_action_std=action_std,
         **{"terminal_" + name: data for name, data in terminal.items()},
         values=values,
         returns=targets,

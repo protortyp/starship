@@ -392,3 +392,12 @@ checkpoint 449 with seed 819267, and keep normalizers frozen. Runs are
 `catch_normalizer_rescaled_local/2026-11-15_19-44-49`; checkpoint handoffs and intervention
 provenance are in the corresponding `catch_normalizer_{control,rescaled}_handoff` directories.
 The main run continues independently; the normalization change is experimental, not adopted.
+
+The checkpoint-449 actuator audit adds another distinction: raw Gaussian exploration is not
+actuator exploration after `tanh`. At spawn, 53.1% of gimbal-3 means and 64.6% of roll-RCS means
+have `abs(tanh(mean)) > 0.99`. Despite raw std approximately 0.02, their median transformed
+plus/minus-sigma interval half-widths are only 0.0149% and 0.00471% of the full actuator range.
+Across valid flight steps, roll-RCS raw mean magnitude p99 is 11.37. The audit exports means
+and standard deviations and reports both initial and whole-flight saturation. These intervals
+are not transformed standard deviations or measured actuator response, and saturation alone
+does not prove a control error: a full-range command may be appropriate.

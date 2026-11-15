@@ -70,3 +70,21 @@ def test_tilt_audit_separates_failure_region_and_handles_endpoints():
     assert bins[2]["critic_initial_states"]["bias"] == 15
     assert bins[2]["critic_initial_states"]["explained_variance"] is None
     assert bins[1]["catch_rate"] is bins[1]["critic_initial_states"] is None
+
+
+def test_action_audit_detects_saturation_despite_unchanged_gaussian_noise():
+    from starship.train.actions import CONTINUOUS
+    from starship.train.learning_audit import continuous_action_metrics
+
+    means = np.zeros((3, len(CONTINUOUS)))
+    means[:, -1] = [-12, 8, 13]
+    rows = continuous_action_metrics(means, np.full(len(CONTINUOUS), 0.02))
+    assert rows[0]["saturated_mean_fraction"] == 0
+    assert rows[-1]["saturated_mean_fraction"] == 1
+    assert rows[0]["pre_tanh_std"] == rows[-1]["pre_tanh_std"] == 0.02
+    key = "sigma_interval_half_width_range_fraction_median"
+    assert rows[0][key] == pytest.approx(np.tanh(0.02) / 2)
+    assert rows[-1][key] < rows[0][key] * 1e-6
+    assert rows[0]["sigma_interval_half_width_actuator_units_median"] == pytest.approx(
+        rows[0][key] * 0.6
+    )
