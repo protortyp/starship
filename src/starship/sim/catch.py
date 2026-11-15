@@ -9,6 +9,19 @@ import warp as wp
 from starship.sim.aero import AeroParams
 from starship.sim.rigid import Body
 
+# First detected swept contact, in tower/arm then hull/fin iteration order.
+CATCH_FAILURES = {
+    0: "none",
+    1: "hull_tower",
+    2: "hull_arm",
+    3: "aft_fin_tower",
+    4: "aft_fin_arm",
+    5: "forward_fin_tower",
+    6: "forward_fin_arm",
+    7: "capture_constraints",
+    8: "ground",
+}
+
 
 @wp.struct
 class CatchParams:
@@ -184,7 +197,7 @@ def tower_step(
 
 
 @wp.func
-def structure_collision(
+def structure_contact(
     c: CatchParams,
     a: AeroParams,
     previous: Body,
@@ -196,14 +209,14 @@ def structure_collision(
     radius: float,
     old_angle: float,
     angle: float,
-) -> bool:
+) -> int:
     """Conservative swept hull capsule and fin boxes against tower and rotating arms.
 
     Translation and rotation bounds inflate midpoint shapes over a physics substep, preventing
     thin fins or moving arms from tunnelling between endpoints. This is not impact dynamics.
     """
     if wp.min(previous.pos[2], b.pos[2]) > c.tower_height + length:
-        return False
+        return 0
     mid = b
     mid.pos = 0.5 * (previous.pos + b.pos)
     mid.rot = wp.quat_slerp(previous.rot, b.rot, 0.5)
@@ -232,7 +245,7 @@ def structure_collision(
         local_base = wp.quat_rotate_inv(rot, base - center)
         local_nose = wp.quat_rotate_inv(rot, nose - center)
         if segment_box(local_base, local_nose, wp.vec3(0.0), half + wp.vec3(radius + hull_sweep)):
-            return True
+            return 1 if structure == 0 else 2
         if c.flap_collisions != 0:
             x = wp.quat_rotate(rot, wp.vec3(1.0, 0.0, 0.0))
             y = wp.quat_rotate(rot, wp.vec3(0.0, 1.0, 0.0))
@@ -250,5 +263,28 @@ def structure_collision(
                     axes,
                     half,
                 ):
-                    return True
-    return False
+                    kind = 3 if i < 2 else 5
+                    return kind if structure == 0 else kind + 1
+    return 0
+
+
+@wp.func
+def structure_collision(
+    c: CatchParams,
+    a: AeroParams,
+    previous: Body,
+    b: Body,
+    com: float,
+    old_flaps: wp.vec4,
+    flaps: wp.vec4,
+    length: float,
+    radius: float,
+    old_angle: float,
+    angle: float,
+) -> bool:
+    return (
+        structure_contact(
+            c, a, previous, b, com, old_flaps, flaps, length, radius, old_angle, angle
+        )
+        != 0
+    )

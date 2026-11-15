@@ -18,7 +18,7 @@ from starship.sim.catch import (
     pin,
     pin_error,
     pin_height,
-    structure_collision,
+    structure_contact,
     tower_step,
 )
 from starship.sim.config import G0, TANK_ORDER, SpawnConfig, VehicleConfig
@@ -165,6 +165,7 @@ class Commands:
 
 @wp.struct
 class State:
+    catch_failure: wp.array(dtype=int)
     arm_angle: wp.array(dtype=float)
     body: wp.array(dtype=Body)
     stats: wp.array(dtype=FlightStats)
@@ -182,6 +183,7 @@ class State:
 class Terminal:
     """Final state of the episode that ended on the last step (valid where done is set)."""
 
+    catch_failure: wp.array(dtype=int)
     arm_angle: wp.array(dtype=float)
     flaps: wp.array(dtype=FlapState)
     engine: wp.array(dtype=EngineState)
@@ -286,6 +288,7 @@ def spawn(p: Params, s: State, tid: int):
     f.filtered = f.angle
     s.flaps[tid] = f
     s.tanks[tid] = sp.tanks
+    s.catch_failure[tid] = 0
     s.arm_angle[tid] = 0.0
     if p.catcher.enabled != 0 and p.catcher.moving != 0:
         s.arm_angle[tid] = p.catcher.open_angle
@@ -326,6 +329,7 @@ def advance(p: Params, s: State, c: Commands, tid: int):
     t = s.time[tid]
     arm_angle = s.arm_angle[tid]
     status = int(FLYING)
+    catch_failure = wp.int32(0)
     for _ in range(p.substeps):
         mp = mass_properties(p.mass, tanks)
         air = atmosphere(b.pos[2])
@@ -416,7 +420,7 @@ def advance(p: Params, s: State, c: Commands, tid: int):
                     )
                 if safe:
                     status = LANDED
-                if structure_collision(
+                contact = structure_contact(
                     p.catcher,
                     p.aero,
                     previous_body,
@@ -428,10 +432,14 @@ def advance(p: Params, s: State, c: Commands, tid: int):
                     p.hull.radius,
                     old_arm_angle,
                     arm_angle,
-                ):
+                )
+                if status == CRASHED:
+                    catch_failure = 7
+                if contact != 0:
+                    catch_failure = contact
                     status = CRASHED
                 break
-            if structure_collision(
+            contact = structure_contact(
                 p.catcher,
                 p.aero,
                 previous_body,
@@ -443,12 +451,15 @@ def advance(p: Params, s: State, c: Commands, tid: int):
                 p.hull.radius,
                 old_arm_angle,
                 arm_angle,
-            ):
+            )
+            if contact != 0:
+                catch_failure = contact
                 status = CRASHED
                 break
         if lowest_point(p.hull, b, mp.com) <= 0.0:
             status = touchdown_status(p.landing, b, mp.com)
             if p.catcher.enabled != 0:
+                catch_failure = 8
                 status = CRASHED
             break
         horizontal = wp.sqrt(b.pos[0] * b.pos[0] + b.pos[1] * b.pos[1])
@@ -466,6 +477,7 @@ def advance(p: Params, s: State, c: Commands, tid: int):
             break
     if status == FLYING and s.steps[tid] + 1 >= p.max_steps:
         status = TIMEOUT
+    s.catch_failure[tid] = catch_failure
     s.arm_angle[tid] = arm_angle
     s.body[tid] = b
     s.stats[tid] = a
@@ -480,6 +492,7 @@ def advance(p: Params, s: State, c: Commands, tid: int):
 
 @wp.func
 def record_terminal(s: State, term: Terminal, tid: int):
+    term.catch_failure[tid] = s.catch_failure[tid]
     term.arm_angle[tid] = s.arm_angle[tid]
     term.flaps[tid] = s.flaps[tid]
     term.engine[tid] = s.engine[tid]
@@ -511,6 +524,7 @@ def gather_kernel(sources: wp.array(dtype=wp.int32), src: State, dst: State):
     """dst[i] = src[sources[i]] for everything but the random streams, so copies diverge."""
     tid = wp.tid()
     j = sources[tid]
+    dst.catch_failure[tid] = src.catch_failure[j]
     dst.arm_angle[tid] = src.arm_angle[j]
     dst.body[tid] = src.body[j]
     dst.stats[tid] = src.stats[j]

@@ -88,3 +88,15 @@ Validation covers finite-rate policy commands, reopening, early fin strikes, lat
 Bernoulli gradients and old checkpoint/optimizer migration: 247 tests passed, 2 skipped. A local
 CUDA smoke run completed three PPO updates, evaluations and Rerun recordings with the new action.
 No catch stage has passed evaluation yet.
+
+Observability probe (2026-11-15, `catch_policy_local/2026-11-15_12-50-20/policy_1499.pt`,
+stage 0, deterministic seeds 0–7): all eight starts requested closure at t=0 with probability
+above 0.9999. Four terminated on aft-fin/arm contact, four on hull/arm contact, after 1.04–1.67 s.
+Their mean undiscounted return was -13.57 (terminal reward -20). Forcing the arms open, or using
+the automatic clearance rule at policy frequency, avoided these early contacts but all eight
+flights then tumbled after 13.63–15.38 s; mean return -197.44 (terminal reward -200).
+The automatic rule never requested closure in these rollouts. These interventions show that arm
+timing causes the early contacts, but flight control is also unsolved. The reward ordering is
+consistent with a cheap-failure local optimum; it does not establish the policy's internal reasoning.
+Next experiment should address collision-vs-tumble incentives and test explicit clearance/pin
+features separately, using this probe to compare outcomes. No reward/input change was made here.

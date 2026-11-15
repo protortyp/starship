@@ -56,6 +56,7 @@ def test_early_closure_causes_fin_strike():
         if sim.snapshot().status[0] == CRASHED:
             break
     assert sim.snapshot().status[0] == CRASHED
+    assert sim.snapshot().catch_failure[0] == 4  # aft fin against arm
 
 
 @pytest.mark.parametrize(("closed", "expected"), [(False, CRASHED), (True, LANDED)])

@@ -61,3 +61,36 @@ alignment, otherwise reopen. New catch runs use `policy_controlled=true`.
 The local preset uses 512 environments, 128-step recurrent rollouts and 16 minibatches. The older
 1,024-env / 8-minibatch run developed allocation spikes as episode lengths changed, despite fitting
 initial smoke tests. Run metadata and training status are in [curriculum.md](curriculum.md).
+
+## Inspect catch decisions
+
+Replay a specific numbered checkpoint with its paired model file (the probe reads that checkpoint's
+stage, not the last or final stage):
+
+```sh
+uv run python -m starship.train.catch_probe logs/<experiment>/<run>/policy_1499.pt --rerun
+rerun logs/<experiment>/<run>/catch-probe/policy_1499/policy-seed-0.rrd
+```
+
+The default eight seeds run under three arm-command modes: the policy, forced open, and the
+automatic clearance/alignment rule sampled at the policy control interval. The flight policy
+continues reacting in every mode, so trajectories can diverge. This isolates an intervention on the
+arm command, not a guarantee of the same subsequent flight. No training parameters are changed.
+
+The output directory contains a Markdown comparison, JSON summaries, and per-step CSV traces.
+`--rerun` also creates three seed-0 recordings with flight/timing, raw/normalized-input and reward
+views. Decision metrics are timestamped before the action; post-step metrics and the terminal
+snapshot use their actual simulation time. Negative fin clearance means the aft fins have not
+fully passed below the arm underside; it is not itself a collision. Pin ETA assumes constant
+current pin velocity and excludes future acceleration/rotation changes.
+
+The simulator now labels the first detected swept contact: hull, aft fin or forward fin against
+tower or arms. Separate labels identify failed pin-plane capture constraints and ground contact.
+These labels survive terminal capture and autoreset but are not policy observations. Conservative
+swept contact can include near misses; the labels describe the simulator's termination decision,
+not physical impact loads.
+
+The 32 policy observations already include COM altitude, velocity, attitude, fins, catch-pin-center
+target vector, tower heading and arm opening. Individual pin heights, fin clearance, closure time
+and contact labels are currently inferred rather than explicit policy inputs. The CSV includes the
+learned normalization as well as raw values; small raw scales alone do not prove missing information.
