@@ -97,6 +97,10 @@ def model_diagnostics(model: nn.Module, obs, hidden_state=None) -> dict[str, flo
     """Activation, rank and gate diagnostics of an rsl_rl MLPModel or RNNModel on a batch of
     observations. Runs on a copy, so the model's own recurrent state is untouched."""
     probe = copy.deepcopy(model).eval()
+    # Deepcopy separates cuDNN's packed recurrent weights; rebuild the copy's storage.
+    for module in probe.modules():
+        if isinstance(module, nn.RNNBase):
+            module.flatten_parameters()
     captured: list[tuple[str, torch.Tensor]] = []
     hooks = []
     # Hidden activations are the inputs of every Linear after the first. Hooking the activation
