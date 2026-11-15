@@ -282,3 +282,15 @@ candidate, so a wholly unsuccessful fit cannot silently replace it with a worse 
 The reusable phase-weighted tool selected update 1,900 and reproduced the pilot's fresh
 512-flight EV/RMSE results exactly. The next PPO comparison uses that calibrated critic and
 std 0.02; its actor is verified bit-for-bit equal to the noise-only control at initialization.
+
+PPO comparison from identical actor weights: after 50 updates, a matched fresh 512-flight test
+(seed 819246, checkpoint 329) catches 428 with the calibrated critic versus 402 with noise only.
+Initial observations are identical; calibration recovers 30 failures and introduces 4. The
+paired improvement is 5.08 percentage points (bootstrap 95% interval 2.93–7.23 points).
+The calibrated continuation passes the 0.1-rad stage at iteration 384; a separate fresh test
+(seed 819249) catches 452/512 (88.3%), so the promotion is not proof of universal mastery.
+Initial critic bias has drifted to -62.0 as the actor improves. An optional
+`runner.algorithm.critic_learning_rate` now separates value learning from the small actor
+rate imposed by its KL guard. Shared/split optimizer checkpoint loading preserves Adam moments;
+the configured rates are reapplied after resume and actor scheduling leaves the critic rate fixed.
+The default remains one shared rate; faster-critic experiments require separate fresh validation.

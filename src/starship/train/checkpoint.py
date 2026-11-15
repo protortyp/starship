@@ -30,6 +30,30 @@ def _output_layer(model):
     ][-1]
 
 
+def align_optimizer_groups(saved, optimizer):
+    """Repartition our actor-then-critic Adam indices without changing any moments."""
+    old_groups = saved["param_groups"]
+    sizes = [len(group["params"]) for group in optimizer.param_groups]
+    if sizes == [len(group["params"]) for group in old_groups]:
+        return
+    indices = [index for group in old_groups for index in group["params"]]
+    if len(indices) != sum(sizes) or len(set(indices)) != len(indices):
+        raise ValueError("optimizer parameter counts/order cannot be migrated")
+    # This migration only changes learning rates/grouping, never Adam's update semantics.
+    common = {k: v for k, v in old_groups[0].items() if k not in ("params", "lr")}
+    if any(
+        {k: v for k, v in group.items() if k not in ("params", "lr")} != common
+        for group in old_groups[1:]
+    ):
+        raise ValueError("cannot merge optimizer groups with different Adam options")
+    offset = 0
+    groups = []
+    for size in sizes:
+        groups.append({**old_groups[0], "params": indices[offset : offset + size]})
+        offset += size
+    saved["param_groups"] = groups
+
+
 def migrate_checkpoint(checkpoint: dict, actor: nn.Module, critic: nn.Module, optimizer) -> None:
     changed = {}
     for name, model in (("actor", actor), ("critic", critic)):
@@ -60,9 +84,12 @@ def migrate_checkpoint(checkpoint: dict, actor: nn.Module, critic: nn.Module, op
                 if old.shape[0] == LEGACY_ACTION_DIM and new.shape[0] == ACTION_DIM:
                     state[key] = _pad_actions(old)
                     changed.setdefault(id(parameters[key]), []).append(_pad_actions)
-    if not changed or "optimizer_state_dict" not in checkpoint:
+    if "optimizer_state_dict" not in checkpoint:
         return
     saved = checkpoint["optimizer_state_dict"]
+    align_optimizer_groups(saved, optimizer)
+    if not changed:
+        return
     for old_group, group in zip(saved["param_groups"], optimizer.param_groups, strict=True):
         for index, parameter in zip(old_group["params"], group["params"], strict=True):
             if id(parameter) not in changed:
