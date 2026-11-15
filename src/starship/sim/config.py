@@ -234,10 +234,27 @@ class LandingConfig:
 
 
 @dataclass
+class CatchConfig:
+    enabled: bool = False
+    height: float = 80.0
+    station: float = 35.0
+    pin_radius: float = 7.0
+    tolerance: float = 0.75
+    height_tolerance: float = 0.5
+    arm_half_width: float = 1.5
+    arm_half_length: float = 14.0
+    arm_center_x: float = -6.0
+    tower_x: float = -25.0
+    tower_half_width: float = 5.0
+    tower_height: float = 130.0
+
+
+@dataclass
 class SimConfig:
     vehicle: VehicleConfig = field(default_factory=VehicleConfig)
     spawn: SpawnConfig = field(default_factory=SpawnConfig)
     landing: LandingConfig = field(default_factory=LandingConfig)
+    catch: CatchConfig = field(default_factory=CatchConfig)
     wind: WindConfig = field(default_factory=WindConfig)
     dt: float = 0.01
     substeps: int = 10  # physics steps per control step

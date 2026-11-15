@@ -1,0 +1,13 @@
+defaults:
+  - train
+  - override curriculum: catch
+  - _self_
+
+experiment: catch_local
+device: cuda:0
+iterations: 3000
+# The default 4096-env / 4-minibatch recurrent update exceeds this 3090's 24 GB.
+num_envs: 1024
+runner:
+  algorithm:
+    num_mini_batches: 8

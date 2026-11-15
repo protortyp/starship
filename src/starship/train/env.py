@@ -7,7 +7,9 @@ import torch
 import warp as wp
 
 from starship.sim import FLYING, SimConfig, Simulator
+from starship.sim.catch import pin_error
 from starship.sim.flight_stats import STATS_FIELDS, FlightStats, stats_vector
+from starship.sim.mass import mass_properties
 from starship.sim.physics import (
     Commands,
     Params,
@@ -98,6 +100,7 @@ def _step_kernel(
         record_terminal(state, terminal, i)
         # The simulator's terminal struct has no actuators, so encode before spawn discards them.
         encode(
+            p,
             state.body[i],
             state.engine[i],
             state.flaps[i],
@@ -113,6 +116,7 @@ def _step_kernel(
 
 @wp.kernel
 def _terminal_views_kernel(
+    p: Params,
     terminal: Terminal,
     pos: wp.array(dtype=wp.vec3),
     vel: wp.array(dtype=wp.vec3),
@@ -120,9 +124,11 @@ def _terminal_views_kernel(
     omega: wp.array(dtype=wp.vec3),
     stats: wp.array2d(dtype=float),
     wind: wp.array2d(dtype=float),
+    catch_error: wp.array(dtype=float),
 ):
     i = wp.tid()
     b = terminal.body[i]
+    catch_error[i] = pin_error(p.catcher, b, mass_properties(p.mass, terminal.tanks[i]).com)
     pos[i] = b.pos
     vel[i] = b.vel
     rot[i] = b.rot
@@ -195,6 +201,7 @@ class RocketEnv:
         self._time_before = zeros()
         self._stats_before = zeros(FlightStats)
         self._ranges = make_action_ranges(self.device)
+        self.final_catch_error = zeros()
         self.final_pos = zeros(wp.vec3)
         self.final_vel = zeros(wp.vec3)
         self.final_rot = zeros(wp.quat)
@@ -230,7 +237,14 @@ class RocketEnv:
     def observe(self) -> wp.array:
         self._launch(
             observe_kernel,
-            [self.sim.state, self.landing_load, self.mirrored, self.obs_scales, self.obs],
+            [
+                self.sim.params,
+                self.sim.state,
+                self.landing_load,
+                self.mirrored,
+                self.obs_scales,
+                self.obs,
+            ],
         )
         return self.obs
 
@@ -252,6 +266,7 @@ class RocketEnv:
             self.truncated,
             self.final_obs,
             self.final_mirrored,
+            self.final_catch_error,
             self.final_pos,
             self.final_vel,
             self.final_rot,
@@ -327,6 +342,7 @@ class RocketEnv:
         self._launch(
             _terminal_views_kernel,
             [
+                self.sim.params,
                 self.sim.terminal,
                 self.final_pos,
                 self.final_vel,
@@ -334,6 +350,7 @@ class RocketEnv:
                 self.final_omega,
                 self.final_stats,
                 self.final_wind,
+                self.final_catch_error,
             ],
         )
         self._respawn()

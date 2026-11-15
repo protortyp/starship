@@ -60,3 +60,18 @@
 - Fixed lr; rsl_rl's adaptive schedule pinned it at 1e-2. Reward scaling and value normalization hurt.
 - entropy_coef 0.002 with lr 1e-4 made policies decisive and broke plateaus.
 - Near-ground starts first; the full scenario alone was not learnable.
+
+## Upper-stage catch (local RTX 3090)
+
+A separate `curriculum=catch` adds fixed-arm capture and tower collisions; see [catch.md](catch.md).
+
+| Stage | Task | Status |
+|---|---|---|
+| 0 | Short upright catch approach | training locally; not solved |
+| 1–5 | Approach errors, ignition, flip, randomized descent, wind | not trained |
+| 6–9 | Late-entry handovers, 5–20 km | not trained |
+
+Local validation (2026-11-15): 231 tests passed, 2 skipped. GPU smoke evaluation and export passed.
+The 4,096-env / 4-minibatch update exhausted the 24 GB RTX 3090; 1,024 envs / 8 minibatches
+completed three 128-step updates at 80–106k environment steps/s. `catch_local` uses this smaller
+batch. Initial untrained catch rate is 0%; no capture stage has passed yet.

@@ -52,7 +52,7 @@ def com(cfg):
 def test_observation_layout_and_scale(device):
     env = RocketEnv(16, device=device, obs_config=ObsConfig(mirror=False))
     obs = env.obs.numpy()
-    assert OBS_DIM == 28
+    assert OBS_DIM == 31
     assert obs.shape == (16, OBS_DIM)
     assert np.isfinite(obs).all()
     assert np.abs(obs).max() <= 2
@@ -229,7 +229,14 @@ def test_terminal_rewards_and_final_observations(device, status):
     wp.launch(
         observe_kernel,
         dim=1,
-        inputs=[twin.state, env.landing_load, env.final_mirrored, env.obs_scales, expected],
+        inputs=[
+            twin.params,
+            twin.state,
+            env.landing_load,
+            env.final_mirrored,
+            env.obs_scales,
+            expected,
+        ],
         device=device,
     )
     np.testing.assert_allclose(result.final_obs.numpy(), expected.numpy(), atol=1e-6)
