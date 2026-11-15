@@ -257,3 +257,28 @@ to 1.1 rad precede the original 90-degree stage; speed, height and offset widen 
 Stages 0–6 and the final entry target remain unchanged. The first 0.1-rad stage has roughly
 66–74% early catches, not yet solved. A separate critic-only fit to stochastic approach returns
 barely improved held-out RMSE (38.67 to 38.24); it was not substituted into this PPO run.
+
+Tilt-bridge learning audit: at update 99, 183/256 fresh flights catch; critic all-state EV is
+0.553, but initial-state EV is -0.010 with +79.55 bias. The initial std 0.005 leaves most actor
+updates stopped by the KL guard after a few minibatches. A matched noise probe at update 279
+(seed 819242, 256 sampled flights each) catches 67.2%, 64.8%, 61.7% and 10.2% at continuous
+std 0.005, 0.01, 0.02 and 0.05 respectively. The 0.02 continuation permits about 74 actor
+optimizer steps per update versus 4 in the matched baseline window, with similar early catch
+rates. This restores learning opportunity, not proof of improved catching. The baseline was
+stopped after roughly 530 updates while the higher-noise experiment continues.
+
+Critic phase weighting experiment: fit the same update-279 actor's critic on 1,024 complete
+fresh deterministic episodes, with an episode-disjoint 768/256 train/validation split. A pilot
+assigns half the regression loss to the first 20 control steps (2 s), instead of allowing long
+successful episodes to dominate; actor and normalizers stay fixed. On a separate matched
+512-flight test (seed 819245), ordinary fitting gives all-state/initial EV 0.683/0.195 and
+initial RMSE 148.91; early weighting gives 0.797/0.336 and initial RMSE 135.02, bias +3.14.
+The pilot selected by a blend of all-state and initial-state validation MSE. The reusable
+`critic_calibrate --initial-steps 20 --initial-weight 0.5` instead consistently weights the
+same initial window for both fitting and selection; its fresh validation is checked separately.
+The default remains ordinary fitting. Calibration now includes the unmodified critic as a
+candidate, so a wholly unsuccessful fit cannot silently replace it with a worse checkpoint.
+
+The reusable phase-weighted tool selected update 1,900 and reproduced the pilot's fresh
+512-flight EV/RMSE results exactly. The next PPO comparison uses that calibrated critic and
+std 0.02; its actor is verified bit-for-bit equal to the noise-only control at initialization.
