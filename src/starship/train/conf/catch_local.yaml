@@ -3,7 +3,7 @@ defaults:
   - override curriculum: catch
   - _self_
 
-experiment: catch_reward_local
+experiment: catch_value_init_local
 device: cuda:0
 iterations: 3000
 # Smaller recurrent minibatches avoid the late-run allocation spikes of the fixed-arm baseline.
@@ -11,3 +11,4 @@ num_envs: 512
 runner:
   algorithm:
     num_mini_batches: 16
+    initial_value: -200.0

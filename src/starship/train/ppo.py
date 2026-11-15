@@ -3,6 +3,8 @@ optimizer statistics, plus optional value normalization. Otherwise the optimizat
 rsl_rl's update (without RND, symmetry augmentation and multi-GPU, which are rejected at
 construction)."""
 
+import math
+
 import torch
 from rsl_rl.algorithms import PPO
 from torch import nn
@@ -50,13 +52,21 @@ class InstrumentedPPO(PPO):
         self,
         *args,
         value_normalization: bool = False,
+        initial_value: float | None = None,
         diagnostics_interval: int = 0,
         max_kl: float | None = None,
         **kwargs,
     ):
         if max_kl is not None and max_kl <= 0:
             raise ValueError("max_kl must be positive or None")
+        if initial_value is not None and (not math.isfinite(initial_value) or value_normalization):
+            raise ValueError("initial_value must be finite and requires value_normalization=false")
         super().__init__(*args, **kwargs)
+        if initial_value is not None:
+            # Fit the failure baseline with the output bias, not saturated recurrent features.
+            output = [m for m in self.critic.mlp.modules() if isinstance(m, nn.Linear)][-1]
+            with torch.no_grad():
+                output.bias.fill_(initial_value)
         self.max_kl = max_kl
         # Every `diagnostics_interval` updates, log network health under plasticity/* (0 = off).
         self.diagnostics_interval = diagnostics_interval

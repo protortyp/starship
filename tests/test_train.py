@@ -292,3 +292,33 @@ def test_resume_evaluates_before_learning(tmp_path, monkeypatch):
     monkeypatch.setattr(StarshipRunner, "learn", learn)
     train.main.__wrapped__(cfg)
     assert events == ["evaluate", "learn"]
+
+
+def test_initial_value_sets_only_critic_baseline_and_checkpoint_wins(tmp_path):
+    cfg = compose_cfg("num_envs=8", "+runner.algorithm.initial_value=-200.0")
+    runner = make_runner(cfg, tmp_path / "initial", eval_envs=4)
+    output = [m for m in runner.alg.critic.mlp.modules() if isinstance(m, torch.nn.Linear)][-1]
+    assert output.bias.item() == -200
+    with torch.no_grad():
+        values = runner.alg.critic(runner.env.get_observations())
+    assert (values + 200).abs().max() < 1
+    with torch.no_grad():
+        output.bias.fill_(-123)
+    path = tmp_path / "checkpoint.pt"
+    runner.save(str(path))
+    resumed = make_runner(cfg, tmp_path / "resumed", eval_envs=4)
+    resumed.load(str(path))
+    restored = [m for m in resumed.alg.critic.mlp.modules() if isinstance(m, torch.nn.Linear)][-1]
+    assert restored.bias.item() == -123
+
+
+@pytest.mark.parametrize(("value", "normalized"), [(float("nan"), False), (-200, True)])
+def test_initial_value_rejects_invalid_or_normalized_baseline(tmp_path, value, normalized):
+    cfg = compose_cfg(
+        "num_envs=8",
+        "+runner.algorithm.initial_value=-200",
+        f"runner.algorithm.value_normalization={str(normalized).lower()}",
+    )
+    cfg.runner.algorithm.initial_value = value
+    with pytest.raises(ValueError, match="initial_value must be finite"):
+        make_runner(cfg, tmp_path)
