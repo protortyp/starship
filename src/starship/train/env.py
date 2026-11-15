@@ -27,6 +27,7 @@ from starship.train.actions import (
     map_actions_kernel,
 )
 from starship.train.encoding import (
+    CATCH_OBS_DIM,
     OBS_DIM,
     ObsConfig,
     ObsScales,
@@ -95,7 +96,7 @@ def _step_kernel(
     time_before[i] = state.time[i]
     stats_before[i] = state.stats[i]
     terminal.done[i] = 0
-    for j in range(OBS_DIM):
+    for j in range(final_obs.shape[1]):
         final_obs[i, j] = 0.0
     final_mirrored[i] = mirrored[i]
     advance(p, state, commands, i)
@@ -184,13 +185,14 @@ class RocketEnv:
             shape = num_envs if width is None else (num_envs, width)
             return wp.zeros(shape, dtype=dtype, device=self.device)
 
-        self.obs = zeros(width=OBS_DIM)
+        self.obs_dim = CATCH_OBS_DIM if self.obs_config.catch_geometry else OBS_DIM
+        self.obs = zeros(width=self.obs_dim)
         self.reward = zeros()
         self.terminal_reward = zeros()
         self.reward_terms = zeros(width=len(REWARD_TERMS))
         self.terminated = zeros(int)
         self.truncated = zeros(int)
-        self.final_obs = zeros(width=OBS_DIM)
+        self.final_obs = zeros(width=self.obs_dim)
         self.mirrored = zeros(int)
         self.final_mirrored = zeros(int)
         self.actions = zeros(width=ACTION_DIM)

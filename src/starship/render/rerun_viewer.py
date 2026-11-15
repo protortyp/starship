@@ -311,7 +311,7 @@ def fly_progress(args) -> None:
         env = RslRocketEnv(
             RocketEnv(args.envs, sim_cfg, obs_cfg, reward_cfg, device=args.device, seed=args.seed)
         )
-        policy = load_policy(f, env.device)
+        policy = load_policy(f, env.device, obs_dim=env.env.obs_dim)
         policy.reset()
         label = f"it{f.stem.split('_')[1]}"
         lanes.append({"env": env, "policy": policy, "obs": env.get_observations(), "label": label,
@@ -388,7 +388,7 @@ def _rollout(path, cfgs, args, record=None):
     env = RslRocketEnv(
         RocketEnv(args.envs, sim_cfg, obs_cfg, reward_cfg, device=args.device, seed=args.seed)
     )
-    policy = load_policy(path, env.device)
+    policy = load_policy(path, env.device, obs_dim=env.env.obs_dim)
     policy.reset()
     obs = env.get_observations()
     status = np.zeros(args.envs, dtype=int)

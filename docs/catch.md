@@ -94,3 +94,22 @@ The 32 policy observations already include COM altitude, velocity, attitude, fin
 target vector, tower heading and arm opening. Individual pin heights, fin clearance, closure time
 and contact labels are currently inferred rather than explicit policy inputs. The CSV includes the
 learned normalization as well as raw values; small raw scales alone do not prove missing information.
+
+## Explicit geometry observation experiment
+
+`--config-name catch_geometry_local` enables `obs.catch_geometry=true`, appending six inputs
+to the original 32. The default `catch_local` remains the 32-input comparison.
+
+| Channel | Meaning | Scale / bound |
+|---|---|---|
+| 32, 33 | each catch pin above support | /50 m, clipped to ±10; swap under reflection |
+| 34 | arm underside minus highest aft-fin point | /50 m, clipped to ±10; positive means clear |
+| 35 | maximum horizontal pin alignment error | /10 m, capped at 10 |
+| 36 | current arm angle / motor angular speed | /2 s |
+| 37 | earliest descending-pin constant-velocity ETA | /10 s, capped at 3; -0.1 if unavailable |
+
+The features use current geometry and pin-point velocity, not future trajectories or a scripted
+closure command. The policy still controls the motor and can collide. Ground tasks append zeros.
+Terminal observations preserve these channels before autoreset. Existing 24/28/31/32-input actors,
+critics, normalizer statistics and Adam moments can be padded to 38 without changing their
+original outputs; loading a 38-input policy into a 32-input environment is rejected.

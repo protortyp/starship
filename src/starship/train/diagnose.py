@@ -261,7 +261,7 @@ def probe_section(run: Path, report: dict, episodes: int, device: str | None) ->
         policy_path = run / "policy.pt"
     obs_cfg = OmegaConf.to_object(cfg.obs)
     env = RslRocketEnv(RocketEnv(episodes, sim, obs_cfg, reward, device=device, seed=123))
-    policy = load_policy(policy_path, env.device)
+    policy = load_policy(policy_path, env.device, obs_dim=env.env.obs_dim)
     policy.reset()
     tracker = EpisodeTracker(env)
     obs = env.get_observations()

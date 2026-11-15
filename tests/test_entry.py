@@ -13,7 +13,7 @@ from starship.train import ObsConfig, RewardConfig, RocketEnv
 from starship.train.actions import ACTION_DIM
 from starship.train.checkpoint import load_policy
 from starship.train.curriculum import Curriculum
-from starship.train.encoding import LEGACY_OBS_DIM, OBS_DIM
+from starship.train.encoding import CATCH_OBS_DIM, LEGACY_OBS_DIM, OBS_DIM
 from starship.train.runner import export_policy
 from tests import test_train
 
@@ -177,11 +177,14 @@ def test_entry_stages_preserve_legacy_and_raise_handover():
         assert reward.distance_saturation == 1000
 
 
-@pytest.mark.parametrize("old_dim", [LEGACY_OBS_DIM, 28, 31])
+@pytest.mark.parametrize(
+    ("old_dim", "geometry"), [(LEGACY_OBS_DIM, False), (28, False), (31, False), (32, True)]
+)
 def test_checkpoint_migration_preserves_actions_values_and_optimizer(
-    tmp_path, monkeypatch, old_dim
+    tmp_path, monkeypatch, old_dim, geometry
 ):
-    cfg = test_train.compose_cfg("num_envs=8")
+    cfg = test_train.compose_cfg("num_envs=8", f"obs.catch_geometry={str(geometry).lower()}")
+    new_dim = CATCH_OBS_DIM if geometry else OBS_DIM
     make_env = test_train.make_env
 
     def legacy_env(*args):
@@ -202,7 +205,7 @@ def test_checkpoint_migration_preserves_actions_values_and_optimizer(
     old.save(str(checkpoint))
     exported = tmp_path / "policy.pt"
     export_policy(old.alg.actor, exported)
-    policy = load_policy(exported)
+    policy = load_policy(exported, obs_dim=new_dim)
     resumed = test_train.make_runner(cfg, tmp_path / "new", eval_envs=4)
     resumed.load(str(checkpoint))
     for previous, model in (
@@ -224,6 +227,7 @@ def test_checkpoint_migration_preserves_actions_values_and_optimizer(
         assert not model.rnn.rnn.weight_ih_l0[:, old_dim:].any()
     for _ in range(5):
         obs = resumed.env.get_observations()
+        obs["policy"][:, old_dim:] = torch.randn_like(obs["policy"][:, old_dim:])
         legacy = TensorDict({"policy": obs["policy"][:, :old_dim]}, batch_size=[8])
         with torch.no_grad():
             expected = old.alg.actor(legacy)
@@ -235,7 +239,7 @@ def test_checkpoint_migration_preserves_actions_values_and_optimizer(
         resumed.env.step(expected)
     for state in resumed.alg.optimizer.state.values():
         for key in ("exp_avg", "exp_avg_sq"):
-            if state[key].ndim == 2 and state[key].shape[-1] == OBS_DIM:
+            if state[key].ndim == 2 and state[key].shape[-1] == new_dim:
                 assert not state[key][:, old_dim:].any()
     resumed._reset_rollout()
     resumed.alg.train_mode()

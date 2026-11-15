@@ -1,0 +1,7 @@
+defaults:
+  - catch_local
+  - _self_
+
+experiment: catch_geometry_local
+obs:
+  catch_geometry: true
