@@ -68,7 +68,8 @@ A separate `curriculum=catch` adds pivoting arms and hull/fin collision checks; 
 | Stage | Task | Status |
 |---|---|---|
 | 0 | Short upright approach, lower fins pass, arms close, pins captured | solved in deterministic holdout: 1,023/1,024 catches (99.9%), learned flight + arm control |
-| 1–5 | Approach errors, ignition, flip, randomized descent, wind | not trained |
+| 1 | Larger approach errors | PPO continuation running; not solved |
+| 2–5 | Ignition, flip, randomized descent, wind | not trained |
 | 6–9 | Late-entry handovers, 5–20 km | not trained |
 
 Findings (2026-11-15): the initial fixed-arm baseline omitted fin collision. Its closed gap was
@@ -163,3 +164,11 @@ reduced the cloned policy's evaluation catch rate to 0%. Repeating with frozen a
 statistics retained 100% deterministic evaluation and 98.8% stochastic training catches. The
 `catch_demo_local` preset freezes these statistics and permits std 0.005; ordinary training defaults
 are unchanged. The next continuation uses the validated network with these handoff settings.
+
+After freezing scales, PPO at 1e-5 still degraded the actor. Refit only the critic on 256 fresh
+flights from the frozen successful policy (seed 661239, 2,000 supervised updates); preserve actor
+weights and normalizers. `catch_demo_stable_local/2026-11-15_14-25-18` resumes with std 0.005,
+learning rate 1e-6, evaluations every five updates and rollback after one evaluation drops more
+than 0.1 below the best. Stage 0 retained roughly 96–100% stochastic catches and passed both PPO
+evaluations, promoting at iteration 10 to stage 1. Larger-approach catches remain at zero in the
+early continuation. The validated stage-0 checkpoint and its successful GIFs are preserved.
