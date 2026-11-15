@@ -259,6 +259,9 @@ class InstrumentedPPO(PPO):
             actor_grad = nn.utils.clip_grad_norm_(self.actor.parameters(), self.max_grad_norm)
             critic_grad = nn.utils.clip_grad_norm_(self.critic.parameters(), self.max_grad_norm)
             self.optimizer.step()
+            project = getattr(self.actor.distribution, "project_parameters", None)
+            if project is not None:
+                project()
 
             with torch.no_grad():
                 w = ratio.detach().float()

@@ -62,8 +62,17 @@ class HybridDistribution(Distribution):
 
     def update(self, mlp_output: torch.Tensor) -> None:
         logits, mean = self._split(mlp_output)
-        std = torch.exp(self.log_std.clamp(*self.log_std_range)).expand_as(mean)
+        # Match parameter precision: Python-double bounds can round just above a float32
+        # initialization at the floor, silently giving every std parameter zero gradient.
+        low, high = (self.log_std.new_tensor(value) for value in self.log_std_range)
+        std = torch.exp(self.log_std.clamp(low, high)).expand_as(mean)
         self._distribution = _Heads(Bernoulli(logits=logits), Normal(mean, std))
+
+    @torch.no_grad()
+    def project_parameters(self) -> None:
+        """Projected optimization keeps learnable std inside its differentiable interval."""
+        low, high = (self.log_std.new_tensor(value) for value in self.log_std_range)
+        self.log_std.clamp_(low, high)
 
     def sample(self) -> torch.Tensor:
         engine, continuous = self._distribution
