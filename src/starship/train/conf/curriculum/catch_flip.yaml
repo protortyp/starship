@@ -1,0 +1,186 @@
+# @package curriculum
+# Preserve the solved approach, then introduce attitude and speed gradually.
+enabled: true
+promote_landed: 0.9
+promote_evals: 2
+stages:
+- name: 0 short upright catch approach
+  overrides:
+  - sim.catch.enabled=true
+  - sim.catch.moving=true
+  - sim.catch.policy_controlled=true
+  - sim.catch.flap_collisions=true
+  - sim.spawn.altitude=105
+  - sim.spawn.altitude_noise=5
+  - sim.spawn.vertical_speed=-5
+  - sim.spawn.vertical_speed_noise=1
+  - sim.spawn.pitch=0
+  - sim.spawn.pitch_noise=0.01
+  - sim.spawn.offset_noise=0.25
+  - sim.spawn.horizontal_speed_noise=0.1
+  - sim.spawn.angular_rate_noise=0.001
+  - sim.spawn.heading_noise=0.02
+  - sim.spawn.lit_throttle=0.5
+  - sim.max_time=30
+  - reward.tilt_height=300
+  - reward.distance_weight=0.2
+  - reward.crash_miss_weight=5
+  - reward.crash_penalty=200
+  - reward.tumble_penalty=200
+  - reward.timeout_penalty=200
+  - reward.out_of_bounds_penalty=200
+- name: 'bridge 1: 115 m / 8 m/s approach'
+  overrides:
+  - sim.spawn.altitude=115
+  - sim.spawn.altitude_noise=10
+  - sim.spawn.vertical_speed=-8
+  - sim.spawn.vertical_speed_noise=1
+  - sim.spawn.offset_noise=0.5
+  - sim.spawn.horizontal_speed_noise=0.2
+  - sim.spawn.heading_noise=0.03
+  - sim.max_time=60
+- name: 'bridge 2: 130 m / 12 m/s approach'
+  overrides:
+  - sim.spawn.altitude=130
+  - sim.spawn.altitude_noise=10
+  - sim.spawn.vertical_speed=-12
+  - sim.spawn.vertical_speed_noise=1
+  - sim.spawn.offset_noise=1
+  - sim.spawn.horizontal_speed_noise=0.2
+  - sim.spawn.heading_noise=0.03
+  - sim.max_time=60
+- name: 'bridge 3: 160 m / 18 m/s approach'
+  overrides:
+  - sim.spawn.altitude=160
+  - sim.spawn.altitude_noise=10
+  - sim.spawn.vertical_speed=-18
+  - sim.spawn.vertical_speed_noise=1
+  - sim.spawn.offset_noise=2
+  - sim.spawn.horizontal_speed_noise=0.2
+  - sim.spawn.heading_noise=0.03
+  - sim.max_time=60
+- name: 'bridge 4: 200 m / 25 m/s approach'
+  overrides:
+  - sim.spawn.altitude=200
+  - sim.spawn.altitude_noise=10
+  - sim.spawn.vertical_speed=-25
+  - sim.spawn.vertical_speed_noise=1
+  - sim.spawn.offset_noise=3
+  - sim.spawn.horizontal_speed_noise=0.2
+  - sim.spawn.heading_noise=0.03
+  - sim.max_time=60
+- name: 1 larger approach errors
+  overrides:
+  - sim.spawn.altitude=200
+  - sim.spawn.altitude_noise=50
+  - sim.spawn.vertical_speed=-30
+  - sim.spawn.vertical_speed_noise=5
+  - sim.spawn.offset_noise=5
+  - sim.spawn.horizontal_speed_noise=1
+  - sim.spawn.heading_noise=0.1
+  - sim.max_time=60
+- name: 2 engine ignition
+  overrides:
+  - sim.spawn.lit_throttle=0
+- name: 'flip bridge 1: pitch 0.1 rad'
+  overrides:
+  - sim.spawn.pitch=0.1
+  - sim.spawn.pitch_noise=0.02
+  - sim.spawn.altitude=200
+  - sim.spawn.vertical_speed=-30
+  - sim.spawn.offset_noise=5
+  - sim.max_time=90
+- name: 'flip bridge 2: pitch 0.2 rad'
+  overrides:
+  - sim.spawn.pitch=0.2
+  - sim.spawn.pitch_noise=0.02
+  - sim.spawn.altitude=250
+  - sim.spawn.vertical_speed=-30
+  - sim.spawn.offset_noise=5
+  - sim.max_time=90
+- name: 'flip bridge 3: pitch 0.35 rad'
+  overrides:
+  - sim.spawn.pitch=0.35
+  - sim.spawn.pitch_noise=0.02
+  - sim.spawn.altitude=350
+  - sim.spawn.vertical_speed=-35
+  - sim.spawn.offset_noise=10
+  - sim.max_time=90
+- name: 'flip bridge 4: pitch 0.55 rad'
+  overrides:
+  - sim.spawn.pitch=0.55
+  - sim.spawn.pitch_noise=0.02
+  - sim.spawn.altitude=500
+  - sim.spawn.vertical_speed=-45
+  - sim.spawn.offset_noise=20
+  - sim.max_time=90
+- name: 'flip bridge 5: pitch 0.8 rad'
+  overrides:
+  - sim.spawn.pitch=0.8
+  - sim.spawn.pitch_noise=0.02
+  - sim.spawn.altitude=700
+  - sim.spawn.vertical_speed=-60
+  - sim.spawn.offset_noise=30
+  - sim.max_time=90
+- name: 'flip bridge 6: pitch 1.1 rad'
+  overrides:
+  - sim.spawn.pitch=1.1
+  - sim.spawn.pitch_noise=0.02
+  - sim.spawn.altitude=900
+  - sim.spawn.vertical_speed=-75
+  - sim.spawn.offset_noise=50
+  - sim.max_time=90
+- name: 3 low belly-flop and flip
+  overrides:
+  - sim.spawn.altitude=1200
+  - sim.spawn.altitude_noise=300
+  - sim.spawn.vertical_speed=-90
+  - sim.spawn.vertical_speed_noise=10
+  - sim.spawn.pitch=1.5708
+  - sim.spawn.pitch_noise=0.1
+  - sim.spawn.offset_noise=100
+  - sim.max_time=90
+- name: 4 randomized terminal descent
+  overrides:
+  - sim.spawn.altitude=3250
+  - sim.spawn.altitude_noise=1750
+  - sim.spawn.offset_noise=500
+  - sim.spawn.horizontal_speed_noise=20
+  - sim.spawn.vertical_speed_noise=25
+  - sim.spawn.heading_noise=3.14159
+  - sim.max_time=180
+- name: 5 wind
+  overrides:
+  - sim.wind.surface_speed=5
+  - sim.wind.jet_speed=10
+  - sim.wind.turbulence=1
+- name: 6 entry handover at 5 km
+  overrides:
+  - reward.distance_saturation=1000
+  - sim.spawn.entry=true
+  - sim.spawn.altitude=5000
+  - sim.spawn.altitude_noise=250
+  - sim.spawn.speed=110
+  - sim.spawn.speed_noise=5
+  - sim.spawn.flight_path_angle=1.134464
+  - sim.spawn.flight_path_angle_noise=0.10472
+  - sim.spawn.heading_noise=0.034907
+  - sim.spawn.offset_noise=100
+  - sim.max_time=240
+- name: 7 handover at 8 km
+  overrides:
+  - sim.spawn.altitude=8000
+  - sim.spawn.altitude_noise=500
+  - sim.spawn.speed=200
+  - sim.spawn.speed_noise=10
+  - sim.spawn.flight_path_angle=1.047198
+- name: 8 handover at 12 km
+  overrides:
+  - sim.spawn.altitude=12000
+  - sim.spawn.speed=240
+- name: 9 handover at 20 km
+  overrides:
+  - sim.spawn.altitude=20000
+  - sim.spawn.speed=280
+  - sim.spawn.flight_path_angle=1.117011
+  - sim.spawn.flight_path_angle_noise=0.05236

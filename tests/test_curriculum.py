@@ -249,3 +249,21 @@ def test_old_run_configs_with_removed_settings_still_load(tmp_path):
     assert "axial_nose" not in loaded.sim.vehicle.aero
     assert loaded.num_envs == cfg.num_envs
     assert loaded.runner.algorithm.lam == cfg.runner.algorithm.lam  # free-form section kept
+
+
+def test_flip_bridge_preserves_checkpoint_stage_indices_and_entry_target():
+    cfg = compose_cfg("curriculum=catch_flip")
+    bridge_cfg = compose_cfg("curriculum=catch_bridge")
+    flip = Curriculum(cfg, cfg.curriculum)
+    bridge = Curriculum(bridge_cfg, bridge_cfg.curriculum)
+    for stage in range(7):
+        assert flip.configs(stage) == bridge.configs(stage)
+    pitches = [flip.configs(stage)[0].spawn.pitch for stage in range(6, 14)]
+    assert pitches == sorted(pitches)
+    assert max(np.diff(pitches)) < 0.5
+    assert flip.target_configs() == bridge.target_configs()
+    for stage in range(7, 13):
+        sim, _ = flip.configs(stage)
+        assert sim.catch.policy_controlled
+        assert sim.catch.flap_collisions
+        assert sim.max_roll_rate == bridge.configs(6)[0].max_roll_rate

@@ -1,0 +1,14 @@
+defaults:
+  - catch_bridge_local
+  - override curriculum: catch_flip
+  - _self_
+experiment: catch_flip_local
+num_envs: 512
+iterations: 2000
+rollback_drop: 0.3
+rollback_patience: 3
+obs:
+  position: 30
+runner:
+  # Retain the existing 12.8-second recurrent horizon and 65,536-sample batch.
+  num_steps_per_env: 128

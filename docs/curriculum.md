@@ -68,8 +68,9 @@ A separate `curriculum=catch` adds pivoting arms and hull/fin collision checks; 
 | Stage | Task | Status |
 |---|---|---|
 | 0 | Short upright approach, lower fins pass, arms close, pins captured | solved in deterministic holdout: 1,023/1,024 catches (99.9%), learned flight + arm control |
-| 1 | Larger approach errors | PPO continuation running; not solved |
-| 2–5 | Ignition, flip, randomized descent, wind | not trained |
+| 1 | Larger approach errors | solved: 505/512 fresh lit-engine approaches (98.6%) |
+| 2 | Engine ignition | solved: 507/512 deterministic and 248/256 stochastic fresh approaches |
+| 3–5 | Flip, randomized descent, wind | gradual flip curriculum training; full belly-flop unsolved |
 | 6–9 | Late-entry handovers, 5–20 km | not trained |
 
 Findings (2026-11-15): the initial fixed-arm baseline omitted fin collision. Its closed gap was
@@ -239,3 +240,20 @@ The belly-flop transition remains unsolved. An experimental rate-limited upright
 still tumbled in all 256 low-belly-flop trials: one trace accumulated >100 m/s lateral speed
 while turning, then exceeded the 90 degree/s roll limit. Fixed neutral flaps and sideways
 thrust require investigation; no simulator limits have been relaxed to make these pass.
+
+Full-belly-flop PPO diagnostic (`catch_approach_ppo/2026-11-15_18-34-09`): the preserved
+approach passes stage 6, but 200 updates give no belly-flop catches. Fresh checkpoint-199 audit
+(seed 819238, 256 episodes) finds 256 tumbles, median duration 2.96 s and median end altitude
+917 m, with no completed flip. Unlike the unsuccessful actor, the critic now predicts this
+failure regime: Monte Carlo all-state EV 0.930, initial-state EV 0.816, RMSE 10.34, initial bias
++12.09. High EV alone is not evidence of a good policy. Frozen upright normalization produces
+large belly-flop outliers (actor position-channel absolute p99 about 602, attitude about 128).
+The audit now names channels, measures actor and critic normalization separately, and saves
+terminal time, pose, velocity, rates, pin miss and flip/ignition altitude for each episode.
+
+`catch_flip_local/2026-11-15_18-37-48` restarts from the immutable approach checkpoint, retaining
+the existing 512×128 rollout batch and frozen normalizers. Six intermediate pitches from 0.1
+to 1.1 rad precede the original 90-degree stage; speed, height and offset widen gradually.
+Stages 0–6 and the final entry target remain unchanged. The first 0.1-rad stage has roughly
+66–74% early catches, not yet solved. A separate critic-only fit to stochastic approach returns
+barely improved held-out RMSE (38.67 to 38.24); it was not substituted into this PPO run.
