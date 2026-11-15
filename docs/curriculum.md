@@ -70,7 +70,7 @@ A separate `curriculum=catch` adds pivoting arms and hull/fin collision checks; 
 | 0 | Short upright approach, lower fins pass, arms close, pins captured | solved in deterministic holdout: 1,023/1,024 catches (99.9%), learned flight + arm control |
 | 1 | Larger approach errors | solved: 505/512 fresh lit-engine approaches (98.6%) |
 | 2 | Engine ignition | solved: 507/512 deterministic and 248/256 stochastic fresh approaches |
-| 3–5 | Flip, randomized descent, wind | gradual flip curriculum: 500 m / 0–0.5 rad gate passed: fresh 91.0% deterministic, 87.9% stochastic; training 45 m/s descent; full belly-flop unsolved |
+| 3–5 | Flip, randomized descent, wind | gradual flip curriculum: 500 m / 0–0.5 rad gate passed: fresh 91.0% deterministic, 87.9% stochastic; 45 m/s gate also passed; training 0–0.8 rad tilt; full belly-flop unsolved |
 | 6–9 | Late-entry handovers, 5–20 km | not trained |
 
 Findings (2026-11-15): the initial fixed-arm baseline omitted fin collision. Its closed gap was
@@ -556,3 +556,11 @@ speed to 45 m/s. A live promotion watcher archives 1,024 deterministic and 512 s
 fresh flights for each subsequent passed-stage snapshot in `promotion-holdouts`, separately
 from the every-100-update audits. The executed watcher is archived as `watch_promotions.py`
 in the run directory. Full belly-flop and re-entry catches remain unvalidated.
+
+
+The same run passes the 45 m/s descent gate at iteration 2029. Its saved stage-14
+checkpoint catches **929/1,024 deterministic** fresh starts (seed 819428) and
+**454/512 stochastic** starts (seed 819429). Initial stochastic critic bias settles to
++0.61, though EV is only 0.068. Training advances to stage 15: the initial tilt range
+expands from 0–0.5 to 0–0.8 rad at 500 m and 45 m/s. This is still a gradual flip
+curriculum, not full belly-flop or entry validation.
