@@ -294,3 +294,14 @@ Initial critic bias has drifted to -62.0 as the actor improves. An optional
 rate imposed by its KL guard. Shared/split optimizer checkpoint loading preserves Adam moments;
 the configured rates are reapplied after resume and actor scheduling leaves the critic rate fixed.
 The default remains one shared rate; faster-critic experiments require separate fresh validation.
+
+Tilt/altitude ablation of the passed actor (seed 819248, 256 flights per condition): changing
+only altitude from 200 to 250 m retains 73.4% catches. At 200 m, fixed pitch 0.125 rad catches
+29.7%, pitch 0.15 rad 0.8%, and pitch 0.2 rad 0%. The narrow attitude distribution is the main
+cliff. A uniform 0–0.15 rad range retains 75.4% at 200 m and 72.3% at 250 m; 0–0.2 rad retains
+52.7% at 200 m. `catch_flip_range` therefore keeps easier attitudes in each expansion, and
+separates subsequent altitude and descent-speed changes. Stages 0–7 and the final entry target
+remain unchanged. Parallel runs `catch_flip_range_fast/2026-11-15_19-02-17` (critic LR 1e-5)
+and `catch_flip_range_control/2026-11-15_19-02-17` (shared LR 1e-6) start from the identical
+passed actor/critic and must re-establish the stage-7 threshold after reset before advancing.
+The initial observed range success is a counterfactual baseline, not a trained result.

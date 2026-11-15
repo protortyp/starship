@@ -267,3 +267,22 @@ def test_flip_bridge_preserves_checkpoint_stage_indices_and_entry_target():
         assert sim.catch.policy_controlled
         assert sim.catch.flap_collisions
         assert sim.max_roll_rate == bridge.configs(6)[0].max_roll_rate
+
+
+def test_range_curriculum_keeps_easier_attitudes_and_passed_stage_indices():
+    cfg = compose_cfg("curriculum=catch_flip_range")
+    old_cfg = compose_cfg("curriculum=catch_flip")
+    ranged = Curriculum(cfg, cfg.curriculum)
+    old = Curriculum(old_cfg, old_cfg.curriculum)
+    for stage in range(8):
+        assert ranged.configs(stage) == old.configs(stage)
+    previous_upper = 0
+    for stage in range(8, 25):
+        sim, _ = ranged.configs(stage)
+        assert sim.spawn.pitch - sim.spawn.pitch_noise == pytest.approx(0)
+        upper = sim.spawn.pitch + sim.spawn.pitch_noise
+        assert upper >= previous_upper
+        previous_upper = upper
+        assert sim.catch.flap_collisions
+    assert previous_upper == pytest.approx(1.5708)
+    assert ranged.target_configs() == old.target_configs()
