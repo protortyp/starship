@@ -5,6 +5,7 @@ uv run python -m starship.train.learning_audit RUN/model_2999.pt --episodes 256
 
 import argparse
 import csv
+import hashlib
 import json
 from pathlib import Path
 
@@ -105,6 +106,7 @@ def discounted_returns(rewards, valid, gamma):
 
 
 def audit(checkpoint, episodes, seed, output, stage=None):
+    digest = hashlib.sha256(checkpoint.read_bytes()).hexdigest()
     cfg = load_run_config(checkpoint.parent)
     training_batch = cfg.num_envs * cfg.runner.num_steps_per_env
     cfg.device, cfg.num_envs, cfg.eval_envs = "cpu", episodes, episodes
@@ -172,6 +174,7 @@ def audit(checkpoint, episodes, seed, output, stage=None):
     }
     report = {
         "checkpoint": str(checkpoint),
+        "checkpoint_sha256": digest,
         "seed": seed,
         "episodes": episodes,
         "stage": runner.curriculum.stage,
@@ -202,6 +205,8 @@ def audit(checkpoint, episodes, seed, output, stage=None):
         valid=masks,
         status=status.numpy(),
     )
+    if hashlib.sha256(checkpoint.read_bytes()).hexdigest() != digest:
+        raise RuntimeError("Checkpoint changed during audit; use a frozen numbered checkpoint")
     (output / "report.json").write_text(json.dumps(report, indent=2))
     runner.writer.close()
     print(json.dumps({k: v for k, v in report.items() if k != "observations"}, indent=2))

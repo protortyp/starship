@@ -198,3 +198,13 @@ after actor optimizer steps, so later updates cannot strand them outside the gra
 Deterministic actions are unchanged. At bridge checkpoint 99 (130 m/-12 m/s), fresh Monte Carlo
 critic EV was 0.209 with +97.97 return-unit bias; the critic still needs investigation. Its simple
 one-engine stopping estimate had 17 m median margin, unlike the original -30 m/s stage's -141 m.
+
+Critic-only fit experiment (`catch_bridge_noise_local/2026-11-15_17-55-47/critic-fit-probe`):
+keep the actor fixed and fit complete returns from 256 flights, with 192 training and 64 validation
+episodes. Validation all-state EV rose from 0.238 to 0.908; a separate fresh 256-episode test
+(seed 92817) gave EV 0.644, bias +2.27 and RMSE 97.49. Initial-state fresh EV remained only 0.060,
+so the critic's early predictions and generalization are still weak. This is evidence of an
+optimization/data problem, not proof of full value-function mastery. Continue comparing complete
+returns with bootstrapped training targets. `catch_bridge_calibrated_local/2026-11-15_17-59-49`
+tests that calibrated critic in PPO with the same actor, frozen encodings, learnable noise floor,
+and less frequent rollback (30% relative drop for three evaluations). Early catches remain ~40%.
