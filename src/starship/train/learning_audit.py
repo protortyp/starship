@@ -7,6 +7,7 @@ import argparse
 import csv
 import hashlib
 import json
+from itertools import pairwise
 from pathlib import Path
 
 import numpy as np
@@ -97,6 +98,31 @@ def channel_metrics(raw, normalized):
             row[prefix + "_abs_gt_10"] = float(np.mean(np.abs(finite) > 10))
         rows.append(row)
     return rows
+
+
+def initial_tilt_metrics(initial_obs, status, values, returns):
+    """Fixed physical-angle bins expose failures hidden by aggregate success."""
+    tilt = np.arccos(np.clip(initial_obs[:, 0], -1, 1))
+    edges = np.array([0, 0.05, 0.1, 0.15, 0.2, 0.3, 0.5, 0.8, 1.1, 1.6, np.pi])
+    bins = []
+    for i, (low, high) in enumerate(pairwise(edges)):
+        selected = (tilt >= low) & ((tilt <= high) if i == len(edges) - 2 else (tilt < high))
+        count = int(selected.sum())
+        bins.append(
+            {
+                "lower_rad": float(low),
+                "upper_rad": float(high),
+                "episodes": count,
+                "catch_rate": float(np.mean(status[selected] == 1)) if count else None,
+                "critic_initial_states": value_metrics(values[selected], returns[selected])
+                if count
+                else None,
+            }
+        )
+    return {
+        "angle": "acos(up_body_1); radians; upper edge exclusive except final bin",
+        "bins": bins,
+    }
 
 
 def discounted_returns(rewards, valid, gamma):
@@ -211,6 +237,7 @@ def audit(checkpoint, episodes, seed, output, stage=None, stochastic=False):
         "catch_rate": float((status == 1).float().mean()),
         "critic_all_states": value_metrics(values[masks], targets[masks]),
         "critic_initial_states": value_metrics(values[0], targets[0]),
+        "initial_tilt": initial_tilt_metrics(raw[0], status.numpy(), values[0], targets[0]),
         "initial_braking_estimates": braking,
         "training_metrics_max_env_steps": cutoff,
         "engine_on_fraction": np.stack(engines)[masks].mean(0).tolist(),

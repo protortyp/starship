@@ -52,3 +52,21 @@ def test_audit_names_follow_encoding_width_and_geometry_order():
     assert (
         channel_metrics(np.zeros((1, 38)), np.zeros((1, 38)))[35]["name"] == "pin_horizontal_error"
     )
+
+
+def test_tilt_audit_separates_failure_region_and_handles_endpoints():
+    from starship.train.learning_audit import initial_tilt_metrics
+
+    obs = np.zeros((4, 32))
+    obs[:, 0] = [1.0000001, np.cos(0.12), np.cos(0.13), -1.0000001]
+    result = initial_tilt_metrics(
+        obs, np.array([1, 2, 2, 1]), np.array([1, 10, 20, 4]), np.array([1, 0, 0, 4])
+    )
+    bins = result["bins"]
+    assert sum(row["episodes"] for row in bins) == 4
+    assert bins[0]["catch_rate"] == bins[-1]["catch_rate"] == 1
+    assert bins[2]["episodes"] == 2
+    assert bins[2]["catch_rate"] == 0
+    assert bins[2]["critic_initial_states"]["bias"] == 15
+    assert bins[2]["critic_initial_states"]["explained_variance"] is None
+    assert bins[1]["catch_rate"] is bins[1]["critic_initial_states"] is None
