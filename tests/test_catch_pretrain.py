@@ -1,3 +1,4 @@
+import pytest
 import torch
 from hydra import compose, initialize_config_module
 
@@ -70,3 +71,23 @@ def test_mixed_collection_resets_recurrent_policy_and_checkpoint_resumes_at_zero
     assert runner.next_iteration == 0
     assert runner.total_env_steps == 0
     runner.writer.close()
+
+
+@pytest.mark.parametrize("stage", [5, 6])
+def test_approach_demonstrations_brake_with_multiple_engines_at_selected_stage(stage):
+    with initialize_config_module("starship.train.conf", version_base=None):
+        cfg = compose("catch_bridge_local", overrides=[f"curriculum.start_stage={stage}"])
+    data = demonstrations(cfg, 32, 39157, teacher="approach")
+    assert (data["status"] == 1).float().mean() >= 0.9
+    assert data["obs"][0, :, 12].mean() > 0.04  # 200 m approach, not the 105 m short start
+    valid = data["valid"]
+    assert (data["actions"][..., 1:3][valid] == 1).any()
+    assert (data["actions"][..., 11][valid] == 1).any()
+    assert torch.isfinite(data["actions"][valid]).all()
+
+
+def test_upright_approach_teacher_rejects_unvalidated_belly_flop_spawns():
+    with initialize_config_module("starship.train.conf", version_base=None):
+        cfg = compose("catch_bridge_local", overrides=["curriculum.start_stage=7"])
+    with pytest.raises(ValueError, match="upright, non-entry"):
+        demonstrations(cfg, 1, 0, teacher="approach")
