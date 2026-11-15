@@ -650,3 +650,20 @@ also start with substantial saturation, so this does not establish an encoding d
 Replay outputs match the recorded actor/critic outputs exactly for these three datasets,
 the trained 700 m model 2999 and the 550 m bridge model 2859. Full reports and the original
 multi-run research script are archived in the handover run's `lstm-phase-audit` directory.
+
+
+The altitude bridge passes 550 m at iteration 3099. The immutable passed-stage-16 snapshot
+catches 918/1,024 deterministic starts (seed 820132) and 439/512 stochastic starts
+(seed 820133). It proceeds to 600 m; its first independent stochastic audit there catches
+368/512 (model 3159, seed 819381). The direct 700 m run remains active as a comparison.
+
+Matched checkpoint tests use 1,024 identical starts and common action sampling seeds at
+each altitude (spawn 819601, actions 819602). At 600 m, original policy 2809 catches 459,
+direct-700 m policy 3389 catches 631, and bridge policy 3159 catches 705. At 700 m the
+same policies catch 79, 225 and 136 respectively. Bridge-minus-direct paired-bootstrap
+95% intervals are +4.49 to +9.96 percentage points at 600 m, but -10.84 to -6.64 points at
+700 m. The bridge improves its current task without yet surpassing direct training at the
+harder altitude; their different update counts and training histories prevent interpreting
+this as an equal-budget causal efficiency comparison. Results and executed script are in
+the bridge run's `matched-altitude-comparison` directory. Both curricula retain the original
+full re-entry target, which remains unsolved.
