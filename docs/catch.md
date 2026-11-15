@@ -118,3 +118,22 @@ original outputs; loading a 38-input policy into a 32-input environment is rejec
 using the simulator's contact label rather than a geometric heuristic. Default
 `reward.catch_contact_penalty=0` preserves earlier checkpoints' reward definitions. This preset
 retains the base 32 observations and initializes the critic bias at the -300 contact floor.
+
+## Demonstration warm-start
+
+`uv run python -m starship.train.catch_pretrain --output logs/catch_demo_pretrain/<new-run>`
+collects stage-0 reference-controller flights through the normal action interface, trains the
+recurrent actor and critic, and evaluates the neural policy alone every 100 supervised updates.
+The reference controller uses simulator state during data collection; it is absent from exported
+policies and evaluations. Collision checks, actuator limits and policy-controlled arms stay active.
+This is a short-approach teaching tool, not a controller for the full belly-flop curriculum.
+
+By default, four additional dataset-aggregation rounds label states reached by mixed teacher/policy
+rollouts (teacher action probabilities 1/2, 1/4, 1/8, 1/16). Each round performs 2,000 supervised
+updates; `--rounds 0` isolates ordinary behavior cloning. Complete recurrent episodes are kept
+separate and padding is masked. Demonstration tensors, evaluation history and best evaluation
+metadata are saved beside the paired `model_-1.pt` / `policy_-1.pt` initialization checkpoint.
+These supervised updates are not reported as PPO iterations or PPO environment steps. Resume
+normal training with `checkpoint=/absolute/path/to/model_-1.pt`; PPO starts at iteration zero.
+Teacher catch rate and standalone-policy catch rate are separate metrics; only the latter can
+support a claim that the learned policy catches.

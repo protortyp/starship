@@ -129,3 +129,13 @@ structural contacts (hull/fins against tower/arms); failed capture constraints a
 retain their existing cost. Its critic bias starts at -300 to match the new contact floor. All
 32 observations, spawn and physics remain unchanged. This tests the remaining contact-vs-capture
 failure incentive; explicit geometry observations remain a separate opt-in experiment.
+
+At contact-run checkpoint 299, four probe seeds kept the arms open and failed capture constraints;
+the policy had stopped choosing immediate structural contact. By iteration 1,100 it still had
+zero catches and mostly timed out. A full-physics stage-0 reference controller caught 256/256
+randomized validation episodes through the same 12-action interface, including mirror handling,
+finite actuator dynamics and collisions. This establishes simulator feasibility, not learned
+success. Initial behavior cloning (`catch_demo_pretrain/2026-11-15_14-14-20`, 256 demonstrations,
+2,000 supervised updates) achieved 0% standalone catches: the best-return checkpoint cleared the
+fins but drifted into an arm with its hull on both probed seeds. Next test aggregates corrective
+labels on learner-visited states; the neural policy alone remains the evaluation target.
