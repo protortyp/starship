@@ -96,7 +96,10 @@ def run_summary(run: Path, s: dict, report: dict) -> list[str]:
             )
         lines.append(f"- {line}")
     entropy = last(s, "explore/entropy")
-    lines.append(f"- policy entropy {entropy:.2f} (3 Bernoulli + 8 Gaussian heads; no fixed max)")
+    switches = 4 if "explore/entropy_head/arm_close" in s else 3
+    lines.append(
+        f"- policy entropy {entropy:.2f} ({switches} Bernoulli + 8 Gaussian heads; no fixed max)"
+    )
     for i in range(3):
         engine_entropy = last(s, f"explore/entropy_head/engine{i}")
         if engine_entropy < ENGINE_ENTROPY_MIN:

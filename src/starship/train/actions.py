@@ -1,7 +1,8 @@
 """Policy action layout, shared by the distribution, the env and the metrics.
 
 The policy emits ACTION_DIM numbers per env: ENGINE_HEADS Bernoulli samples (0/1, engine on)
-followed by CONTINUOUS_HEADS unbounded Gaussian samples. The env squashes each continuous
+followed by CONTINUOUS_HEADS unbounded Gaussian samples and a final Bernoulli arm-close flag.
+The env squashes each continuous
 sample with tanh into its actuator range and sends the result to the simulator as a target.
 """
 
@@ -25,8 +26,11 @@ CONTINUOUS = (
     ("rcs_roll", -1.0, 1.0),
 )
 CONTINUOUS_HEADS = len(CONTINUOUS)
-ACTION_DIM = ENGINE_HEADS + CONTINUOUS_HEADS
-HEAD_NAMES = ENGINE_NAMES + tuple(name for name, _, _ in CONTINUOUS)
+LEGACY_ACTION_DIM = ENGINE_HEADS + CONTINUOUS_HEADS
+ARM_HEAD = LEGACY_ACTION_DIM
+ACTION_DIM = LEGACY_ACTION_DIM + 1
+BINARY_HEADS = ENGINE_HEADS + 1
+HEAD_NAMES = ENGINE_NAMES + tuple(name for name, _, _ in CONTINUOUS) + ("arm_close",)
 
 
 def make_action_ranges(device=None) -> wp.array:
@@ -59,6 +63,9 @@ def map_actions_kernel(
         flaps = wp.vec4(flaps[1], flaps[0], flaps[3], flaps[2])
         gimbal2 = -gimbal2
         rcs = -rcs
+    commands.arm_close[i] = 0.0
+    if actions[i, ARM_HEAD] > 0.5:
+        commands.arm_close[i] = 1.0
     commands.engine_on[i] = on
     commands.throttle[i] = wp.vec3(squashed[i, 0])
     commands.gimbal2[i] = wp.vec3(gimbal2)

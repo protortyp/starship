@@ -10,6 +10,7 @@ from tensordict import TensorDict
 from starship.sim import SimConfig, Simulator
 from starship.sim.atmosphere import sample as sample_air
 from starship.train import ObsConfig, RewardConfig, RocketEnv
+from starship.train.actions import ACTION_DIM
 from starship.train.checkpoint import load_policy
 from starship.train.curriculum import Curriculum
 from starship.train.encoding import LEGACY_OBS_DIM, OBS_DIM
@@ -122,7 +123,7 @@ def test_bounded_potential_values_and_informative_gradient():
         bodies["pos"] = (0, 0, altitude)
         bodies["vel"] = 0
         env.sim.state.body.assign(bodies)
-        env.step(np.zeros((1, 11), dtype=np.float32))
+        env.step(np.zeros((1, ACTION_DIM), dtype=np.float32))
         values.append(env._potential_before.numpy()[0, 0])
     np.testing.assert_allclose(values, [0, -50 / 1001, -25, -1000 / 21, -1050 / 22], atol=1e-5)
     assert all(-50 < v <= 0 for v in values)

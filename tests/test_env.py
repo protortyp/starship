@@ -121,7 +121,7 @@ def test_mirrored_trajectories_and_observations(device):
     np.testing.assert_allclose(*env.observe().numpy(), atol=2e-6)
     raw = actions(2)
     raw[:, :3] = (1, 0, 1)
-    raw[:, 3:] = (0.4, 0.3, -0.1, -0.2, 0.4, 0.1, 0.3, 0.5)
+    raw[:, 3:11] = (0.4, 0.3, -0.1, -0.2, 0.4, 0.1, 0.3, 0.5)
     for _ in range(20):
         result = env.step(raw)
         assert not env.sim.terminal.done.numpy().any()
@@ -139,7 +139,7 @@ def test_mirrored_trajectories_and_observations(device):
 def test_action_ranges_and_engine_heads(device):
     env = RocketEnv(3, config(), device=device, obs_config=ObsConfig(mirror=False))
     raw = actions(3)
-    raw[:, 3:] = np.array([-100, 0, 100])[:, None]
+    raw[:, 3:11] = np.array([-100, 0, 100])[:, None]
     raw[:, :3] = (0.5, 0.5001, 1)
     env.step(raw)
     squashed = env.squashed_actions.numpy()
@@ -299,7 +299,7 @@ def test_jerk_history_resets_on_respawn(device):
     jerk_index = REWARD_TERMS.index("jerk")
     assert env.reward_terms.numpy()[0, jerk_index] == 0
     previous = env.squashed_actions.numpy().copy()
-    raw[:, 3:] = 0.8
+    raw[:, 3:11] = 0.8
     env.step(raw)
     expected = -env.reward_config.jerk_cost * ((env.squashed_actions.numpy() - previous) ** 2).sum()
     assert env.reward_terms.numpy()[0, jerk_index] == pytest.approx(expected)

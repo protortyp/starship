@@ -3,7 +3,7 @@ defaults:
   - override curriculum: catch
   - _self_
 
-experiment: catch_moving_local
+experiment: catch_policy_local
 device: cuda:0
 iterations: 3000
 # Smaller recurrent minibatches avoid the late-run allocation spikes of the fixed-arm baseline.

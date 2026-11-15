@@ -8,6 +8,7 @@ from starship.sim import CRASHED, FLYING, LANDED, Simulator
 from starship.sim.catch import structure_collision, tower_step
 from starship.sim.physics import Params
 from starship.sim.rigid import Body, orientation
+from starship.train.actions import ACTION_DIM
 from starship.train.env import RocketEnv
 from tests.test_catch import at_plane, catch_config
 
@@ -144,7 +145,7 @@ def test_arm_state_copies_resets_and_survives_terminal_autoreset():
     np.testing.assert_allclose(env.observe().numpy()[:, 31], 1)
     env.sim.state.body.assign(at_plane(cfg).state.body.numpy())
     env.sim.state.arm_angle.zero_()
-    step = env.step(np.zeros((1, 11), dtype=np.float32))
+    step = env.step(np.zeros((1, ACTION_DIM), dtype=np.float32))
     assert env.final_status.numpy()[0] == LANDED
     assert step.final_obs.numpy()[0, 31] == 0
     assert step.obs.numpy()[0, 31] == pytest.approx(1)
