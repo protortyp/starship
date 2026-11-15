@@ -352,7 +352,8 @@ def report_text(report):
         "clearance, individual pin heights or closure-time in the base 32 inputs. With "
         "obs.catch_geometry=true, channels 32-37 add two pin heights, aft-fin clearance, pin "
         "alignment error, closure time and constant-velocity arrival time. Collision labels are "
-        f"diagnostics only. Raw position is divided by {report.get('position_scale', 'the configured scale')}; "
+        "diagnostics only. Raw position is divided by "
+        f"{report.get('position_scale', 'the configured scale')}; "
         "the learned normalizer is also exported "
         "to avoid mistaking small raw values for an invisible signal.",
     ]
