@@ -432,3 +432,17 @@ critic LR 1e-5, frozen normalization, optimizer history and the KL guard. Indepe
 512-flight stochastic audits are scheduled every 250 updates; matched comparisons require
 identical initial observations and curriculum stage. The main PR publisher hands off to the
 conditioned control after the original run's final render, continuing description-only GIFs.
+
+`uv run python -m starship.train.return_uncertainty CHECKPOINT --starts 128 --repeats 8`
+now separates action-noise variability from initial-state critic error. `learning_audit` accepts
+`--stochastic --action-seed N` independently of the spawn seed and uses distinct default output
+paths. The repeated audit asserts identical initial observations, predictions and checkpoint
+hashes; it reports within-start variance, noise-corrected between-start variance, and critic
+errors against both individual returns and repeat means. Its EV ceiling is a finite-repeat
+variance-component estimate, not a proven bound or a control-quality score.
+
+On conditioned-control checkpoint 749, eight repeats of 128 starts (spawn seed 819283,
+action seeds 819284–819291) catch 80.7%; 35 starts have mixed outcomes. Estimated single-flight
+EV ceiling is 0.633, while the critic's individual-return EV is 0.391 and mean-return EV 0.576
+(bias -11.05, mean-target RMSE 71.75). Thus action noise contributes materially, but does not
+explain all critic error. These are matched repeated starts, not 1,024 independent spawn states.
