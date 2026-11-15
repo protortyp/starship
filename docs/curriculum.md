@@ -189,3 +189,12 @@ bridge passed both evaluations at iteration 55; early 130 m/-12 m/s training cat
 critic EV was -0.094. Continue checking the critic as success/failure diversity changes; do not
 allow a completed failed run to be mistaken for active training. The progress publisher now
 matches the exact training tmux session (the updater's prefix previously caused false “running”).
+
+Exploration audit found a reproducible clamp-boundary bug: float32 `log_std` initialized at
+`log(0.005)` falls just below the Python-double lower bound, yielding zero entropy gradients
+for all eight continuous noise parameters. Checkpoint 99 of the bridge run still had every
+log-std exactly unchanged. Use parameter-dtype clamp bounds and project parameters into bounds
+after actor optimizer steps, so later updates cannot strand them outside the gradient interval.
+Deterministic actions are unchanged. At bridge checkpoint 99 (130 m/-12 m/s), fresh Monte Carlo
+critic EV was 0.209 with +97.97 return-unit bias; the critic still needs investigation. Its simple
+one-engine stopping estimate had 17 m median margin, unlike the original -30 m/s stage's -141 m.

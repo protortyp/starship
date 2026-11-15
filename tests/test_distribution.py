@@ -181,3 +181,27 @@ def test_ppo_smoke_update_on_random_data():
         else:
             assert metrics[f"explore/std/{head}"] == pytest.approx(0.5, abs=0.05)
     assert not torch.equal(actor.distribution.log_std.detach(), before)
+
+
+@pytest.mark.parametrize("floor", [0.005, 0.05])
+def test_std_entropy_gradient_survives_initialization_at_lower_bound(floor):
+    dist = HybridDistribution(init_std=floor, std_range=(floor, 2.0))
+    dist.update(torch.zeros(4, ACTION_DIM))
+    dist.entropy.mean().backward()
+    assert torch.isfinite(dist.log_std.grad).all()
+    assert (dist.log_std.grad > 0).all()
+
+
+def test_projected_std_can_recover_after_optimizer_pushes_below_floor():
+    dist = HybridDistribution(init_std=0.005, std_range=(0.005, 2.0))
+    optimizer = torch.optim.Adam(dist.parameters(), lr=0.01)
+    with torch.no_grad():
+        dist.log_std.fill_(-20)
+    dist.project_parameters()
+    before = dist.log_std.detach().clone()
+    dist.update(torch.zeros(4, ACTION_DIM))
+    (-dist.entropy.mean()).backward()
+    optimizer.step()
+    dist.project_parameters()
+    assert (dist.log_std > before).all()
+    assert (dist.log_std <= math.log(2)).all()
