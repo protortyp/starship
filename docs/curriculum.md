@@ -67,7 +67,7 @@ A separate `curriculum=catch` adds pivoting arms and hull/fin collision checks; 
 
 | Stage | Task | Status |
 |---|---|---|
-| 0 | Short upright approach, lower fins pass, arms close, pins captured | policy-controlled arms: fresh local run planned; not solved |
+| 0 | Short upright approach, lower fins pass, arms close, pins captured | solved in deterministic holdout: 1,023/1,024 catches (99.9%), learned flight + arm control |
 | 1–5 | Approach errors, ignition, flip, randomized descent, wind | not trained |
 | 6–9 | Late-entry handovers, 5–20 km | not trained |
 
@@ -87,7 +87,7 @@ changed. The moving-arm local preset reduces this to 512 envs / 16 minibatches w
 Validation covers finite-rate policy commands, reopening, early fin strikes, late missed catches,
 Bernoulli gradients and old checkpoint/optimizer migration: 247 tests passed, 2 skipped. A local
 CUDA smoke run completed three PPO updates, evaluations and Rerun recordings with the new action.
-No catch stage has passed evaluation yet.
+At that point no catch stage had passed evaluation; see the demonstration result below.
 
 Observability probe (2026-11-15, `catch_policy_local/2026-11-15_12-50-20/policy_1499.pt`,
 stage 0, deterministic seeds 0–7): all eight starts requested closure at t=0 with probability
@@ -139,6 +139,24 @@ success. Initial behavior cloning (`catch_demo_pretrain/2026-11-15_14-14-20`, 25
 2,000 supervised updates) achieved 0% standalone catches: the best-return checkpoint cleared the
 fins but drifted into an arm with its hull on both probed seeds. Next test aggregates corrective
 labels on learner-visited states; the neural policy alone remains the evaluation target.
+
+Demonstration aggregation (`catch_demo_pretrain/2026-11-15_14-16-37`) solved the short approach.
+The saved update-6,000 neural policy, evaluated without teacher assistance on fresh seeds, caught
+512/512 and 511/512 episodes in two independent sequential batches (1,023/1,024 total, 99.9%).
+Mean pin alignment errors were 0.198 m and 0.195 m. Each batch exceeds the 90% promotion target.
+The holdout used seed 173241 (+10000 for evaluation) and a frozen checkpoint copy; raw metrics
+and provenance are in that run's `holdout/validation.json`. Training used the original 32 inputs,
+full hull/fin collision checks, and policy-controlled finite-rate arms. The teacher only supplied
+training labels; its 256/256 result is not included in these learned-policy counts. PPO resumes
+from the validated checkpoint in `catch_demo_ppo_local`; subsequent curriculum stages, stochastic
+PPO robustness and full belly-flop/re-entry catching remain unproven.
+
+The initial PPO handoff exposed an exploration mismatch: the frozen successful actor caught only
+2/256 stochastic episodes at continuous pre-tanh standard deviation 0.05, versus 253/256 at
+0.005 and 253/256 at 0.001 (fresh batches; binary heads unchanged). The first continuation was
+stopped; the immutable validated checkpoint is preserved. `catch_demo_narrow_local` restarts
+from those same network weights with continuous log-std and its configured floor both 0.005,
+and PPO learning rate 1e-5. This changes exploration, not the deterministic policy or catch physics.
 
 PPO handoff diagnostic: with learning rate zero, two updates of observation normalization alone
 reduced the cloned policy's evaluation catch rate to 0%. Repeating with frozen actor/critic input
