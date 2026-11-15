@@ -1,0 +1,9 @@
+defaults:
+  - catch_flip_local
+  - override curriculum: catch_flip_range
+  - _self_
+experiment: catch_flip_range_local
+iterations: 1000
+runner:
+  algorithm:
+    critic_learning_rate: 1.0e-5
