@@ -924,3 +924,20 @@ crossing time. Live metrics distinguish catches with/without historical violatio
 `limits/violated_share` uses all completed episodes; individual cause shares use only
 violating episodes. Learning audits export the per-episode evidence and explicitly
 record whether heuristic termination was enabled.
+
+### Exact diagnostic branches
+
+Before testing alternate controls, verify unchanged continuation with
+`uv run python -m starship.train.branch_probe POLICY --stage 18 --episodes 32
+--branch-step 20 --stochastic --device cuda:0 --output DIR` (one shell command).
+The probe saves a full snapshot, replays complete episodes twice, and requires exact
+observations, actions, rewards, done masks and terminal outcomes. It includes actuator
+state, simulator random streams, reward bookkeeping, global random streams and
+recurrent policy memory. The snapshot API also supports critic memory.
+
+Snapshots require identical model parameters/normalizers, configurations, device and
+batch size. Use evaluation-mode models in a dedicated diagnostic process: restoration
+also rewinds process-global RNGs. These are trusted local Torch artifacts, not safe
+inputs from strangers or training-resume checkpoints. Optimizer/rollout state and
+rebatching are not supported. Passing this replay check establishes a reproducible
+starting point for control interventions; it does not demonstrate recoverability.
