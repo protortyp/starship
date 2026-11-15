@@ -100,3 +100,10 @@ timing causes the early contacts, but flight control is also unsolved. The rewar
 consistent with a cheap-failure local optimum; it does not establish the policy's internal reasoning.
 Next experiment should address collision-vs-tumble incentives and test explicit clearance/pin
 features separately, using this probe to compare outcomes. No reward/input change was made here.
+
+Reward-only experiment (2026-11-15): stop the saturated baseline after >2,270 iterations at 0%
+catches. Start fresh `catch_reward_local` with the same 32 observations, architecture, spawn,
+collision geometry and policy arm control. Set catch crash/tumble/timeout/out-of-bounds terminal
+penalty floors to 200; crash severity still adds cost. This removes the 20-vs-200 structural-exit
+discount while preserving success rewards. Evaluate arm decisions and flight outcomes before
+adding explicit geometry features. This experiment is not yet evidence of a solved stage.

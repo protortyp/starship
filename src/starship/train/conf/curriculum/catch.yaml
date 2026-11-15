@@ -25,6 +25,12 @@ stages:
       - reward.tilt_height=300
       - reward.distance_weight=0.2
       - reward.crash_miss_weight=5
+      # A structural strike must not offer a cheap exit from flight-control failures.
+      # Keep the failure floor equal across outcomes; crash severity still adds a penalty.
+      - reward.crash_penalty=200
+      - reward.tumble_penalty=200
+      - reward.timeout_penalty=200
+      - reward.out_of_bounds_penalty=200
   - name: 1 larger approach errors
     overrides:
       - sim.spawn.altitude=200
