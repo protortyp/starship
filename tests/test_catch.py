@@ -190,3 +190,44 @@ def test_structural_contact_penalty_does_not_penalize_missed_pin_gate(
         assert env.sim.terminal_snapshot().catch_failure[0] == reason
         rewards.append(env.terminal_reward.numpy()[0])
     assert rewards[1] - rewards[0] == pytest.approx(-extra)
+
+
+@pytest.mark.parametrize(
+    ("closed", "offset", "expected"), [(True, 0, LANDED), (False, 0, CRASHED), (True, 2, CRASHED)]
+)
+@pytest.mark.parametrize("header_fill", [0.0, 1.0])
+def test_fuel_burn_cannot_skip_pin_plane(closed, offset, expected, header_fill):
+    cfg = catch_config()
+    cfg.substeps = 1
+    cfg.spawn.lit_throttle = 0.7
+    cfg.spawn.header_fill = header_fill
+    cfg.catch.moving = True
+    cfg.catch.policy_controlled = True
+    cfg.catch.flap_collisions = True
+    commands = {"engine_on": [[1, 0, 0]], "throttle": [0.7], "arm_close": [int(closed)]}
+    # Measure the one-substep motion and COM shift above the gate, then place the
+    # pin so that only the combination of motion and fuel burn crosses the plane.
+    probe = at_plane(cfg, clearance=0.1, offset=offset)
+    before = probe.snapshot()
+    probe.step(**commands)
+    after = probe.snapshot()
+    mass = make_mass_params(cfg.vehicle)
+    old_com = sample(mass, before.tanks, device="cpu")[0, 1]
+    new_com = sample(mass, after.tanks, device="cpu")[0, 1]
+    shift = new_com - old_com
+    assert abs(shift) > 1e-5
+    dz = after.pos[0, 2] - before.pos[0, 2]
+    sim = at_plane(cfg, clearance=float(-dz + shift / 2), offset=offset)
+    if closed:
+        sim.state.arm_angle.assign(np.zeros(1, dtype=np.float32))
+    sim.step(**commands)
+    final = sim.snapshot()
+    # A decreasing COM can make the old test report a crossing too soon.
+    if shift < 0:
+        assert final.status[0] == FLYING
+        return
+    assert final.status[0] == expected
+    final_com = sample(mass, final.tanks, device="cpu")[0, 1]
+    assert final.pos[0, 2] + cfg.catch.station - final_com == pytest.approx(
+        cfg.catch.height, abs=1e-4
+    )

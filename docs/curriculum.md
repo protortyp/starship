@@ -740,3 +740,29 @@ this is a checkpoint comparison, not a causal sample-efficiency claim. The weake
 continuation is retired with its checkpoints preserved; student PPO and altitude-bridge
 PPO remain active. Executed scripts, policy hashes and trajectories are archived in the
 student run's `matched-policy-comparison` directory.
+
+### Catch-plane event correction
+
+Student model 3949 reaches 390/512 catches in a fresh stochastic audit (seed 819624).
+The same-seed arm probe improves from 13/32 catches at policy 3609 to 25/32 at policy
+3999, with 13 gains and one loss. Three of the four earlier rebound strikes now catch.
+The remaining two fin strikes expose a simulator event-detection bug: their pins pass
+below the support with closed arms, then hit a forward fin several seconds later.
+
+An individual-substep replay reproduces both original trajectories with zero altitude
+error at control boundaries. At the missed crossings (seeds 16 and 31), fuel burn raises
+the COM station by about 0.00030 m. The catch test previously used the pre-burn COM at both
+endpoints: its end pin height remains slightly above 80 m while the actual post-burn pin
+is already below it. The next step consequently starts below the gate and never captures.
+The correction tests the end pin with post-burn mass properties, then interpolates fuel
+and recomputes COM at the crossing. Capture limits and structural collision checks remain
+unchanged. Regression tests cover safe, open-arm and offset crossings with both signs of
+COM shift, including premature crossings that must remain flying.
+
+The frozen policy 3999 now catches both reproduced cases (27/32 total). A matched
+512-start stochastic replay of model 3949 catches 394 instead of 390, with four gains and
+no losses. These are physics-correction effects, not policy learning improvements.
+Evidence and scripts are in the student run's `catch-probe/policy_3999`,
+`catch-probe/policy_3999-fixed-mass-crossing`, and
+`learning-audit/model_3949-fixed-mass-crossing` directories. Earlier results in this log
+used the old crossing detector; corrected-physics training must be identified separately.
