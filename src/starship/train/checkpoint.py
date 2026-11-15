@@ -1,4 +1,4 @@
-"""24/28-to-31 input migration, preserving the learned part of policies and Adam state."""
+"""24/28/31-to-32 input migration, preserving the learned part of policies and Adam state."""
 
 import torch
 from torch import nn
@@ -29,7 +29,7 @@ def migrate_checkpoint(checkpoint: dict, actor: nn.Module, critic: nn.Module, op
                 old.shape != new.shape
                 and old.ndim == new.ndim
                 and old.shape[:-1] == new.shape[:-1]
-                and old.shape[-1] in (LEGACY_OBS_DIM, 28)
+                and old.shape[-1] in (LEGACY_OBS_DIM, 28, 31)
                 and new.shape[-1] == OBS_DIM
             ):
                 state[key] = _pad(old, _MOMENTS.get(key, 0))
@@ -46,7 +46,7 @@ def migrate_checkpoint(checkpoint: dict, actor: nn.Module, critic: nn.Module, op
                 if (
                     isinstance(value, torch.Tensor)
                     and value.ndim == 2
-                    and value.shape[-1] in (LEGACY_OBS_DIM, 28)
+                    and value.shape[-1] in (LEGACY_OBS_DIM, 28, 31)
                 ):
                     saved["state"][index][key] = _pad(value)
 
@@ -54,7 +54,7 @@ def migrate_checkpoint(checkpoint: dict, actor: nn.Module, critic: nn.Module, op
 def load_policy(path, device="cpu") -> nn.Module:
     """Load a standalone export for current observations, including pre-entry LSTM actors."""
     policy = torch.load(path, map_location=device, weights_only=False).eval()
-    if getattr(policy, "obs_dim", None) not in (LEGACY_OBS_DIM, 28):
+    if getattr(policy, "obs_dim", None) not in (LEGACY_OBS_DIM, 28, 31):
         return policy
     if getattr(policy, "is_recurrent", False):
         layer = policy.rnn.rnn

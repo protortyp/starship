@@ -18,6 +18,6 @@ Physics not modelled in `starship.sim`. Refs point to `docs/starship.md` sources
 | Header-tank feed limits | Feed switch from main to header tanks | Separate feed lines per tank | [6] |
 | RCS propellant | Vent thrusters consume ullage gas | Ullage gas mass budget | [6] |
 | Raptor 3 / V3 | Different thrust, mass, flap placement | Config preset once data exists | [14] [16] |
-| Landing legs / tower catch | Touchdown loads, catch arms | Spring–damper legs or catch-pin geometry | [29] |
+| Catch support dynamics | Moving arms and fin clearance are modeled, but capture is terminal; no vertical carriage motion, compliance or support loads | Spring–damper catch support and post-capture engine shutdown | [29] |
 | Ground effect | Plume and flow changes near the pad | Thrust/aero correction below ~1 diameter | |
 | Earth curvature, rotation | Coriolis, curvature over km-scale offsets | Negligible at < 10 km range | |

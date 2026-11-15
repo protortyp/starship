@@ -35,7 +35,9 @@ def make_params(config: SimConfig, device) -> Params:
         value = getattr(c, name)
         if not math.isfinite(value):
             raise ValueError(f"catch {name} must be finite")
-        setattr(p_c, name, int(value) if name == "enabled" else value)
+        setattr(
+            p_c, name, int(value) if name in ("enabled", "moving", "flap_collisions") else value
+        )
     if c.enabled and not (
         0 < c.station < config.vehicle.hull.length
         and c.height > c.station
@@ -48,6 +50,16 @@ def make_params(config: SimConfig, device) -> Params:
         and c.tower_x + c.tower_half_width < -config.vehicle.hull.diameter / 2
     ):
         raise ValueError("invalid catch geometry or capture tolerances")
+    if c.enabled and (
+        not 0 < c.open_angle < math.pi / 2
+        or c.angular_speed <= 0
+        or not 0 < c.close_max_tilt < math.pi / 2
+        or c.close_max_offset <= 0
+        or c.close_clearance < 0
+        or c.flap_half_thickness <= 0
+        or (c.moving and not c.flap_collisions)
+    ):
+        raise ValueError("moving catch requires valid motion limits and flap collisions")
     v = config.vehicle
     p = Params()
     p.catcher = p_c
@@ -84,11 +96,15 @@ class Snapshot:
     time: np.ndarray
     steps: np.ndarray
     status: np.ndarray
+    arm_angle: np.ndarray  # symmetric arm opening angle, radians
     wind: np.ndarray  # (N, 3) air velocity at the vehicle, world
 
 
 @dataclass
 class TerminalSnapshot:
+    arm_angle: np.ndarray
+    flaps: np.ndarray
+    spool: np.ndarray
     done: np.ndarray
     status: np.ndarray
     pos: np.ndarray
@@ -209,11 +225,15 @@ class Simulator:
             steps=s.steps.numpy().copy(),
             status=s.status.numpy().copy(),
             wind=np.array(s.wind.numpy()["wind"]),
+            arm_angle=s.arm_angle.numpy().copy(),
         )
 
     def terminal_snapshot(self) -> TerminalSnapshot:
         t = self.terminal
         return TerminalSnapshot(
+            arm_angle=t.arm_angle.numpy().copy(),
+            flaps=np.array(t.flaps.numpy()["angle"]),
+            spool=np.array(t.engine.numpy()["spool"]),
             done=t.done.numpy().copy(),
             status=t.status.numpy().copy(),
             **_bodies(t.body),

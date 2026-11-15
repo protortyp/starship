@@ -52,7 +52,7 @@ def com(cfg):
 def test_observation_layout_and_scale(device):
     env = RocketEnv(16, device=device, obs_config=ObsConfig(mirror=False))
     obs = env.obs.numpy()
-    assert OBS_DIM == 31
+    assert OBS_DIM == 32
     assert obs.shape == (16, OBS_DIM)
     assert np.isfinite(obs).all()
     assert np.abs(obs).max() <= 2

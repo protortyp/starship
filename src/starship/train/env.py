@@ -43,6 +43,9 @@ from starship.train.reward import (
     reward_kernel,
 )
 
+# PPO differentiates the policy, not the simulator/contact kernels.
+wp.set_module_options({"enable_backward": False})
+
 
 @wp.kernel
 def _respawn_kernel(
@@ -98,10 +101,11 @@ def _step_kernel(
     advance(p, state, commands, i)
     if state.status[i] != FLYING:
         record_terminal(state, terminal, i)
-        # The simulator's terminal struct has no actuators, so encode before spawn discards them.
+        # Encode the final state before spawn replaces the body, actuators and tower state.
         encode(
             p,
             state.body[i],
+            state.arm_angle[i],
             state.engine[i],
             state.flaps[i],
             state.tanks[i],

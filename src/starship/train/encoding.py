@@ -13,7 +13,7 @@ from starship.sim.propulsion import EngineState, FlapState
 from starship.sim.rigid import Body
 
 LEGACY_OBS_DIM = 24
-OBS_DIM = 31
+OBS_DIM = 32
 
 
 @dataclass
@@ -70,6 +70,7 @@ def fuel_fraction(tanks: wp.vec4, landing_load: float) -> float:
 def encode(
     p: Params,
     b: Body,
+    arm_angle: float,
     e: EngineState,
     f: FlapState,
     tanks: wp.vec4,
@@ -79,6 +80,9 @@ def encode(
     obs: wp.array2d(dtype=float),
     i: int,
 ):
+    obs[i, 31] = 0.0
+    if p.catcher.enabled != 0 and p.catcher.moving != 0:
+        obs[i, 31] = arm_angle / p.catcher.open_angle
     up = wp.quat_rotate_inv(b.rot, wp.vec3(0.0, 0.0, 1.0))
     vel = wp.quat_rotate_inv(b.rot, b.vel)
     relative = b.pos
@@ -144,6 +148,7 @@ def observe_kernel(
     encode(
         p,
         state.body[i],
+        state.arm_angle[i],
         state.engine[i],
         state.flaps[i],
         state.tanks[i],

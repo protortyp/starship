@@ -32,6 +32,7 @@ REWARD_TERMS = (
 
 @dataclass
 class RewardConfig:
+    catch_braking_height: float = 25.0  # brake before the fins clear, giving the arms time to close
     gamma: float = 0.999  # Must equal PPO's discount.
     distance_weight: float = 0.05  # per m
     distance_saturation: float = 0.0  # m; zero retains legacy linear shaping
@@ -71,6 +72,7 @@ class RewardConfig:
 
 @wp.struct
 class RewardParams:
+    catch_braking_height: float
     gamma: float
     distance_weight: float
     distance_saturation: float
@@ -124,6 +126,8 @@ def potential(p: Params, r: RewardParams, b: Body, tanks: wp.vec4) -> wp.vec3:
     alignment = 0.0
     if p.catcher.enabled != 0:
         height = wp.max(pin_height(p.catcher, b, com) - p.catcher.height, 0.0)
+        if p.catcher.moving != 0:
+            height = wp.max(height - r.catch_braking_height, 0.0)
         target = catch_center(p.catcher, b, com) - wp.vec3(0.0, 0.0, p.catcher.height)
         side = wp.quat_rotate(b.rot, wp.vec3(0.0, 1.0, 0.0))
         alignment = 1.0 - wp.abs(side[1])

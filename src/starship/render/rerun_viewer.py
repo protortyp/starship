@@ -138,15 +138,6 @@ def log_scene(cfg: SimConfig, n: int) -> None:
             ),
             static=True,
         )
-        rr.log(
-            "world/catcher/arms",
-            rr.Boxes3D(
-                centers=[(c.arm_center_x, side * c.pin_radius, c.height) for side in (-1, 1)],
-                half_sizes=[(c.arm_half_length, c.arm_half_width, 0.5)] * 2,
-                colors=[(240, 180, 40)],
-            ),
-            static=True,
-        )
     g = 3000.0
     rr.log(
         "world/ground",
@@ -205,6 +196,35 @@ def log_step(cfg, s, flaps, trails, mass_params, first=0, shift=(0.0, 0.0, 0.0),
         q = s.rot[i]
         origin = s.pos[i] + shift - rotate(q, np.array([coms[i], 0.0, 0.0]))
         e = first + i
+        if cfg.catch.enabled:
+            c = cfg.catch
+            angle = float(s.arm_angle[i])
+            centers, rotations = [], []
+            for side in (-1, 1):
+                theta = side * angle
+                centers.append(
+                    np.array(
+                        [
+                            c.arm_center_x
+                            - c.arm_half_length
+                            + c.arm_half_length * math.cos(theta),
+                            side * c.pin_radius + c.arm_half_length * math.sin(theta),
+                            c.height - (0.5 if c.moving else 0.0),
+                        ]
+                    )
+                    + shift
+                )
+                rotations.append([0.0, 0.0, math.sin(theta / 2), math.cos(theta / 2)])
+            rr.log(
+                f"world/catcher/arms/{e}",
+                rr.Boxes3D(
+                    centers=centers,
+                    half_sizes=[(c.arm_half_length, c.arm_half_width, 0.5)] * 2,
+                    quaternions=rotations,
+                    colors=[(240, 180, 40)],
+                ),
+            )
+            rr.log(f"telemetry/arm_angle/{e}", rr.Scalars(math.degrees(angle)))
         rr.log(
             f"world/rocket/{e}",
             rr.Transform3D(translation=origin, quaternion=rr.Quaternion(xyzw=q)),
