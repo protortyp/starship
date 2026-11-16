@@ -33,7 +33,10 @@ def initial_physics(p: Params, state: State, out: wp.array2d(dtype=float)):
     i = wp.tid()
     body = state.body[i]
     mass = mass_properties(p.mass, state.tanks[i])
-    out[i, 0] = catch_center(p.catcher, body, mass.com)[2] - p.catcher.height
+    axis = wp.quat_rotate(body.rot, wp.vec3(1.0, 0.0, 0.0))
+    out[i, 0] = (body.pos - axis * mass.com)[2]
+    if p.catcher.enabled:
+        out[i, 0] = catch_center(p.catcher, body, mass.com)[2] - p.catcher.height
     out[i, 1] = body.vel[2]
     out[i, 2] = mass.mass
     out[i, 3] = (
@@ -188,6 +191,11 @@ def audit(checkpoint, episodes, seed, output, stage=None, stochastic=False, acti
         device="cpu",
     )
     braking = braking_estimates(physics.numpy())
+    braking["height_reference"] = (
+        "catch pin center above catcher support"
+        if env.env.config.catch.enabled
+        else "body base above ground"
+    )
     obs = env.get_observations()
     pending = torch.ones(episodes, dtype=torch.bool)
     status = torch.zeros(episodes, dtype=torch.int)

@@ -44,6 +44,33 @@ def test_braking_estimate_is_an_explicit_constant_mass_comparison():
     assert "not a feasibility proof" in result["assumptions"]
 
 
+@pytest.mark.parametrize("catch_enabled", [False, True])
+@pytest.mark.parametrize(("pitch", "fill"), [(0.0, 1.0), (0.3, 0.4)])
+def test_initial_braking_height_uses_the_active_landing_target(catch_enabled, pitch, fill):
+    import warp as wp
+
+    from starship.sim import SimConfig, Simulator
+    from starship.sim.mass import make_mass_params, sample
+    from starship.train.learning_audit import initial_physics
+
+    cfg = SimConfig()
+    cfg.catch.enabled = catch_enabled
+    cfg.catch.height = 81.0
+    cfg.spawn.pitch = pitch
+    cfg.spawn.header_fill = fill
+    sim = Simulator(1, cfg, device="cpu")
+    com = sample(make_mass_params(cfg.vehicle), sim.snapshot().tanks, device="cpu")[0, 1]
+    body = sim.state.body.numpy()[0]
+    axis = np.asarray(wp.quat_rotate(wp.quat(*body["rot"]), wp.vec3(1.0, 0.0, 0.0)))
+    base_height = body["pos"][2] - axis[2] * com
+    expected = base_height
+    if catch_enabled:
+        expected += axis[2] * sim.params.catcher.station - cfg.catch.height
+    output = wp.zeros((1, 5), dtype=float, device="cpu")
+    wp.launch(initial_physics, dim=1, inputs=[sim.params, sim.state, output], device="cpu")
+    assert output.numpy()[0, 0] == pytest.approx(expected, abs=5e-5)
+
+
 @pytest.mark.parametrize("mass", [0.0, -1.0, np.nan, np.inf])
 def test_braking_estimate_rejects_incomplete_or_invalid_physics(mass):
     from starship.train.learning_audit import braking_estimates
