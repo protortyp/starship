@@ -1387,12 +1387,12 @@ requirements are unchanged. No physics, actuator or terminal-success rule was re
 | Raised cold, pitch ±0.3 rad | Aggregate retained; narrow 0.2–0.3 band passed one cohort but failed the next with identical weights |
 | Raised cold, pitch ±0.4 rad | Consolidated aggregate 97.17%/95.36%; narrow0.3–0.4 band remains unfinished |
 | Raised cold, pitch ±0.5 rad | Sharpened selected policy passed earlier-profile retention and beat control on fresh paired hard-band tests; band still unfinished |
-| Raised cold, pitch ±0.6 rad | Expansion complete: final fresh new-band 226/330 deterministic, 208/330 stochastic; bounded continuation running |
+| Raised cold, pitch ±0.6 rad | Continuation hard band226/342 deterministic,230/342 stochastic; remains unfinished |
 | Belly-down pitch 0–0.7 rad, 500±150 m | Final fresh aggregate 97.95%/97.22%, hard band 288/306 and 267/306; retained during next expansion |
 | Belly-down pitch 0–0.8 rad, 600±150 m | Final fresh hard band 234/246 deterministic, 221/246 stochastic; earlier landing retained |
 | Belly-down pitch 0–0.9 rad, 600±150 m | Retained throttle-only source selected after three-arm comparison; paired hard band 207/226 deterministic, 188/226 stochastic |
 | Belly-down pitch 0–1.0 rad, 800±150 m | Continuation selected aggregate 90.43%/92.14%, hard band 173/207 and 163/207; original profiles retained |
-| Belly-down pitch 0–1.1 rad, 800±150 m | Exact-source screen and initial guards passed; bounded100-update expansion running |
+| Belly-down pitch 0–1.1 rad, 800±150 m | Expansion improved hard-band stochastic80→110/185 but failed warm retention; source3409 retained, live-profile mixture under evaluation |
 | Original low-clearance cold starts | Reported stress set; not claimed solved |
 | Full belly-flop, randomized descent, catch | Not yet validated |
 
@@ -2270,3 +2270,43 @@ outputs plus exact preservation of neighboring memory when another slot ends.
 Per-profile transition/completion/landing counts are logged in
 `mixture-coverage.jsonl`. Experiment results are pending; this does not promote
 any checkpoint or validate full randomized landing or catch.
+
+
+### Warm regression: sampled targets and deterministic action selection
+
+The27 matched starts lost by the1.1 endpoint all reached ground contact:15 violated
+vertical speed,11 horizontal speed,1 tilt and1 angular rate (overlapping counts).
+Their median downward speed moved1.807→2.005m/s across the2m/s acceptance boundary.
+This is predominantly a touchdown-margin regression, not early tumble termination.
+
+Four extra paired action seeds950001/003/005/007 at physical seed945000 replicated
+a smaller sampled regression: source3963/4096 versus endpoint3931/4096 landings
+(96.75%→95.97%). Bootstrap resampling the1,024 physical starts with each start's
+four outcomes kept together gives −0.781 percentage points,95% interval −1.245 to
+−0.342; this is conditional on four seeds, not4,096 independent physical starts.
+On the27 deterministic-loss starts, sampled successes were104/108 versus102/108.
+The endpoint critic's bias against four-seed mean return was+0.64 overall and+1.55
+on those27 starts, versus the misleading+119.77 error against deterministic
+returns. PPO's critic predicts the sampled policy. Initial-state EV remains weak;
+noise-component estimates suggest a single-rollout EV ceiling around0.06–0.09,
+with substantial uncertainty from only four repeats. No critic reset is justified.
+
+An isolated frozen-endpoint decoder factorial retained the complete original random
+draw before overwriting selected channels. Forced deterministic output, including
+the inactive arm bit, matched original complete observations, masks, statuses,
+returns, values and continuous means bitwise. On the same1,024 warm starts:
+
+| Binary / continuous decoder | Landings across four paired action seeds |
+| --- | --- |
+| Deterministic / mean | 964/1024 (one equivalent deterministic rollout) |
+| Sampled / mean | 1004,1004,1005,1005 of1024 |
+| Deterministic / sampled | 986,983,998,984 of1024 |
+| Sampled / sampled | 981,980,988,982 of1024 |
+
+Either noise source rescued most deterministic losses; sampled binary with mean
+continuous controls performed best on this diagnostic cohort. This does not
+validate a replacement decoder, identify a unique faulty action head, or change
+final acceptance criteria. Keep current deployment and the accepted source while
+checking the on-policy mixture and fresh paired holdouts. Reproduction and complete
+trajectories are archived under `eleven-warm-action-seeds` and
+`eleven-warm-decoder-factorial`, timestamp `2026-11-16_08-52-06`.
