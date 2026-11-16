@@ -1,8 +1,8 @@
 {
-  "iteration": 6080,
+  "iteration": 6105,
   "checkpoint_kind": "ppo",
-  "total_env_steps": 521338880,
-  "checkpoint": "policy_6079.pt",
+  "total_env_steps": 522977280,
+  "checkpoint": "policy_6104.pt",
   "run": "landing_belly_down_angle_original_long_local/2026-11-16_18-52-16",
   "catch_enabled": false,
   "moving_arms": false,
@@ -13,7 +13,7 @@
   "observation_channels": 32,
   "stage": 1,
   "stage_name": "1 belly-down bridge, pitch0to1.3rad at800m",
-  "updated": "2026-11-16T18:41:51.312990+00:00",
+  "updated": "2026-11-16T18:47:21.912838+00:00",
   "episodes": [
     {
       "seed": 0,
@@ -96,5 +96,5 @@
   "rollout_steps": 256,
   "initial_value": null,
   "warmstart": false,
-  "eval_catch_rate": 0.9720052480697632
+  "eval_catch_rate": 0.974609375
 }
