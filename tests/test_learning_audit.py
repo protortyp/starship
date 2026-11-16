@@ -123,3 +123,59 @@ def test_action_audit_detects_saturation_despite_unchanged_gaussian_noise():
     assert rows[0]["sigma_interval_half_width_actuator_units_median"] == pytest.approx(
         rows[0][key] * 0.6
     )
+
+
+@pytest.mark.parametrize("device", ["cpu", "cuda:0"])
+@pytest.mark.parametrize("stochastic", [False, True])
+def test_complete_audit_repeats_on_one_backend(tmp_path, device, stochastic):
+    import torch
+    from hydra import compose, initialize_config_module
+    from omegaconf import OmegaConf
+
+    from starship.sim import TIMEOUT
+    from starship.train.catch_pretrain import make_runner
+    from starship.train.learning_audit import audit
+
+    if device.startswith("cuda") and not torch.cuda.is_available():
+        pytest.skip("CUDA is unavailable")
+    with initialize_config_module("starship.train.conf", version_base=None):
+        cfg = compose(
+            "train",
+            overrides=[
+                "device=cpu",
+                "num_envs=8",
+                "eval_envs=8",
+                "curriculum=none",
+                "sim.spawn.altitude=100",
+                "sim.spawn.pitch=0",
+                "sim.spawn.vertical_speed=-5",
+                "sim.max_time=0.4",
+            ],
+        )
+    cfg.curriculum.stages = [{"name": "audit timeout", "overrides": []}]
+    (tmp_path / ".hydra").mkdir()
+    OmegaConf.save(cfg, tmp_path / ".hydra/config.yaml")
+    runner = make_runner(cfg, tmp_path / "setup", 100)
+    checkpoint = tmp_path / "model.pt"
+    runner.save(checkpoint)
+    runner.writer.close()
+    arrays = []
+    for label in ["first", "repeat"]:
+        folder = tmp_path / label
+        report = audit(
+            checkpoint,
+            8,
+            200,
+            folder,
+            stochastic=stochastic,
+            action_seed=300 if stochastic else None,
+            **({"device": device} if device != "cpu" else {}),
+        )
+        assert report["audit_device"] == device
+        assert report["episodes"] == 8
+        with np.load(folder / "trajectories.npz") as data:
+            arrays.append({key: data[key].copy() for key in ["obs", "valid", "status", "returns"]})
+        assert np.all(arrays[-1]["status"] == TIMEOUT)
+        assert np.isfinite(arrays[-1]["returns"]).all()
+    for key in arrays[0]:
+        np.testing.assert_array_equal(arrays[0][key], arrays[1][key])

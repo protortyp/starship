@@ -2220,3 +2220,29 @@ operation and verify runner/export round trips and complete rollouts. The existi
 `catch_pretrain` changes more state and is not equivalent to this preserving
 operation. Reproduction, real observations and reports are archived under
 `catch-transfer-preflight/landing_belly_down_one_continued_local-2026-11-16_08-35-35`.
+
+### Optional GPU learning audits and the 1.1-radian endpoint
+
+`starship-learning-audit --device cuda:0` runs complete trajectory diagnostics
+on the local GPU; CPU remains the default. Reports record `audit_device`.
+Keep source and candidate comparisons on the same backend: a frozen 1,024-episode
+benchmark produced 903 CPU versus 899 GPU landings, with 15 differing terminal
+statuses despite initial observation differences below 1e-5. Repeated GPU runs
+matched exactly. The repository implementation matched every saved trajectory
+array from each backend's frozen benchmark. End-to-end audit time was 19.47s CPU
+versus 12.74s GPU, including diagnostics and artifact writing. CPU/CUDA tests
+cover deterministic and seeded stochastic repeated complete episodes.
+
+The 100-update 0–1.1-radian block finished at3524. Independent matched frontier
+starts improved stochastic landings1790→1852/2048 (+3.03 percentage points,
+paired95% interval +1.95 to +4.15); deterministic1817→1815 was unchanged within
+uncertainty. In the1.0–1.1 band, stochastic80→110/185 (+16.22 points,
++10.27 to +22.70), deterministic138→151 (+7.03,0 to +14.05). Hard-band stochastic
+critic bias fell28.13→1.69 and RMSE63.69→56.55, but initial explained variance
+remained weak (0.186→0.171). Warm deterministic retention was964/1024 (94.14%),
+below the95% gate, despite passing the fixed training panel. Do not promote this
+endpoint or expand the angle. Keep accepted3409 while checking matched-source
+warm regression and designing retention improvements. Other original retention
+profiles remained above97.9% in both modes. Full randomized landing and catch
+remain unvalidated. Artifacts: `belly-down-eleven/2026-11-16_08-52-06` and
+`audit-device-benchmark/2026-11-16_08-52-06` in the checkpoint archive.

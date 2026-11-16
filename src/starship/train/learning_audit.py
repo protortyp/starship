@@ -165,12 +165,14 @@ def discounted_returns(rewards, valid, gamma):
     return result
 
 
-def audit(checkpoint, episodes, seed, output, stage=None, stochastic=False, action_seed=None):
+def audit(
+    checkpoint, episodes, seed, output, stage=None, stochastic=False, action_seed=None, device="cpu"
+):
     if action_seed is not None and not stochastic:
         raise ValueError("action_seed requires stochastic rollouts")
     digest = hashlib.sha256(checkpoint.read_bytes()).hexdigest()
     cfg = load_run_config(checkpoint.parent)
-    cfg.device, cfg.num_envs, cfg.eval_envs = "cpu", episodes, episodes
+    cfg.device, cfg.num_envs, cfg.eval_envs = device, episodes, episodes
     output.mkdir(parents=True, exist_ok=True)
     runner = make_runner(cfg, output, seed)
     runner.load(checkpoint)
@@ -183,12 +185,12 @@ def audit(checkpoint, episodes, seed, output, stage=None, stochastic=False, acti
     actor, critic, env = runner.alg.actor.eval(), runner.alg.critic.eval(), runner.eval_env
     actor.reset()
     critic.reset()
-    physics = wp.zeros((episodes, 5), dtype=float, device="cpu")
+    physics = wp.zeros((episodes, 5), dtype=float, device=cfg.device)
     wp.launch(
         initial_physics,
         dim=episodes,
         inputs=[env.env.sim.params, env.env.sim.state, physics],
-        device="cpu",
+        device=cfg.device,
     )
     braking = braking_estimates(physics.numpy())
     braking["height_reference"] = (
@@ -197,13 +199,17 @@ def audit(checkpoint, episodes, seed, output, stage=None, stochastic=False, acti
         else "body base above ground"
     )
     obs = env.get_observations()
-    pending = torch.ones(episodes, dtype=torch.bool)
-    status = torch.zeros(episodes, dtype=torch.int)
+    pending = torch.ones(episodes, dtype=torch.bool, device=cfg.device)
+    status = torch.zeros(episodes, dtype=torch.int, device=cfg.device)
     raw, normalized, values, rewards, masks, engines = [], [], [], [], [], []
     critic_normalized = []
     action_means = []
     action_std = (
-        actor.distribution.log_std.detach().clamp(*actor.distribution.log_std_range).exp().numpy()
+        actor.distribution.log_std.detach()
+        .clamp(*actor.distribution.log_std_range)
+        .exp()
+        .cpu()
+        .numpy()
     )
     terminal = {
         name: np.zeros((episodes, *getattr(env, "final_" + name).shape[1:]))
@@ -231,25 +237,29 @@ def audit(checkpoint, episodes, seed, output, stage=None, stochastic=False, acti
     landing_measurements = np.full((episodes, len(LANDING_METRICS)), np.nan)
     with torch.inference_mode():
         for _ in range(env.max_episode_length + 2):
-            masks.append(pending.numpy().copy())
-            raw.append(obs["policy"].numpy().copy())
-            normalized.append(actor.obs_normalizer(obs["policy"]).numpy().copy())
-            critic_normalized.append(critic.obs_normalizer(obs["policy"]).numpy().copy())
-            values.append(runner.alg._values(critic(obs)).squeeze(-1).numpy().copy())
+            masks.append(pending.cpu().numpy().copy())
+            raw.append(obs["policy"].cpu().numpy().copy())
+            normalized.append(actor.obs_normalizer(obs["policy"]).cpu().numpy().copy())
+            critic_normalized.append(critic.obs_normalizer(obs["policy"]).cpu().numpy().copy())
+            values.append(runner.alg._values(critic(obs)).squeeze(-1).cpu().numpy().copy())
             action = actor(obs, stochastic_output=stochastic)
             mean = actor.distribution.mean if stochastic else action
-            action_means.append(mean[:, ENGINE_HEADS:LEGACY_ACTION_DIM].numpy().copy())
-            engines.append(action[:, :3].numpy().copy())
+            action_means.append(mean[:, ENGINE_HEADS:LEGACY_ACTION_DIM].cpu().numpy().copy())
+            engines.append(action[:, :3].cpu().numpy().copy())
             obs, reward, done, _ = env.step(action)
-            rewards.append(reward.numpy().copy())
+            rewards.append(reward.cpu().numpy().copy())
             ended = done.bool() & pending
             status[ended] = env.final_status[ended]
             for name, data in terminal.items():
-                data[ended.numpy()] = getattr(env, "final_" + name)[ended].numpy()
+                data[ended.cpu().numpy()] = getattr(env, "final_" + name)[ended].cpu().numpy()
             if capture_meter is not None and ended.any():
-                capture_measurements[ended.numpy()] = capture_meter.sample()[ended.numpy()]
+                capture_measurements[ended.cpu().numpy()] = capture_meter.sample()[
+                    ended.cpu().numpy()
+                ]
             if landing_meter is not None and ended.any():
-                landing_measurements[ended.numpy()] = landing_meter.sample()[ended.numpy()]
+                landing_measurements[ended.cpu().numpy()] = landing_meter.sample()[
+                    ended.cpu().numpy()
+                ]
             pending &= ~done.bool()
             actor.reset(done)
             critic.reset(done)
@@ -288,6 +298,7 @@ def audit(checkpoint, episodes, seed, output, stage=None, stochastic=False, acti
     }
     report = {
         "checkpoint": str(checkpoint),
+        "audit_device": str(env.device),
         "checkpoint_sha256": digest,
         "seed": seed,
         "action_seed": seed if action_seed is None else action_seed,
@@ -302,15 +313,15 @@ def audit(checkpoint, episodes, seed, output, stage=None, stochastic=False, acti
             "termination_enabled": bool(env.cfg.terminate_on_attitude_limits),
             "violated_episodes": int(np.count_nonzero(terminal["limit_causes"])),
             "caught_after_violation": int(
-                np.sum((status.numpy() == 1) & (terminal["limit_causes"] != 0))
+                np.sum((status.cpu().numpy() == 1) & (terminal["limit_causes"] != 0))
             ),
             "caught_without_violation": int(
-                np.sum((status.numpy() == 1) & (terminal["limit_causes"] == 0))
+                np.sum((status.cpu().numpy() == 1) & (terminal["limit_causes"] == 0))
             ),
         },
         "critic_all_states": value_metrics(values[masks], targets[masks]),
         "critic_initial_states": value_metrics(values[0], targets[0]),
-        "initial_tilt": initial_tilt_metrics(raw[0], status.numpy(), values[0], targets[0]),
+        "initial_tilt": initial_tilt_metrics(raw[0], status.cpu().numpy(), values[0], targets[0]),
         "continuous_action_note": "Policy-frame target intervals from tanh(mean +/- std); "
         "not post-tanh standard deviations or physical actuator response. "
         "Saturation means abs(tanh(mean)) > 0.99.",
@@ -359,7 +370,7 @@ def audit(checkpoint, episodes, seed, output, stage=None, stochastic=False, acti
         }
     if landing_meter is not None:
         excess = landing_meter.excess(landing_measurements)
-        contact = np.isin(status.numpy(), [1, 2])
+        contact = np.isin(status.cpu().numpy(), [1, 2])
         report["landing_constraints"] = {
             "names": LANDING_METRICS,
             "units": ["m/s", "m/s", "rad", "rad/s", "m"],
@@ -388,7 +399,7 @@ def audit(checkpoint, episodes, seed, output, stage=None, stochastic=False, acti
         values=values,
         returns=targets,
         valid=masks,
-        status=status.numpy(),
+        status=status.cpu().numpy(),
     )
     if hashlib.sha256(checkpoint.read_bytes()).hexdigest() != digest:
         raise RuntimeError("Checkpoint changed during audit; use a frozen numbered checkpoint")
@@ -420,6 +431,11 @@ def main():
     parser.add_argument("--output", type=Path)
     parser.add_argument("--stochastic", action="store_true")
     parser.add_argument(
+        "--device",
+        default="cpu",
+        help="audit backend, e.g. cpu or cuda:0; keep paired runs on one backend",
+    )
+    parser.add_argument(
         "--action-seed", type=int, help="vary action noise while retaining spawn seed"
     )
     parser.add_argument("--stage", type=int, help="explicit counterfactual curriculum stage")
@@ -445,6 +461,7 @@ def main():
         stage=args.stage,
         stochastic=args.stochastic,
         action_seed=args.action_seed,
+        device=args.device,
     )
 
 
