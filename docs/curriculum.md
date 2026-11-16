@@ -1398,7 +1398,7 @@ requirements are unchanged. No physics, actuator or terminal-success rule was re
 | Speed bridge, pitch 1.25±0.05 rad, 1000±150 m, −60±10 m/s | Selected4309: fresh83.11% deterministic/60.94% sampled; original retention passed; canonical belly-flop0/256 both |
 | Speed bridge, pitch 1.25±0.05 rad, 1000±150 m, −70±10 m/s | Accepted4524 preserves original skills and recovers speed60; fresh speed70 success80.86% deterministic /50.20% sampled. Endpoint4404 remains rejected |
 | Angle bridge, pitch1.30–1.40, −60±10 m/s | Accepted4524: fresh60.74% deterministic/37.40% sampled; original retention passed |
-| Angle extension, pitch1.35–1.50, −60±10 m/s | Checkpoint5399 retained after matched100-update allocation trial; control endpoint regresses fresh bridge panels, doubled-warm arm retains source weights. Original allocation now training500 more updates; remaining trial audits continue |
+| Angle extension, pitch1.35–1.50, −60±10 m/s | Checkpoint5399 retained after matched100-update allocation trial; control endpoint regresses fresh bridge panels, doubled-warm arm retains source weights. Original allocation now training500 more updates; all trial audits complete |
 | Original low-clearance cold starts | Reported stress set; not claimed solved |
 | Full belly-flop, randomized descent, catch | Not yet validated |
 
@@ -3237,7 +3237,11 @@ state recursively match original5399 exactly. Warm deterministic retention faile
 16/20 training evaluations versus control19/20, but fewer failures did not produce
 retained target progress. The warm raw endpoint failed its fixed warm gate at
 92.77%, with target55.27% deterministic/41.99% sampled. Its fresh raw-policy and
-critic audits remain active; these pending results are not claimed as completed.
+critic audits are now complete. Raw warm retention fell 995→961/1,024 (93.85%),
+with a paired loss of 3.32 points (95% bootstrap −4.59 to −2.05). Raw target
+deterministic landings fell 634→564 (−6.84 points, −9.38 to −4.20), and sampled
+landings fell 428→405 (−2.25, −4.00 to −0.59). The small initial critic explained
+variance change, 0.1315→0.1395, does not offset these behavioral regressions.
 Allocation performance and checkpoint quality are separate decisions: beating a
 regressed control would not by itself establish improvement over the source.
 
@@ -3257,8 +3261,8 @@ come from the validated earlier checkpoint, not control5824. Training seed is
 1009000; independent audits at6074/6324 use1010000-series seeds. Fixed panels,
 physics, rewards, frozen normalization, learning rates, replay and guards stay
 unchanged. Preflight exactly reproduces source panels and passes restoration
-checks. The remaining allocation audits continue alongside this run; no new
-curriculum stage is claimed. PR67 GIF publishing follows the active continuation.
+checks. All allocation audits have completed successfully; no new curriculum
+stage is claimed. PR67 GIF publishing follows the active continuation.
 
 Scripts, plan, source-state proof and preflight are archived under
 `angle-original-long-preparation`; paired findings and critic/health summaries
@@ -3266,3 +3270,14 @@ under `retention-allocation-control-{midpoint,endpoint}-review`. Both arms' midp
 and endpoint snapshots have separate hash-verified backups. Full belly-flop,
 randomized descent, moving policy-controlled catching, final checkpoint LFS and
 PR67 merge remain outstanding.
+
+
+Final matched selected-policy comparison confirms that the warm arm reproduces
+5399 exactly on every paired source panel, including all four original retention
+profiles. Its advantage over control is avoidance of control's regressions, not
+newly learned competence: target differences between arms remain inconclusive.
+The allocation fallback and source decision are unchanged. Completed evidence is
+archived under `retention-allocation-pair-comparison` and
+`retention-allocation-warm-{midpoint,endpoint}-review`. The active longer run also
+backs up every 50-update raw/selected snapshot with verified SHA-256 hashes under
+`original-long-snapshots`; these backups do not replace fresh validation.
