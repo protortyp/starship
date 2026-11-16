@@ -1386,7 +1386,8 @@ requirements are unchanged. No physics, actuator or terminal-success rule was re
 | Raised cold, pitch ±0.2 rad | Coherent calibrated source: 497/506 of 512; new band 246/252 of 257 |
 | Raised cold, pitch ±0.3 rad | Aggregate retained; narrow 0.2–0.3 band passed one cohort but failed the next with identical weights |
 | Raised cold, pitch ±0.4 rad | Consolidated aggregate 97.17%/95.36%; narrow0.3–0.4 band remains unfinished |
-| Raised cold, pitch ±0.5 rad | 200-update expansion complete; matched engine-temperature training pilot running |
+| Raised cold, pitch ±0.5 rad | Sharpened selected policy passed earlier-profile retention and beat control on fresh paired hard-band tests; band still unfinished |
+| Raised cold, pitch ±0.6 rad | Bounded 200-update expansion running from sharpened selected iteration 2104 |
 | Original low-clearance cold starts | Reported stress set; not claimed solved |
 | Full belly-flop, randomized descent, catch | Not yet validated |
 
@@ -1750,3 +1751,51 @@ will receive separate fresh paired audits. Archives are under `half-radian-actio
 `half-radian-engine-noise`, `half-radian-engine-phase`, `half-radian-engine-temperature`,
 `engine-temperature-checkpoint`, `engine-temperature-training-preflight` and
 `engine-temperature-pair`. Final randomized landing and end-to-end catch remain open.
+
+### Engine-temperature trial results and ±0.6 expansion (2026-11-16)
+
+The matched 100-update trial completed with five retention rejections in the control
+and one in the sharpened arm. Selected iterations were 2124 and 2104 respectively.
+Both initial critics and optimizers matched bitwise; the only initial actor difference
+was the doubled engine output rows. Fresh paired audits favored sharpening:
+
+| New 0.4–0.5 band | Control | Sharpened | Paired gains/losses |
+| --- | --- | --- | --- |
+| Selected, deterministic | 307/411 | 331/411 | 29/5 |
+| Selected, stochastic | 257/411 | 324/411 | 75/8 |
+| Final, deterministic | 315/418 | 331/418 | 24/8 |
+| Final, stochastic | 261/418 | 314/418 | 60/7 |
+
+Selected and final cohorts use distinct prescribed seeds. The selected stochastic
+improvement was 16.30 percentage points (paired episode-bootstrap 95% interval
+12.41–20.44); final improvement was 12.68 points (9.09–16.27). These are single
+training-seed results, not a claim of robustness across training seeds. Earlier
+retention profiles passed fresh checks for the adopted selected checkpoint.
+
+Sharpening initially changed hard-band critic bias from +3.88 to −16.05 return units
+on matched stochastic starts while leaving critic weights unchanged. After the pilot,
+the sharpened selected checkpoint's bias was −10.34 (SE 2.25, RMSE 46.77), versus
++3.44 (SE 2.74, RMSE 55.60) for control. Final-checkpoint biases were −5.57 and +3.72
+on a different cohort. The remaining underprediction is real evidence to monitor;
+rollout explained variance around 0.84 does not establish independent calibration.
+
+A matched ±0.6 coverage screen scored 105/162 deterministic and 75/162 stochastic
+in the newly added 0.5–0.6 band for the sharpened selection, versus 92/162 and 45/162
+for control. `landing_tilt_six_tenths_local/2026-11-16_06-20-47` now trains for a bounded
+200 updates from coherent selected iteration 2104, carrying completed 2124 counters.
+The learned engine logits are retained without further scaling. Existing warm,
+raised-cold, ±0.3 and ±0.4 retention floors remain; the unfinished ±0.5 range is
+explicitly monitored in both modes. Fresh audits and backups are scheduled every
+100 updates. No physics, reward, termination or final task criterion changed.
+
+The larger-angle input warning prompted a recurrent encoding audit over the first
+256 independent stochastic baseline trajectories, without selecting outcomes.
+Manual LSTM recurrence matched native recurrence, and replayed actor means/critic
+values matched the recorded outputs exactly. Across 6,018 valid new-band states,
+actor sigmoid-gate saturation was zero and candidate saturation about 0.005%.
+Critic candidate saturation was about 0.99% overall and 1.65% in the first five
+seconds; other critic gates were near zero. Some normalized-channel p99 magnitudes
+were around 13–14. These measurements do not justify a normalization change by
+themselves, and do not prove every untested state is well encoded. The audit and
+reproduction script are archived under `six-tenths-recurrent-encoding`; trial audits,
+paired outcomes and critic reports are under `engine-temperature-pair`.
