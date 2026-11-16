@@ -70,7 +70,7 @@ A separate `curriculum=catch` adds pivoting arms and hull/fin collision checks; 
 | 0 | Short upright approach, lower fins pass, arms close, pins captured | solved in deterministic holdout: 1,023/1,024 catches (99.9%), learned flight + arm control |
 | 1 | Larger approach errors | solved: 505/512 fresh lit-engine approaches (98.6%) |
 | 2 | Engine ignition | solved: 507/512 deterministic and 248/256 stochastic fresh approaches |
-| 3–5 | Flip, randomized descent, wind | gradual flip curriculum: 700 m / 0–0.8 rad / 60 m/s gate passed under corrected catch physics (fresh 88.6% deterministic, 85.9% stochastic); comparing direct 1.1 rad training with 0.9/1.0 rad bridge stages; full belly-flop unsolved |
+| 3–5 | Flip, randomized descent, wind | 700 m / 0–0.8 rad / 60 m/s gate passed (fresh 88.6% deterministic, 85.9% stochastic); direct/bridge PPO continues. Offline search now supplies six verified catches above 0.9 rad for imitation; learned hard-range and full belly-flop success remain unproven |
 | 6–9 | Late-entry handovers, 5–20 km | not trained |
 
 Findings (2026-11-15): the initial fixed-arm baseline omitted fin collision. Its closed gap was
@@ -973,3 +973,63 @@ winning-intervention replay. Neither supplies demonstrations or evidence of lear
 success. Artifacts: primary run `exact-branch-cem-095` and
 `exact-branch-geometry-cem-095`. Future search must solve the complete catch, including
 pin motion and arm closure; better proxy scores alone are insufficient.
+
+### Following successful trajectories into harder starts (2026-11-16)
+
+Starting near a feasible maneuver worked better than the two cold searches above.
+For one fixed physical start, small throttle/two-axis-gimbal residuals over the first
+eight seconds produced full catches at each 0.025-rad increment from 0.75 through
+0.95 rad. Each winner replayed exactly, finished in 36–46 s, and never crossed the
+original attitude limits. Only initial orientation changed between angles; translation,
+velocity, angular rates, fuel and random streams matched. The attempted jump from
+0.95 to 1.0 rad found no catch in 25 generations. This is offline trajectory
+optimization with a frozen policy suffix, not a learned controller or full entry.
+
+The fixed 0.95-rad correction caught 5/512 independent starts at 0.95±0.01 rad,
+versus 0/512 without correction. Both strict and relaxed flight limits gave the same
+five catches; none violated the strict limits. This demonstrates some transfer but
+very weak robustness. Evidence: primary run `exact-catch-continuation/heldout`.
+
+A subsequent search selected 32 independent, unmodified stage-18 starts with initial
+tilt 0.8–1.0 rad and optimized 32 candidates per start for 30 generations. It used
+the original termination, contact and capture rules throughout, with exact complete
+winner replay. The unchanged policy caught 1/32; interpolated prior corrections
+caught 5/32; per-start optimization caught 19/32, including 6/15 above 0.9 rad versus
+zero there for the unchanged policy. These are search-training outcomes, not heldout
+policy scores. `multi-start-catch-search/demonstrations.npz` preserves full recurrent
+histories, executed actions, valid masks, discounted returns and explicit failure
+statuses; only the 19 successful episodes qualify as successful demonstrations.
+
+An isolated imitation trial mixes those 19 trajectories with 128 successful easy
+episodes from the source actor. It freezes observation statistics, uses full recurrent
+sequences and evaluates the standalone actor without action corrections. Critic and
+PPO optimizer calibration remain separate prerequisites for any PPO handoff. Existing
+PPO runs are not replaced by this trial.
+
+The first full-actor imitation trial (`catch_branch_distill_local/2026-11-16_01-10-34`)
+was rejected. After 400 updates at 3e-6, its matched stage-18 development catches fell
+from 342/512 to 321/512. The 0.85–1.0-rad development set improved from 3/512 to 13/512,
+but remained zero above 0.9 rad; no saved student met the retention criterion. The
+selection therefore retained update zero. Its two fresh evaluations are the same
+source policy, not evidence of a student gain. A follow-up isolates final throttle/
+gimbal output rows and gives the first eight seconds five times the imitation weight;
+it must still pass standalone policy evaluation before any handoff.
+
+The restricted-output trial (`catch_branch_head_distill_local/2026-11-16_01-12-22`)
+also failed retention and produced no catches above 0.9 rad; selection again retained
+the source actor. An audit on the exact demonstration starts found only 3/19 catches
+for the full-actor student at update 400 and 0/19 for the output-only student at update
+1,000, versus 1/19 for the source. Even on recorded teacher histories, prefix action
+errors remained substantial: full-actor tanh-space MSE for throttle/two gimbals was
+0.0229/0.0415/0.0125, versus source 0.0314/0.0633/0.0314. Source suffix errors were
+approximately 1e-8, supporting correct history alignment. This is a fitting/closed-loop
+reproduction problem before it is merely a generalization problem. Evidence:
+`multi-start-catch-search/imitation-audit`. Do not calibrate a critic or replace PPO
+with either rejected student.
+
+A bounded smoothing/amplitude search retained all 19 successful demonstrations while
+reducing the control-variation objective for nine. Every selected trajectory replayed
+exactly; six successes remain above 0.9 rad. The successful subset's median objective
+decreased only from 0.1584 to 0.1471, so this is modest label cleanup, not a policy
+improvement. Artifacts: `smooth-catch-demonstrations`; failed candidates remain marked
+as failures and must be excluded from successful-demo training.
