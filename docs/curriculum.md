@@ -1472,3 +1472,63 @@ under the corresponding `tilt-matched-regression` and `tilt-throttle-probe` dire
 on the checkpoint volume. The belly-flop counterfactual is archived under
 `flip-recovery-probe/2026-11-16_02-50-51`. PR 67 follows the continuation with complete
 first-episode GIFs; it remains draft pending end-to-end validation.
+
+#### Throttle retention pilot and rollout credit
+
+The 200-update continuation did not solve the frontier. Its selected checkpoint's
+fresh harder-band results were 597/672 deterministic and 620/672 stochastic
+(88.84%/92.26%); warm and raised-cold retention still exceeded 95% in both modes.
+Most deterministic angular-rate failures were longitudinal roll: 37 of 38 in the
+harder band, alongside 44 pad misses (overlapping counts). Initial lean direction
+mattered: negative/positive `up_body_3` groups landed 335/343 and 262/329 respectively.
+Initial LSTM saturation was zero under the diagnostic thresholds; normalized channel
+p99 magnitudes were at most about 9. This does not assess later recurrent saturation.
+
+Exceeding a touchdown rate limit during flight is not itself an error. Of 597
+successful harder-band episodes, 343 crossed the longitudinal touchdown-rate limit;
+the median time above it was 1.3 seconds, versus 17 seconds among angular failures.
+Simple controller interventions did not solve this: a fresh 512-start baseline landed
+472; symmetric flap commands for the first five seconds landed 462, symmetry for the
+whole flight landed 65, and proportional RCS roll damping landed 470. No such controller
+was adopted. Full trajectories and reproduction scripts are in the continued run's
+`roll-control-probe` and `frontier-failure-breakdown`, archived on the checkpoint volume.
+
+A matched 50-update pilot compared unchanged PPO with four actor-only throttle replay
+steps after every PPO update. Replay used 16 warm and 16 raised-cold complete histories
+per step, explicitly equal profile loss weights, and an iteration-seeded local sampling
+generator. It used the same Adam optimizer, including its existing momentum; the added
+steps are part of the intervention, not a pure projection. Critic parameters received
+no replay gradients. Diagnostics measured collateral changes to all action heads and
+frontier histories. Correctness preflight verified unchanged critic/normalization/
+recurrent rollout state and exact actor/optimizer restoration. Replay-bank episodes
+are training data, never independent validation or fresh on-policy PPO trajectories.
+
+Both arms started from the same checkpoint and seed, with equal added transitions.
+Fresh paired evaluations verified bitwise-identical initial observations. After all
+50 updates, warm deterministic success improved from 479/512 to 496/512, raised-cold
+from 502/512 to 510/512, and harder-band deterministic success from 280/335 to 295/335
+(control/replay). Harder-band stochastic success changed from 304/335 to 310/335.
+However, the checkpoints selected by training evaluation did not show the same gain:
+harder-band deterministic success was 601/676 control versus 591/676 replay, and
+stochastic success 633/676 versus 632/676. This single-seed pilot supports a stability
+benefit at the fixed training budget, not superior peak performance or frontier mastery.
+The paired bootstrap intervals in the reports quantify episode uncertainty conditional
+on these policies; they do not quantify variability across training seeds.
+
+Credit assignment is the next bounded test. In 35/38 angular failures, the first
+observed longitudinal rate crossing preceded touchdown by at least the 128-step
+rollout; median lag was 173.5 control steps (17.35 seconds). Successful episodes also
+cross early, so this does not identify the decisive wrong action. GAE stops at rollout
+boundaries and bootstraps the critic. Increasing lambda alone cannot bridge that
+boundary; conditional critic overprediction on failed episodes is not by itself
+proof of miscalibration.
+
+Run `landing_long_rollout_local/2026-11-16_04-41-12` changes 512 environments ×128 steps
+to 256×256, keeping 65,536 transitions/update, 50 updates, lambda 0.98, rewards, learning
+rates, throttle replay, source checkpoint, seed and retention guards unchanged. This
+changes temporal context, recurrent backpropagation length and environment diversity
+together. Both selected and final checkpoints are compared against the 128-step replay
+arm on the same evaluation cohorts; promotion would still require fresh validation.
+Evidence: the throttle replay run's `paired-comparison` and `final-paired-comparison`,
+archived under `throttle-retention-pair`; credit diagnostics under the continued tilt
+run's `frontier-failure-breakdown`. PR 67 follows the longer-rollout run and remains draft.
