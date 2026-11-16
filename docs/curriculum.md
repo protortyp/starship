@@ -941,3 +941,35 @@ also rewinds process-global RNGs. These are trusted local Torch artifacts, not s
 inputs from strangers or training-resume checkpoints. Optimizer/rollout state and
 rebatching are not supported. Passing this replay check establishes a reproducible
 starting point for control interventions; it does not demonstrate recoverability.
+
+### Capture constraints and exact-branch search (2026-11-16)
+
+Learning audits now save terminal capture measurements and signed normalized excess
+for each kinematic gate: horizontal pin alignment, pin height, downward/upward pin
+speed, horizontal pin speed, tilt, angular rate and arm angle. Pin velocities include
+the rotational lever-arm term at both connectors. Positive residuals violate a gate;
+the JSON summary uses a 1e-5 residual tolerance for floating-point comparisons. These
+measurements do not override swept contact failures or prove that a descending
+catch-plane crossing happened. `CaptureMetrics(sim).sample()` reads terminal buffers;
+select newly ended lanes before another step overwrites them.
+
+The matched equal-transition batch experiment added 52,428,800 transitions to the
+same source checkpoint. On 1,024 matched stage-18 starts, 512 environments caught
+745 and 4,096 environments caught 751 (19 gains, 13 losses). Above 0.8 rad the counts
+were 21 versus 19 of 272; above 0.9 both caught zero of 186. Larger batches have not
+resolved the hard region. Evidence: the counted large-batch run's
+`equal-transitions-427M/comparison.json`.
+
+Two offline exact-branch CEM screens also found no catches. The first searched
+256 candidates for 12 generations from a 0.953-rad start at t=2 s, varying throttle
+and one gimbal axis over eight seconds. Remaining reward improved from -166 to -142
+but the best trajectory still crashed badly oriented. The second searched 512
+candidates for 30 generations from a different 0.949-rad start at t=0, varying throttle
+and both gimbal axes over ten seconds. Its terminal geometry/speed proxy improved,
+but it still missed the pins by about 75 m. That second proxy used center-of-mass
+speed, not the newly added exact pin metrics. Both used relaxed heuristic attitude
+termination and unchanged physical capture/contact rules, with exact baseline and
+winning-intervention replay. Neither supplies demonstrations or evidence of learned
+success. Artifacts: primary run `exact-branch-cem-095` and
+`exact-branch-geometry-cem-095`. Future search must solve the complete catch, including
+pin motion and arm closure; better proxy scores alone are insufficient.

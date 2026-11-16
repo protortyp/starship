@@ -20,6 +20,7 @@ from starship.sim.mass import mass_properties
 from starship.sim.physics import Params, State
 from starship.sim.rigid import gravity
 from starship.train.actions import CONTINUOUS, ENGINE_HEADS, LEGACY_ACTION_DIM
+from starship.train.capture_metrics import CAPTURE_METRICS, CaptureMetrics
 from starship.train.catch_pretrain import make_runner
 from starship.train.conf import load_run_config
 from starship.train.diagnose import load_scalars
@@ -215,6 +216,8 @@ def audit(checkpoint, episodes, seed, output, stage=None, stochastic=False, acti
         )
     }
     torch.manual_seed(seed if action_seed is None else action_seed)
+    capture_meter = CaptureMetrics(env.env.sim) if env.env.config.catch.enabled else None
+    capture_measurements = np.full((episodes, len(CAPTURE_METRICS)), np.nan)
     with torch.inference_mode():
         for _ in range(env.max_episode_length + 2):
             masks.append(pending.numpy().copy())
@@ -232,6 +235,8 @@ def audit(checkpoint, episodes, seed, output, stage=None, stochastic=False, acti
             status[ended] = env.final_status[ended]
             for name, data in terminal.items():
                 data[ended.numpy()] = getattr(env, "final_" + name)[ended].numpy()
+            if capture_meter is not None and ended.any():
+                capture_measurements[ended.numpy()] = capture_meter.sample()[ended.numpy()]
             pending &= ~done.bool()
             actor.reset(done)
             critic.reset(done)
@@ -321,6 +326,24 @@ def audit(checkpoint, episodes, seed, output, stage=None, stochastic=False, acti
             if scalars.get(tag)
         },
     }
+    capture_arrays = {}
+    if capture_meter is not None:
+        capture_residuals = capture_meter.residuals(capture_measurements)
+        report["capture_constraints"] = {
+            "names": CAPTURE_METRICS,
+            "limits": capture_meter.limits.tolist(),
+            "scales": capture_meter.scales.tolist(),
+            "note": "Terminal kinematic measurements; positive residual violates a gate. "
+            "These do not establish a descending crossing or rule out swept contacts.",
+            "violated_episodes": {
+                name: int((capture_residuals[:, i] > 1e-5).sum())
+                for i, name in enumerate(CAPTURE_METRICS)
+            },
+        }
+        capture_arrays = {
+            "terminal_capture_measurements": capture_measurements,
+            "terminal_capture_residuals": capture_residuals,
+        }
     np.savez_compressed(
         output / "trajectories.npz",
         obs=raw,
@@ -328,6 +351,7 @@ def audit(checkpoint, episodes, seed, output, stage=None, stochastic=False, acti
         critic_normalized=critic_normalized,
         continuous_action_means=action_means,
         continuous_action_std=action_std,
+        **capture_arrays,
         **{"terminal_" + name: data for name, data in terminal.items()},
         values=values,
         returns=targets,
