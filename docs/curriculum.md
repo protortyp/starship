@@ -1396,6 +1396,7 @@ requirements are unchanged. No physics, actuator or terminal-success rule was re
 | Belly-down pitch 0–1.2 rad, 800±150 m | Retained by selected4099: fresh96.09% deterministic/93.95% sampled |
 | Belly-down pitch 0–1.3 rad, 800±150 m | Selected4099: fresh93.65%/90.43%; dedicated1.25–1.3 success62.99%/30.47% |
 | Speed bridge, pitch 1.25±0.05 rad, 1000±150 m, −60±10 m/s | Selected4309: fresh83.11% deterministic/60.94% sampled; original retention passed; canonical belly-flop0/256 both |
+| Speed bridge, pitch 1.25±0.05 rad, 1000±150 m, −70±10 m/s | Midpoint4359 shows fresh sampled gains; endpoint4404 fails warm retention. Independent midpoint confirmation required before angle training |
 | Speed transition, pitch1.2–1.3, −60±10 m/s | Four-profile training running; transition at1000±150 m, old frontier stays800 m |
 | Original low-clearance cold starts | Reported stress set; not claimed solved |
 | Full belly-flop, randomized descent, catch | Not yet validated |
@@ -2800,3 +2801,58 @@ exceed angular rate and83 miss the pad; sampled210/362 exceed downward
 speed and291 angular rate. Median sampled failed-contact descent is2.37m/s.
 See `selected-speed-failure-review/2026-11-16_11-58-39`; contact limits remain
 unchanged and near-threshold cases are not reclassified as successes.
+
+
+### Speed70: supported progress, endpoint retention failure
+
+Run `landing_belly_down_speed_seventy_mixture_local/2026-11-16_12-23-24`
+finished4324→4424. Its fixed-panel selection chose actual4404, SHA256
+`c17fbf99b51ee7f34bfa6eca1f93f42b6942d89352d374369c05abab438f6d37`.
+The earlier midpoint snapshot4374 selected actual4359. Fresh GPU987000
+midpoint tests show speed70 sampled381→527/1024 (37.21→51.46%, paired95%
+gain11.43–16.99pp), deterministic800→806 uncertain. In the genuinely new
+70–80 half, sampled103→181/491 gains15.89pp (interval12.22–19.76pp).
+Speed60 sampled597→676 improves, but deterministic811→769 loses4.10pp
+(interval−7.03 to−1.07pp). This is a real measured tradeoff, not equivalence.
+Original retention cohorts pass at the midpoint. Speed70 initial sampled
+critic bias22.28→1.09, RMSE65.14→59.85, EV0.130→0.156 remains modest.
+
+Endpoint4404 fails independent warm deterministic retention:971/1024=94.82%,
+below the unchanged95% gate. On identical warm starts, midpoint4359 lands985;
+endpoint gains5 and loses19, delta−1.37pp (paired95%−2.34 to−0.49pp).
+The19 lost contacts violate downward speed8, horizontal speed8 or angular
+rate3; none violate tilt or pad position. Endpoint sampled warm996/1024
+passes. The endpoint is not adopted for the next phase by waiving retention.
+
+Astra recommends confirming the previously identified midpoint4359 rather
+than repairing4404 or searching additional checkpoints against these results.
+The first audit informed that fallback choice, so independent confirmation
+uses new physical/action seeds993000+2*case/993001+2*case:2048 warm starts,
+original cold/tilt retention, previous bridge, old angle frontier, speed70,
+speed60 and the midpoint's own angle1.35/speed60 footing. Compare speed
+profiles against4309 and require original95% retention unchanged. Do not
+reuse this confirmation panel to choose further checkpoints if4359 fails.
+
+Exact4404 angle screen at1.35±0.05/1000m (512/mode,989000/989001) improves
+sampled source4309→4404 from92→157 at60m/s and32→68 at70m/s. The30.66%
+angle60 footing belongs to4404, not4359; fallback must establish its own.
+
+Prepared angle training uses176old+16speed70+32angle60+16warm+16cold,
+blocks44/4/8/4/4. CPU/GPU parity through autoresets, recurrent-state isolation
+and restoration pass in PR157. Source4309 code preflight reproduces existing
+metrics exactly and finds20.90% sampled angle success; this is setup evidence,
+not validation of the future source. Preserve original95% guards and add
+5pp relative speed70 guards. Also anchor speed60 guards to4309's fixed
+80.27%/59.96% (before speed70 training), not a regressed successor. These are
+explicit engineering loss budgets, not statistical equivalence claims.
+If speed60 guards repeatedly block useful angle gains, consider splitting the
+16 retained-speed slots8/8 as a separate experiment; do not add it preemptively.
+
+Separate actual model4359, validation snapshot4374 and completed accounting
+4424. The prepared trainer requires independent confirmation and matching
+source hash when these differ, restores coherent actor/critic/Adam, and retains
+completed counters. Angle training remains unlaunched pending confirmation.
+Artifacts at the speed70 timestamp: `speed70-midpoint-review`,
+`speed70-endpoint-warm-review`, `speed70-midpoint-confirmation`,
+`speed-seventy-next-angle`, `next-angle-mixture-review`,
+`angle-thirtyfive-preparation`. Full belly-flop and capture remain unsolved.
