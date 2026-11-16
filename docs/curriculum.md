@@ -1393,7 +1393,7 @@ requirements are unchanged. No physics, actuator or terminal-success rule was re
 | Belly-down pitch 0–0.9 rad, 600±150 m | Retained throttle-only source selected after three-arm comparison; paired hard band 207/226 deterministic, 188/226 stochastic |
 | Belly-down pitch 0–1.0 rad, 800±150 m | Continuation selected aggregate 90.43%/92.14%, hard band 173/207 and 163/207; original profiles retained |
 | Belly-down pitch 0–1.1 rad, 800±150 m | Continuation selected3594: aggregate92.43%/92.72%, hard149/173 and110/173; original retention passes |
-| Belly-down pitch 0–1.2 rad, 800±150 m | Bounded100-update angle expansion running with224/16/16 mixture;800m chosen by paired full-range screen |
+| Belly-down pitch 0–1.2 rad, 800±150 m | Selected3689 retained earlier landings; fresh hard band106/155 deterministic,59/155 stochastic; unchanged100-update continuation running |
 | Original low-clearance cold starts | Reported stress set; not claimed solved |
 | Full belly-flop, randomized descent, catch | Not yet validated |
 
@@ -2429,3 +2429,58 @@ Preflight verified source hash, profiles, frozen normalization and restoration.
 Full randomized descent and chopstick catch remain outstanding. Artifacts:
 `belly-down-eleven-mixture-continued`, `next-twelve-screen`,
 `next-twelve-aggregate-height`, `next-twelve-plan`, timestamp `2026-11-16_09-37-05`.
+
+
+### Accepted3689 and a matched-policy decoder diagnosis
+
+The0–1.2 mixture block completed accounting iteration3724 with9 fixed-panel
+rejections. The last candidate failed warm deterministic at94.92%, so selected
+actual3689 remains the accepted endpoint (SHA256
+`f91207172f79413ea71529589559d00ff51260157df25e5d9b100d8ee00e2d13`). Fresh paired
+GPU audit961000 retained warm97.17%/98.05%, raised cold98.05%/98.83%, old±0.3
+98.24%/98.93%, old±0.4 98.63%/98.83%, and previous0–0.9 bridge99.02%/97.20%.
+The monitored0–1.0 and0–1.1 distributions remain unfinished.
+
+Matched frontier source3594→selected3689 was1838→1852/2048 deterministic
+(+0.68 points,95% interval−0.59 to+1.90; inconclusive), and1783→1810 stochastic
+(+1.32,+0.15 to+2.49). Hard1.1–1.2 was97→106/155 deterministic
+(+5.81,−1.29 to+12.90) and36→59 stochastic (+14.84,+8.39 to+21.94).
+Hard sampled critic bias fell34.56→9.44,RMSE61.31→57.42,EV0.187→0.200.
+Continue the same224/16/16 mixture at800m for100updates, accounting3724→3824,
+seed963000 and paired GPU endpoint audit964000. Retention and paired stochastic
+aggregate/hard-band gain gates passed. No decoder or normalization change was made.
+
+A separate factorial now compares warm and steep starts using the **same frozen
+3594 weights**, removing the checkpoint difference in the earlier diagnostic.
+Each context has1,024 fixed physical starts, four paired action seeds962001/003/005/007;
+deterministic output is evaluated once and verified bitwise against its original
+complete trajectory. Repeated draws are clustered by physical start.
+
+| Engine / continuous selection | Warm success | Steep1.1–1.2 success |
+| --- | --- | --- |
+| Deterministic / mean | 95.70% | 68.07% |
+| Sampled / mean | 98.83% | 35.96% |
+| Deterministic / sampled | 96.61% | 48.46% |
+| Sampled / sampled | 97.58% | 26.15% |
+
+Engine sampling with continuous means improves warm by+3.13 points
+(95% interval+1.93 to+4.37), but reduces steep success by−32.10
+(−34.96 to−29.27). This establishes context dependence for this checkpoint;
+it does not support a global decoder replacement or blanket exploration reset.
+Warm critic bias against four-seed mean returns is−0.43; novel steep bias is+33.18,
+with mean-returnEV0.291. The steep four-repeat variance-component estimate gives a
+single-returnEV ceiling near0.498, with finite-repeat uncertainty. Unlike the warm
+case, there is substantial novel-state calibration error to learn away.
+
+Actual first-step LSTM checks on3594 show normalized maximum-channel p99≈44.68
+in the steep profile. Actor sigmoid preactivation fractions above|8| are
+2.38% input,0.024% forget,1.38% output; candidate above|4| is16.22%.
+Critic sigmoid fractions are3.98%/2.30%/4.22%, candidate13.32%.
+Manual/native hidden outputs agree within1.8e-7. These initial-state observations
+warrant monitoring as the angle grows; they are not proof of whole-trajectory
+collapse or a reason to change normalization during a successful controlled run.
+
+Artifacts: `belly-down-twelve-mixture` and `twelve-mixture-continuation-plan`,
+timestamp `2026-11-16_09-56-48`; diagnostic `hard-twelve-decoder-factorial`,
+`warm3594-decoder-factorial`, `decoder-context-comparison`, timestamp
+`2026-11-16_09-37-05`. Full randomized descent and chopstick capture remain outstanding.
