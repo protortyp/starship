@@ -437,15 +437,23 @@ def publish(args, meta):
         raise PublisherStopped(
             "Unrelated staged changes; refusing to include them in a progress commit"
         )
+    expected_remote = command("git", "rev-parse", "refs/remotes/origin/ce/catch-training-progress")
     command("git", "add", "docs/assets/catch-progress")
     if subprocess.run(["git", "diff", "--cached", "--quiet"], cwd=ROOT).returncode:
         command(
             "git",
             "commit",
+            "--amend",
             "-m",
             f"chore(train): render catch checkpoint {meta['iteration']} [skip ci]",
         )
-    command("git", "push", "origin", "HEAD:ce/catch-training-progress")
+    command(
+        "git",
+        "push",
+        f"--force-with-lease=refs/heads/ce/catch-training-progress:{expected_remote}",
+        "origin",
+        "HEAD:ce/catch-training-progress",
+    )
     sha = command("git", "rev-parse", "HEAD")
     body = args.run / "pr-progress/body.md"
     body.write_text(pr_body(meta, sha, args.repository, args.every))

@@ -1,9 +1,9 @@
 {
-  "iteration": 6105,
+  "iteration": 6380,
   "checkpoint_kind": "ppo",
-  "total_env_steps": 522977280,
-  "checkpoint": "policy_6104.pt",
-  "run": "landing_belly_down_angle_original_long_local/2026-11-16_18-52-16",
+  "total_env_steps": 540999680,
+  "checkpoint": "policy_6379.pt",
+  "run": "landing_rollback_horizon_control_local/2026-11-16_20-45-33",
   "catch_enabled": false,
   "moving_arms": false,
   "policy_controlled": false,
@@ -13,7 +13,7 @@
   "observation_channels": 32,
   "stage": 1,
   "stage_name": "1 belly-down bridge, pitch0to1.3rad at800m",
-  "updated": "2026-11-16T18:47:21.912838+00:00",
+  "updated": "2026-11-16T19:56:40.184520+00:00",
   "episodes": [
     {
       "seed": 0,
@@ -43,11 +43,11 @@
         "header_fill": 1.0,
         "main_fill": 0.01
       },
-      "duration_s": 31.99,
+      "duration_s": 32.33,
       "outcome": "landed",
       "training_cutoff": null,
-      "final_vertical_speed_m_s": -0.89,
-      "final_tilt_deg": 3.85,
+      "final_vertical_speed_m_s": -1.22,
+      "final_tilt_deg": 4.37,
       "arm_open_min_deg": 0.0,
       "arm_open_max_deg": 0.0
     },
@@ -79,11 +79,11 @@
         "header_fill": 1.0,
         "main_fill": 0.01
       },
-      "duration_s": 38.38,
-      "outcome": "crashed",
+      "duration_s": 37.45,
+      "outcome": "landed",
       "training_cutoff": null,
-      "final_vertical_speed_m_s": -1.05,
-      "final_tilt_deg": 4.14,
+      "final_vertical_speed_m_s": -1.35,
+      "final_tilt_deg": 4.36,
       "arm_open_min_deg": 0.0,
       "arm_open_max_deg": 0.0
     }
@@ -96,5 +96,5 @@
   "rollout_steps": 256,
   "initial_value": null,
   "warmstart": false,
-  "eval_catch_rate": 0.974609375
+  "eval_catch_rate": 0.9713541865348816
 }
