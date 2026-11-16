@@ -1385,7 +1385,7 @@ requirements are unchanged. No physics, actuator or terminal-success rule was re
 | Raised cold, 400±150 m, pitch ±0.1 rad | Unchanged ground student passed fresh 2,048-per-mode bridge validation |
 | Raised cold, pitch ±0.2 rad | Coherent calibrated source: 497/506 of 512; new band 246/252 of 257 |
 | Raised cold, pitch ±0.3 rad | Aggregate retained; narrow 0.2–0.3 band passed one cohort but failed the next with identical weights |
-| Raised cold, pitch ±0.4 rad | Bounded 200-update expansion running; initial new-band deterministic success 78.68% |
+| Raised cold, pitch ±0.4 rad | 200-update expansion complete; fresh new band 89.57%/84.36%; bounded consolidation with both-mode selection running |
 | Original low-clearance cold starts | Reported stress set; not claimed solved |
 | Full belly-flop, randomized descent, catch | Not yet validated |
 
@@ -1633,3 +1633,51 @@ remain at least 95% in both modes. Audits separately report the unfinished old
 band was an experimental gate, not a final task requirement; expanding coverage does
 not declare the old band solved. Physics, contact success and termination rules are
 unchanged. Randomized ground landing and end-to-end catch validation remain required.
+
+### Wider-tilt learning and selection across action modes (2026-11-16)
+
+The ±0.4 expansion completed 200 updates with zero retention rejections in 40
+training evaluations. Its 100-update selection was iteration 1624; its final
+selection was iteration 1699. Independent audits retained warm, raised-cold and
+old ±0.3 aggregate landing rates above 95% in both action modes. The final selected
+policy scored 481/537 (89.57%) deterministic and 453/537 (84.36%) stochastic in the
+new 0.3–0.4 band. Overall ±0.4 rates were 96.29%/94.43%; this is not mastery.
+
+Matched initial observations distinguish learning from differences between cohorts:
+
+| Comparison, new 0.3–0.4 band | Deterministic | Stochastic |
+| --- | --- | --- |
+| Source → 100-update selection, 484 episodes | 387 → 409 | 324 → 369 |
+| Source → 200-update selection, 537 episodes | 442 → 481 | 372 → 453 |
+| 100-update → 200-update selection, same 537 episodes | 461 → 481 | 425 → 453 |
+
+The last comparison gained 29/lost 9 deterministic landings and gained 30/lost 2
+stochastic landings. Paired episode-bootstrap 95% intervals for improvement were
++1.68–5.96 and +3.17–7.26 percentage points, respectively. These intervals describe
+conditional episode uncertainty, not robustness across training seeds.
+
+At the 100-update selection, 63 of 75 deterministic new-band failures violated
+angular touchdown limits; 60 were roll-dominant. Success was 238/249 in one initial
+tilt direction and 171/235 in the other. Stochastic initial critic bias over the
+whole new band was +3.51 with standard error 2.24, using state-defined groups rather
+than selecting failures. This does not identify a large systematic critic error.
+
+A ±0.5 transfer screen of that **100-update** selection found new 0.4–0.5 band
+success of 110/183 deterministic and 44/183 stochastic; the harder direction scored
+39/97 and 17/97. Successful examples exist, but the stochastic transfer drop warrants
+attention. This screen does not establish the newer selected actor's transfer ability.
+
+`landing_tilt_consolidation_local/2026-11-16_05-42-11` now runs a bounded 100-update
+continuation at unchanged ±0.4 from coherent selected iteration 1699. PPO, replay,
+normalization, reward and physics stay unchanged. Checkpoint selection now includes a
+fixed stochastic frontier panel, isolated from the learner RNG, as well as the fixed
+deterministic panel. Admissible checkpoints rank by the minimum of aggregate and
+new-band success across both modes; mean new-band success breaks ties. Existing
+retention floors remain. The copied selection dictionary changes ranking only;
+logged evaluation returns remain actual returns. A saved checkpoint's score was
+checked against both modes and its tie-break, and this verification was archived.
+
+Independent validation and backups follow the block, with a matched source policy
+on identical fresh frontier starts. Evidence is archived under `tilt-expansion`,
+`tilt-half-radian-screen` and `tilt-consolidation` on the separate checkpoint volume.
+No intermediate-band result substitutes for final randomized-ground and catch tests.
