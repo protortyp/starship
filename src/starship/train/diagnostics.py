@@ -7,7 +7,8 @@ Definitions:
                   barely contributes relative to its layer.
     dead unit     output (nearly) constant over the batch, so no gradient signal varies through it.
     effective rank  smallest k whose top-k singular values hold (1 - delta) of the singular value
-                  mass (Kumar et al., 2021); low rank means collapsed features.
+                  mass (Kumar et al., 2021); compare centered rank to distinguish variation
+                  from a dominant common offset. Low rank alone does not prove collapse.
     gate saturation  fraction of LSTM sigmoid gates beyond (0.01, 0.99), where their gradient
                   nearly vanishes.
 """
@@ -38,8 +39,26 @@ def activation_stats(acts: torch.Tensor, tau: float = DORMANT_TAU) -> dict[str, 
 def effective_rank(features: torch.Tensor, delta: float = RANK_DELTA) -> int:
     """srank of a (batch, dim) feature matrix."""
     s = torch.linalg.svdvals(features.detach().float().reshape(-1, features.shape[-1]))
-    cumulative = torch.cumsum(s, dim=0) / (s.sum() + 1e-12)
+    total = s.sum()
+    if total == 0:
+        return 0
+    cumulative = torch.cumsum(s, dim=0) / total
     return int((cumulative < 1.0 - delta).sum().item()) + 1
+
+
+def feature_rank_stats(features: torch.Tensor) -> dict[str, float]:
+    """Report raw rank and variation after removing the common feature offset."""
+    features = features.detach().float().reshape(-1, features.shape[-1])
+    centered = features - features.mean(0)
+    energy = features.square().sum()
+    return {
+        "features/effective_rank": float(effective_rank(features)),
+        "features/centered_effective_rank": float(effective_rank(centered)),
+        "features/variation_fraction": float(
+            centered.square().sum() / energy.clamp_min(torch.finfo(features.dtype).tiny)
+        ),
+        "features/width": float(features.shape[-1]),
+    }
 
 
 @torch.no_grad()
@@ -130,8 +149,7 @@ def model_diagnostics(model: nn.Module, obs, hidden_state=None) -> dict[str, flo
             out[f"{name}/{k}"] = v
     if captured:
         last = captured[-1][1]
-        out["features/effective_rank"] = float(effective_rank(last))
-        out["features/width"] = float(last.shape[-1])
+        out.update(feature_rank_stats(last))
     if rnn is not None and lstm_input:
         lstm = rnn.rnn
         state = hidden_state[0] if isinstance(hidden_state, tuple) else hidden_state

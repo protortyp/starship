@@ -1562,3 +1562,29 @@ boundaries. Selected and final checkpoints use paired evaluation cohorts, with
 initial-direction subsets. Fresh validation is still required before promotion.
 The existing `long-rollout-comparison` archive contains the completed comparison;
 PR 67 now follows the trace-extension run.
+
+#### Sustained training and interpreting feature rank
+
+Run `landing_tilt_sustained_local/2026-11-16_04-57-16` continues the selected trace
+checkpoint for 500 updates. Selection uses fixed 1,536-episode frontier and 512-episode
+retention panels; separate fresh cohorts evaluate saved selections every 100 updates.
+Reset preflight reproduced all physical state fields, observations and mirror flags
+on CPU and GPU. Wind has a separate RNG stream and is reset alongside spawn/mirroring.
+The first 100-update snapshot retained warm landings at 97.46%/98.93% and raised-cold
+landings at 99.90%/99.32%; the harder band scored 601/635 of 666 (90.24%/95.35%).
+Deterministic performance remains below the advancement criterion.
+
+The diagnostic's low raw critic-rank warning prompted a full-history probe of that
+snapshot: 26,336 valid states from the first 128 held-out stochastic frontier episodes,
+without selecting episodes by outcome. Critic raw rank was 14/128, centered rank
+48/128, and centered variation accounted for 2.25% of feature energy. Actor ranks
+were 86/95 respectively. Replayed critic values matched the audit exactly. These
+ranks use 99% of singular-value mass, not squared energy. The large common critic
+feature offset makes uncentered rank alone insufficient evidence of collapse.
+
+Diagnostics now log centered rank and the fraction of energy in feature variation.
+Warnings use centered rank when available; legacy raw-only logs explicitly request
+the missing check rather than asserting collapse. Zero features have rank zero, and
+nonzero rank remains invariant to feature scale. Low centered rank still warrants
+investigation, but neither a high rank nor a large rank increase proves good value
+calibration. The probe is archived under `critic-feature-rank` on the checkpoint volume.

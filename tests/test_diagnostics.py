@@ -6,6 +6,7 @@ from starship.train import RocketEnv
 from starship.train.diagnostics import (
     activation_stats,
     effective_rank,
+    feature_rank_stats,
     layer_norms,
     lstm_gate_stats,
     model_diagnostics,
@@ -49,6 +50,55 @@ def test_effective_rank_matches_constructed_rank():
     assert effective_rank(torch.randn(256, 64)) > 40
 
 
+def test_feature_rank_is_invariant_to_small_feature_scale():
+    features = torch.randn(128, 32, generator=torch.Generator().manual_seed(73))
+    ordinary = feature_rank_stats(features)
+    small = feature_rank_stats(features * 1e-16)
+    assert small["features/effective_rank"] == ordinary["features/effective_rank"]
+    assert small["features/centered_effective_rank"] == ordinary["features/centered_effective_rank"]
+    assert small["features/variation_fraction"] == pytest.approx(
+        ordinary["features/variation_fraction"], rel=1e-5
+    )
+
+
+def test_feature_rank_distinguishes_offset_from_limited_variation():
+    generator = torch.Generator().manual_seed(72)
+    features = torch.randn(256, 64, generator=generator)
+    ordinary = feature_rank_stats(features)
+    shifted = feature_rank_stats(features + 10_000)
+    assert shifted["features/effective_rank"] == 1
+    assert shifted["features/centered_effective_rank"] > 40
+    assert (
+        shifted["features/centered_effective_rank"] == ordinary["features/centered_effective_rank"]
+    )
+    assert shifted["features/variation_fraction"] < 1e-6
+
+
+@pytest.mark.parametrize("value", [0.0, 10.0])
+def test_constant_features_have_no_centered_rank(value):
+    stats = feature_rank_stats(torch.full((32, 16), value))
+    assert stats["features/centered_effective_rank"] == 0
+    assert stats["features/variation_fraction"] == 0
+    assert stats["features/effective_rank"] == (0 if value == 0 else 1)
+
+
+@pytest.mark.parametrize(("centered", "warns"), [(None, True), (8, True), (48, False)])
+def test_rank_warning_distinguishes_missing_and_centered_evidence(centered, warns):
+    from starship.train.diagnose import plasticity_section
+
+    prefix = "plasticity/critic/features/"
+    scalars = {prefix + "effective_rank": [(0, 9)], prefix + "width": [(0, 128)]}
+    if centered is not None:
+        scalars[prefix + "centered_effective_rank"] = [(0, centered)]
+    text = "\n".join(plasticity_section(scalars, {}))
+    assert ("WARN" in text) == warns
+    assert "representation collapsed" not in text
+    if centered is None:
+        assert "centered rank unavailable" in text
+    elif warns:
+        assert "limited feature variation" in text
+
+
 def test_lstm_gate_saturation_detects_saturated_gates():
     lstm = nn.LSTM(4, 8)
     with torch.no_grad():
@@ -82,6 +132,8 @@ def test_model_diagnostics_on_the_lstm_policy(tmp_path):
     d = model_diagnostics(actor, env.get_observations())
     assert {"hidden0/dormant", "hidden1/dormant"} <= d.keys()
     assert 1 <= d["features/effective_rank"] <= d["features/width"]
+    assert 0 <= d["features/centered_effective_rank"] <= d["features/width"]
+    assert 0 <= d["features/variation_fraction"] <= 1
     assert 0.0 <= d["lstm/forget_saturated"] <= 1.0
 
 
