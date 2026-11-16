@@ -1344,3 +1344,71 @@ while weights come from the selected calibrated checkpoint. It remains fixed at
 stage 1 and requires fresh >=95% validation in both modes on both stages before
 advancing. This is a continuation experiment, not a matched causal comparison of
 calibrated and uncalibrated training.
+
+#### Clearance bridge and gradual tilt frontier
+
+The calibrated cold continuation ended without passing the added cold gate: fresh
+2,048-episode results were 97.22%/99.22% on warm starts and 91.60%/88.13% on the
+original cold distribution (deterministic/stochastic). Better initial critic accuracy
+alone did not establish successful cold-stage learning. A separate matched intervention
+forced all engines on at near-full throttle for one or two seconds: 472 and 476 of
+512 landed, versus 476 normally. It rescued some low starts but lost other landings;
+no forced-burn controller was adopted.
+
+The outside review identified a tight synthetic starting envelope. Spawn altitude is
+COM altitude; initial COM is 23.82 m above the base, making the minimum upright base
+height about 126 m. Cold throttle starts at 0.4 and takes 1.5 s to reach full throttle,
+in addition to the 2 s spool ramp. An upright maximum-burn reference using actual
+engine ramps, fuel-dependent mass/COM and sampled axial aerodynamics had negative
+stopping clearance for 23/512 starts, all policy failures; a 40,000-cell height/speed
+grid gave 4.95% reference failures. This is **not a global reachability bound**:
+tilting, non-axial aerodynamics, clearance changes and lateral control are not fully
+represented. It cannot certify that those starts are impossible.
+
+A matched counterfactual changed only nominal COM altitude from 300 to 400 m,
+retaining the same ±150 m spread, speeds, orientation, rates, tanks, actuators and
+mirror flags. Initial non-height state fields matched bitwise; the height shift was
+100 m within 3.1e-5 m. The unchanged source landed 945/925 of 1,024 on the original
+profile and 1,006/1,016 on the raised profile (deterministic/stochastic). Fresh raised
+profile validation landed 2,014/2,025 of 2,048. This establishes a useful clearance
+bridge, not impossibility or mastery of the original cold profile.
+
+The extra >=95% requirement on the original intermediate cold distribution is
+therefore being replaced by the validated clearance bridge. The original profile
+remains an unfiltered, separately reported stress set. Final randomized-ground
+acceptance remains >=95% in both modes, and end-to-end catch validation/LFS/merge
+requirements are unchanged. No physics, actuator or terminal-success rule was relaxed.
+
+| Current profile | Evidence/status |
+| --- | --- |
+| Warm upright starts | Reliable retained source; checked throughout adaptation |
+| Raised cold, 400±150 m, pitch ±0.1 rad | Unchanged ground student passed fresh 2,048-per-mode bridge validation |
+| Raised cold, pitch ±0.2 rad | Coherent calibrated source: 497/506 of 512; new band 246/252 of 257 |
+| Raised cold, pitch ±0.3 rad | Training frontier; source new band only 151/154 of 178 |
+| Original low-clearance cold starts | Reported stress set; not claimed solved |
+| Full belly-flop, randomized descent, catch | Not yet validated |
+
+Direct transfer to the standard 900–1,500 m belly-flop stage landed 0/512 in both
+modes, with 511/507 attitude terminations. That jump changes several conditions
+simultaneously. A first-step LSTM audit also found normalized feature p99 magnitudes
+around 70–76; input/forget/output gate saturation fractions were 18.8%/13.1%/14.8%
+at absolute-logit threshold 8, and candidate saturation was 44.5% at threshold 4.
+Warm and raised-cold starts had approximately zero saturation by these definitions.
+Reconstructed hidden outputs matched the actual LSTM within 2e-7. This supports a
+gradual transition, not a claim that normalization alone explains every failure.
+
+Run `landing_tilt_frontier_local/2026-11-16_03-50-52` holds raised-cold height/speed
+fixed and widens only pitch noise to ±0.3 rad after the ±0.2 screen succeeded. It
+uses the coherent accepted actor/critic, frozen statistics and conservative learning
+rates for 100 updates. Best selection uses the minimum of aggregate success and
+success in the new 0.2–0.3 rad band. Warm and raised-cold ±0.1 retention are checked
+in both modes every five updates; any rate below 95% restores the accepted checkpoint.
+Frontier regression uses a separate 10% relative, two-evaluation guard. Fresh final
+validation checks both retained profiles, the frontier and its new band; the original
+cold profile is reported separately. Later height, speed and tilt extensions will be
+chosen from measured transfer, with controlled normalization refreshes as needed.
+
+Evidence: ground student's `cold-early-burn`, `cold-clearance-probe` and
+`clearance-next-stage`; the retained cold run's `tilt-frontier-screen` and
+`tilt-frontier-next`. The burn/clearance experiments and explicit reference assumptions
+are archived on the separate checkpoint volume. PR 67 now follows the tilt frontier.
