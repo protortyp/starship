@@ -1299,3 +1299,48 @@ With corrected heights, the cold-transfer deterministic failures started at medi
 already requested about 2.94 engines and 97.3% throttle during their first two seconds.
 These are observational associations, not a feasibility bound or proof of a controller
 fix. Evidence: the student's `cold-transfer/failure-analysis`.
+
+#### Cold-start critic mismatch and calibrated continuation
+
+The first retained cold-start run completed its 100 updates without meeting the
+promotion requirement. Its accepted best actor (iteration 744) validated on 2,048
+fresh episodes per mode at 97.31%/99.51% for stage 0 and 93.26%/89.16% for stage 1
+(deterministic/stochastic). Several updates were rejected or rolled back; the final
+actor is the accepted earlier best, not an uninterrupted 100-update improvement.
+Weights, configuration, reproduction script and validation summary are archived under
+`ground-cold-retained` on the separate checkpoint volume. PR 67 now follows cold-start
+training, showing complete fixed-seed episodes every 25 updates and at completion.
+The publisher uses saved transition counters across batch-size changes and labels
+the displayed rate as the latest training evaluation; it can precede a rollback.
+
+A matched 512-start stochastic audit of checkpoint 734 showed only 466 landings
+versus 464 for the pre-cold source. Initial critic bias remained -39.30, from -45.87
+at transfer; RMSE was 54.83 versus 60.46. Source failures already requested nearly
+full available thrust, and the critic strongly mispriced initial cold states. This
+supports testing calibration before changing the controller or reward, without
+establishing that critic error is the sole cause of failed landings.
+
+Actor-frozen calibration used 512 complete stochastic episodes from each of stages
+0 and 1, with episode-disjoint validation. The first fit assigned half its loss to
+the first 20 steps: it improved cold initial RMSE from 57.79 to 38.48 but worsened
+warm initial RMSE from 5.08 to 7.74, failing the preset retention limit. It was rejected.
+A controlled second fit changed that window to the initial state only, retaining
+the dataset, seed, 2,000 updates and 1e-4 critic learning rate. Warm initial RMSE was
+5.28; cold initial RMSE was 21.59 and EV 0.699, passing the same acceptance rule.
+
+Independent validation replayed the critic over the previously separate 2,048-episode
+stochastic cohorts for each stage, checking the source replay against recorded values
+within 0.001. Cold initial bias improved from -41.62 to -0.30, RMSE from 59.15 to
+27.48, and EV from 0.214 to 0.664. Warm initial/all-state errors passed the preset
+limit of at most max(10%, 2 return units) deterioration. Actor weights and both
+normalizers remained bitwise unchanged. Evidence: the cold run's
+`joint-critic-calibration`, `joint-critic-initial` and `learning-audit-735`; selected
+weights and independent report are archived under `ground-cold-critic-initial`.
+
+Run `landing_cold_calibrated_retained_local/2026-11-16_03-22-08` now tests another
+100 cold-stage PPO updates with that critic and the same retention guard. Its source
+metadata carries the completed parent's iteration 774 and true transition count,
+while weights come from the selected calibrated checkpoint. It remains fixed at
+stage 1 and requires fresh >=95% validation in both modes on both stages before
+advancing. This is a continuation experiment, not a matched causal comparison of
+calibrated and uncalibrated training.
