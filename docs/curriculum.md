@@ -1193,3 +1193,57 @@ configurations and reports are hash-verified on the separate checkpoint volume;
 neither is end-to-end validated. The queued direct-catch extension was cancelled
 to prioritize the ground-first rebuild. The ground audit watcher now automatically
 backs up each 100-update checkpoint and report, in addition to passed-stage backups.
+
+#### Ground rebuild: actuator response and deterministic student
+
+The matched entropy experiment resumed checkpoint 499 for 150 updates with identical
+512-environment batches and seeds. Final independent 512-start evaluations landed
+288 deterministically / 502 stochastically for entropy coefficient 0.002, versus
+430 / 504 for -0.01. This penalty affects all action heads, not just engines.
+Both trials fluctuated substantially; the penalty candidate continues separately
+with the standard ground curriculum and 2,048 environments. Evidence:
+`landing_entropy_control/2026-11-16_02-22-35/comparison`.
+
+At checkpoint 624 the mode gap has changed: on 512 matched starts, ordinary
+deterministic inference landed 392, binary-only sampling 399, continuous-only
+sampling 479, and full sampling 503. A deterministic engine probability accumulator
+landed 401; repeating with a different action RNG produced identical traces.
+Replacing continuous means by expected squashed commands landed 395 with sampled
+binaries, while sampling just gimbals (plus binaries) landed 499. Thus the earlier
+binary-switching diagnosis does not explain this later checkpoint; averaging the
+squashed command alone does not recover the sampled behavior.
+
+A diagnostic wrapper instead integrates each Gaussian gimbal command through the
+existing ten actuator lag/rate-limit substeps, then inverts that mapping to match
+the expected final gimbal angle with one legal constant command. Other heads use
+ordinary deterministic outputs. It uses privileged actuator/filter state and is
+not an unassisted neural policy. On the matched 512 starts it landed 501; changing
+the action RNG gave identical action/status traces. A preregistered fresh 2,048-start
+evaluation landed 1,998 (97.56%). Physics, termination and landing criteria are
+unchanged. The 512-node quadrature passed the predeclared 0.0002 rad convergence
+tolerance (maximum 256-vs-512 difference 0.0001501 rad on the fresh evaluation).
+The lower-resolution 128-node version failed that tolerance and is not the accepted
+result. Actual actuator state prediction agreed within 5.4e-8 rad; endpoint inversion
+does not also match filtered target or integrated angle, which remain documented
+limitations. Evidence: the ground run's `actuator-response-probe-625-q512` and
+`actuator-response-heldout-625`; checkpoint, configuration, scripts and results are
+hash-archived under `ground-response-625` on the separate checkpoint volume.
+
+A separate 1,024-start collection (997 landings, seed 835900) supplies complete
+recurrent episodes and soft source-policy targets, replacing only the two gimbal
+targets with response-matched commands. Student run
+`landing_response_distill_local/2026-11-16_02-50-51` freezes observation normalization
+and fits the actor at learning rate 1e-5. All demonstrations, including failures,
+remain in training. Unassisted deterministic development evaluations reached
+248/256 at update 200 and 250/256 at update 1000. Checkpoint 200, the first scheduled
+evaluation above 95%, was selected for a separate 2,048-start deterministic and
+stochastic audit before inspecting those results. That fresh audit (seed 836900)
+landed 1,988/2,048 deterministically (97.07%) but only 1,749/2,048 with the source
+exploration noise (85.40%). Deterministic failures were mostly pad misses (58);
+stochastic failures included 217 pad misses and 76 angular-rate violations, with
+overlap. Initial critic EV was 0.042 / -0.006 and bias -8.01 / +16.91 respectively.
+The inherited critic therefore needs calibration for the selected behavior before
+PPO continuation. A matched noise probe changes only the two gimbal standard
+deviations to 1, 0.5 or 0.25 times their inherited values; deterministic outputs
+remain unchanged. These results concern only upright stage 0; cold starts,
+belly-flops, randomized descents and catch transfer remain unvalidated.
