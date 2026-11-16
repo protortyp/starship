@@ -70,7 +70,7 @@ A separate `curriculum=catch` adds pivoting arms and hull/fin collision checks; 
 | 0 | Short upright approach, lower fins pass, arms close, pins captured | solved in deterministic holdout: 1,023/1,024 catches (99.9%), learned flight + arm control |
 | 1 | Larger approach errors | solved: 505/512 fresh lit-engine approaches (98.6%) |
 | 2 | Engine ignition | solved: 507/512 deterministic and 248/256 stochastic fresh approaches |
-| 3–5 | Flip, randomized descent, wind | 700 m / 0–0.8 rad / 60 m/s gate passed (fresh 88.6% deterministic, 85.9% stochastic); direct/bridge PPO continues. Offline search now supplies six verified catches above 0.9 rad for imitation; learned hard-range and full belly-flop success remain unproven |
+| 3–5 | Flip, randomized descent, wind | 700 m / 0–0.8 rad / 60 m/s gate passed; direct/bridge PPO continues. Joint student now catches 61/673 fresh hard starts above 0.9 rad and 701/1024 across stage 18; stochastic/critic checks precede isolated PPO continuation. Hard-range mastery and full belly-flop remain unsolved |
 | 6–9 | Late-entry handovers, 5–20 km | not trained |
 
 Findings (2026-11-15): the initial fixed-arm baseline omitted fin collision. Its closed gap was
@@ -1033,3 +1033,50 @@ exactly; six successes remain above 0.9 rad. The successful subset's median obje
 decreased only from 0.1584 to 0.1471, so this is modest label cleanup, not a policy
 improvement. Artifacts: `smooth-catch-demonstrations`; failed candidates remain marked
 as failures and must be excluded from successful-demo training.
+
+### Learning the hard maneuver while retaining the approach (2026-11-16)
+
+A single-trajectory capacity test changed the diagnosis. With frozen observation
+statistics, soft output targets and extra weight on the first eight seconds, 25 updates
+at 1e-4 taught the actor a hard catch without action overrides. The recorded teacher
+finished in 56.1 s; the learned actor took a different successful path in 37.5 s.
+On independent starts it caught 43/699 above 0.9 rad, versus zero for the source, but
+full stage-18 catches collapsed from 719/1024 to 27/1024. It is a useful specialist
+teacher, not a replacement policy. Evidence: `catch_single_fit_local/2026-11-16_01-18-03`.
+
+That specialist generated 256 autonomous successful flights from 4,096 new starts
+at 0.85–1.0 rad, including 150 above 0.9. Joint soft-logit imitation combined them
+with 512 source-policy successes at 0–0.7 rad, using full recurrent histories and
+unchanged normalizers. After 1,000 updates, hard development catches rose from 4 to
+89/1024 (59 above 0.9), while full-stage catches fell from 724 to 664/1024. The loss
+was concentrated in an omitted retention range: at 0.7–0.8 rad, catches fell from
+75 to 30 of 93. This identified a concrete coverage gap in the imitation data.
+
+Two matched continuations started from that same actor with identical seeds/settings.
+The treatment added 595 successful source-policy flights from 0.7–0.85 rad; the
+control reused the original data. After another 1,000 updates, treatment caught
+709/1024 full-stage and 127/1024 hard development starts, versus control 673 and 86.
+The selected treatment then caught 701/1024 on untouched full-stage starts, versus
+707 for the source, and 116/1024 on untouched hard starts, versus 3. Above 0.9 rad
+within the hard set, it caught 61/673 versus zero. These are deterministic standalone
+policy results under the original flight/contact/capture rules, not helper-assisted
+rollouts. Evidence: `catch_joint_mid_fit_local/2026-11-16_01-24-04`; paired control:
+`catch_joint_continue_fit_local/2026-11-16_01-24-04`.
+
+The candidate's PPO artifact preserves the source iteration/transition count and
+action standard deviations, replaces only actor weights, and clears stale actor Adam
+moments. Its inherited critic must be fitted to new complete on-policy returns and
+checked on fresh episodes before an isolated PPO run. Existing baselines remain live;
+no end-to-end checkpoint is validated for merging or Git LFS yet.
+
+### Completed heuristic-termination ablation
+
+The matched 2,048-environment runs each added 52,428,800 transitions from source 5719
+at fixed stage 18. Final matched stochastic evaluation caught 359/512 for control and
+358/512 for recovery training. Evaluating either actor with relaxed termination did
+not add catches, and neither caught after a historical attitude-limit violation.
+The critic's initial-state explained variance was about 0.780 for control under its
+own rules and 0.825 for recovery under its own rules; this did not imply improved
+catch behavior. This bounded experiment found no recovery benefit; it does not prove
+physical impossibility. Evidence: termination-control run
+`paired-evaluations/model_5919/comparison.json`. Both bounded jobs completed normally.
