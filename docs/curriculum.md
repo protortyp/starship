@@ -1392,7 +1392,7 @@ requirements are unchanged. No physics, actuator or terminal-success rule was re
 | Belly-down pitch 0–0.8 rad, 600±150 m | Final fresh hard band 234/246 deterministic, 221/246 stochastic; earlier landing retained |
 | Belly-down pitch 0–0.9 rad, 600±150 m | Retained throttle-only source selected after three-arm comparison; paired hard band 207/226 deterministic, 188/226 stochastic |
 | Belly-down pitch 0–1.0 rad, 800±150 m | Continuation selected aggregate 90.43%/92.14%, hard band 173/207 and 163/207; original profiles retained |
-| Belly-down pitch 0–1.1 rad, 800±150 m | Expansion improved hard-band stochastic80→110/185 but failed warm retention; source3409 retained, live-profile mixture under evaluation |
+| Belly-down pitch 0–1.1 rad, 800±150 m | Mixed checkpoint3524 independently retained warm/cold landings and improved frontier; fresh hard band189/211 deterministic,128/211 stochastic; unchanged mixture continuation |
 | Original low-clearance cold starts | Reported stress set; not claimed solved |
 | Full belly-flop, randomized descent, catch | Not yet validated |
 
@@ -2310,3 +2310,58 @@ final acceptance criteria. Keep current deployment and the accepted source while
 checking the on-policy mixture and fresh paired holdouts. Reproduction and complete
 trajectories are archived under `eleven-warm-action-seeds` and
 `eleven-warm-decoder-factorial`, timestamp `2026-11-16_08-52-06`.
+
+
+### Mixed checkpoint3524 accepted; unchanged bounded continuation
+
+The224/16/16 on-policy mixture completed100updates with6 fixed-panel rejections
+(control12). Rejection counts alone are not acceptance evidence. Selected3524
+(SHA256 `997bf4a0dd3bdb9247ccfb7c1a22fe6b701b187ca248188147670f102f282895`)
+passed original retention and the previous0–0.9 bridge on both independent CPU
+(seed945000) and fresh GPU (seed949000) cohorts. The complete starting actor,
+critic, Adam and metadata matched the control bitwise; initial fixed-panel
+measurements were also identical. Total transitions matched, while the mixture
+allocated12.5% fewer transitions to the frontier.
+
+On the CPU cohort, mixture warm success was1002/1009 of1024 versus control964/996
+(deterministic/stochastic). Paired gains were+3.71/+1.27 percentage points, with
+95% intervals[+2.44,+4.98]/[+0.49,+2.15]. Frontier mixture1866/1864 of2048 versus
+control1815/1852 gave+2.49 points deterministic[+1.32,+3.66]; stochastic+0.59
+[−0.44,+1.56] was inconclusive. Hard-band160/109 of185 versus control151/110
+similarly improved deterministic performance without an established stochastic
+change. Hard stochastic critic bias was+1.09,RMSE53.78,EV0.203.
+
+The fresh paired GPU comparison replicated the useful pattern:
+
+| Profile/mode | Source3409 | Control3524 | Mixture3524 |
+| --- | --- | --- | --- |
+| Warm deterministic,1024 starts | 996 | 976 | 1009 |
+| Warm stochastic,1024 starts | 989 | 991 | 1002 |
+| Frontier deterministic,2048 starts | 1857 | 1848 | 1884 |
+| Frontier stochastic,2048 starts | 1788 | 1844 | 1854 |
+| Hard1.0–1.1 deterministic,211 starts | 171 | 185 | 189 |
+| Hard1.0–1.1 stochastic,211 starts | 85 | 127 | 128 |
+
+Mixture versus control warm gains were+3.22 points[+2.05,+4.49] deterministic
+and+1.07[+0.29,+1.95] stochastic. Frontier deterministic+1.76[+0.59,+2.93]
+replicated; stochastic+0.49[−0.59,+1.51] remained inconclusive. Against source3409,
+frontier gains were+1.32[+0.10,+2.54] deterministic and+3.22[+2.00,+4.44]
+stochastic. The hard stochastic band improved85→128 (+20.38 points,
++14.22 to +26.54). Mixture raised cold99.32%/99.02%, old±0.3 99.51%/98.63%,
+old±0.4 99.09%/98.44%, and previous0–0.9 bridge99.02%/97.01% all retained.
+The0–1.0 bridge92.71%/94.21% remains unfinished.
+
+Adopt3524 and continue224/16/16 unchanged for100updates to3624, seed953000,
+with fresh endpoint audit954000. The automatic gate required retained original
+profiles and previous bridge on both backends, nonnegative source-relative
+frontier and hard-band gains in both modes, a supported aggregate gain, and
+nonnegative control-relative aggregate gains in both modes. All passed. Preflight
+verified the selected hash, profile restoration and frozen normalization.
+No decoder, reward, physics, success rule or angle change was made. Full randomized
+landing and actual chopstick capture remain unvalidated; PR67 stays draft.
+
+Artifacts are under `belly-down-eleven-mixture`, `eleven-mixture-fresh`, and
+`eleven-mixture-continuation-plan`, timestamp `2026-11-16_09-17-47`. The high-thinking
+Astra review also recommended unchanged continuation when independent retention
+and frontier gains replicate; it rejected blanket exploration changes from the
+warm-only decoder factorial.
