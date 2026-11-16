@@ -1080,3 +1080,34 @@ own rules and 0.825 for recovery under its own rules; this did not imply improve
 catch behavior. This bounded experiment found no recovery benefit; it does not prove
 physical impossibility. Evidence: termination-control run
 `paired-evaluations/model_5919/comparison.json`. Both bounded jobs completed normally.
+
+### Rebuild ground flight before catch transfer
+
+The user confirmed the original `land3d_v8_lam098`/`attitude_v1` weights are gone.
+Local stunt checkpoints are different policies, not substitutes for the documented
+98–99% landing baseline. The catch lineage started from fresh initialization and
+catch demonstrations; it did not preserve that old controller.
+
+Following the user's requested sequence, `--config-name landing_rebuild_local`
+rebuilds ground landing with the current 32-input/12-action interface, position
+denominator 30 m, vehicle and physical landing limits. The arm output is inactive;
+catcher input channels are zero as defined by the existing ground encoder. Fresh
+observation normalizers learn during this run; no encoder definitions change.
+The five standard landing stages cover lit-engine burns, cold starts, low belly-flops,
+3 km belly-flops, and randomized 1.5–5 km descents. The local preset uses 2,048
+environments, 128-step rollouts and 16 minibatches; standard landing PPO settings
+otherwise apply. It is a new initialization, not an exact reproduction of the lost run.
+
+The decision to rebuild follows a deterministic screen of the main catch actor
+(`policy_6929`) and the joint student: both landed 0/512 in each of five ground
+profiles (current 700 m starts, landing stages 0, 1, 2 and 4) with current observation
+scales. This establishes lack of immediate ground transfer, not that their weights
+could never be adapted. Evidence: primary run `ground-transfer-current-encodings`.
+
+Before catch fine-tuning, require at least 95% ground landings on fresh deterministic
+and stochastic randomized-stage evaluations, not just the 90% curriculum gate.
+Archive passed-stage weights, resolved configuration, hashes and validation results on
+the separate checkpoint volume. Then initialize a short upright catch approach from
+the validated ground actor, retain ground-flight evaluations during adaptation, and
+extend the catch start backward through real descent states. End-to-end capture and
+the original final checkpoint/LFS/merge requirements remain outstanding.

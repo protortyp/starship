@@ -1,0 +1,22 @@
+defaults:
+  - train
+  - override curriculum: landing_rebuild
+  - _self_
+
+experiment: landing_rebuild_local
+device: cuda:0
+num_envs: 2048
+iterations: 3000
+eval_envs: 512
+eval_interval: 25
+record_every: 0
+
+# Same input layout and physical denominators as the current catch run. Catcher
+# channels are zero on ground tasks; the arm action remains present but inactive.
+obs:
+  position: 30.0
+
+runner:
+  save_interval: 25
+  algorithm:
+    num_mini_batches: 16
