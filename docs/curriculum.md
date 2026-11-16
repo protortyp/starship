@@ -1392,7 +1392,8 @@ requirements are unchanged. No physics, actuator or terminal-success rule was re
 | Belly-down pitch 0–0.8 rad, 600±150 m | Final fresh hard band 234/246 deterministic, 221/246 stochastic; earlier landing retained |
 | Belly-down pitch 0–0.9 rad, 600±150 m | Retained throttle-only source selected after three-arm comparison; paired hard band 207/226 deterministic, 188/226 stochastic |
 | Belly-down pitch 0–1.0 rad, 800±150 m | Continuation selected aggregate 90.43%/92.14%, hard band 173/207 and 163/207; original profiles retained |
-| Belly-down pitch 0–1.1 rad, 800±150 m | Mixed checkpoint3524 independently retained warm/cold landings and improved frontier; fresh hard band189/211 deterministic,128/211 stochastic; unchanged mixture continuation |
+| Belly-down pitch 0–1.1 rad, 800±150 m | Continuation selected3594: aggregate92.43%/92.72%, hard149/173 and110/173; original retention passes |
+| Belly-down pitch 0–1.2 rad, 800±150 m | Bounded100-update angle expansion running with224/16/16 mixture;800m chosen by paired full-range screen |
 | Original low-clearance cold starts | Reported stress set; not claimed solved |
 | Full belly-flop, randomized descent, catch | Not yet validated |
 
@@ -2388,3 +2389,43 @@ runtime compatibility, not catch competence. The prepared copy is not adopted or
 trained. Guard tests cover learned moments, mismatched models/groups, ground-output
 preservation and nonzero gradients in newly activated input columns. Evidence and
 the isolated copy are archived under `catch-input-initialization/selected3524`.
+
+
+### Continuation3594 and the next angle-only expansion
+
+The unchanged mixture continuation finished at accounting iteration3624 and
+selected actual3594 (SHA256 `3fa96115a1163d7d53aa33994419ebcb5d4b6f794d7cd2455d9c80680d7d8ade`).
+Fresh CPU seed954000 retained warm95.70%/96.39%, raised cold98.54%/98.24%,
+old±0.3 98.34%/98.14%, old±0.4 98.96%/98.50%, and previous0–0.9 bridge98.37%/96.48%.
+Matched frontier source3524→selected3594 was1890→1893/2048 deterministic
+(+0.15 points,95% interval−1.07 to+1.32; inconclusive), and1874→1899 stochastic
+(+1.22,+0.20 to+2.25). Hard1.0–1.1 was148→149/173 deterministic and98→110
+stochastic (+6.94 points,+1.73 to+12.14). Hard stochastic critic bias4.92→0.27,
+RMSE60.02→54.01,EV0.117→0.128. Training EV was0.835; these are different scopes.
+Distribution logstd changed2.28e-4 and analytic KL remained0.000858 with no early
+stop, so small-update/low-engine-entropy warnings did not justify a reset.
+
+The paired next-band1.1–1.2 screen (seed956000/action956001,1024 per mode) found
+source→selected gains at800m: deterministic649→697 (+4.69 points,+2.05 to+7.42),
+stochastic173→258 (+8.30,+6.25 to+10.45). At1000m, deterministic689→621 regressed,
+while stochastic244→357 improved. Selected800→1000 therefore trades−7.42 points
+deterministic for+9.67 stochastic; the narrow band alone cannot choose altitude.
+
+A fresh paired GPU screen of the entire proposed0–1.2 distribution
+(seed959000/action959001,2048 per mode) resolved the tradeoff. Raising800→1000m
+reduced deterministic1848→1481 (−17.92 points,−19.97 to−15.92) and sampled
+1791→1625 (−8.11,−9.91 to−6.35). On the already-trained0–1.1 portion it lost
+352 deterministic and176 sampled landings out of1880. The new168-start band gained
+10 sampled landings but lost15 deterministic. Keep800m; increased altitude was
+not uniformly easier and broadly damaged learned flight. This screen is a choice
+of training distribution, not a new95% gate on the next band.
+
+The next bounded100-update run expands only pitch to0–1.2, keeps224 frontier,
+16 warm and16 raised-cold environments, and explicitly monitors0–1.1 at800m.
+Training seed960000, fixed panel960100/action960501, accounting3624→3724.
+Endpoint audits use GPU seed961000 with source and candidate on the same backend.
+Original retention, coherent rollback and pre-guard candidate snapshots remain.
+Preflight verified source hash, profiles, frozen normalization and restoration.
+Full randomized descent and chopstick catch remain outstanding. Artifacts:
+`belly-down-eleven-mixture-continued`, `next-twelve-screen`,
+`next-twelve-aggregate-height`, `next-twelve-plan`, timestamp `2026-11-16_09-37-05`.
