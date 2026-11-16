@@ -1111,3 +1111,34 @@ the separate checkpoint volume. Then initialize a short upright catch approach f
 the validated ground actor, retain ground-flight evaluations during adaptation, and
 extend the catch start backward through real descent states. End-to-end capture and
 the original final checkpoint/LFS/merge requirements remain outstanding.
+
+#### Early rebuild audit: allow braking to develop before changing the recipe
+
+Run `landing_rebuild_local/2026-11-16_01-40-19` is still at stage 0 after 100
+updates, with no landings. Complete stochastic 512-episode audits show initial-state
+critic explained variance improving from -1.633 at update 25 to 0.527 at 50 and
+0.904 at 100 (RMSE 8.44 → 1.98 → 1.08). Thus the early low-feature-rank warning
+did not justify changing the critic. Audited inputs are finite; the largest normalized
+channel p99 is 3.82 at update 100. Median impact speed first worsened from 78.74 to
+81.44 m/s, then improved to 62.74 m/s. Updates 25/50 use matched seed 830025;
+update 100 uses fresh seed 831099, so the latter is a distributional trend, not a
+matched-start comparison. There were no attitude-limit violations in these audits.
+
+A separate checkpoint-50 diagnostic (512 matched starts, seed 830050) forced engine
+decisions while retaining the stochastic policy's other actions. Default-policy,
+engines-off, and first-second-engines-on returns were -48.418, -48.337 and -50.416;
+median impact speeds were 82.48, 85.56 and 70.07 m/s. All crashed. With fuel cost
+removed only for evaluation, returns became -47.883, -48.116 and -48.167, with the
+same aggregate trajectory outcomes. Fuel cost explains much of the short burn's
+penalty, but removing it alone does not make that intervention outperform the policy.
+Holding engines on throughout caused 509/512 attitude terminations. These are
+interventions, not learned successes, and do not establish a reward fix. Keep the
+baseline training unchanged: the historical recipe first produced landings around
+250 updates, and braking is now improving without intervention. Update counts are
+only a rough historical reference, not equal-data experiments.
+
+Evidence lives in this run's `early-audit-{25,50}`, `learning-audits/model_99`, and
+`reward-probe-50{,-no-fuel}` directories. Checkpoints 49/99, configurations and
+reports were copied with verified hashes to the separate checkpoint volume. PR 67
+now follows this ground run every 100 updates, using full diagnostic episodes with
+ground-specific outcome labels; the retired catch publisher cannot overwrite it.
