@@ -1388,7 +1388,8 @@ requirements are unchanged. No physics, actuator or terminal-success rule was re
 | Raised cold, pitch ±0.4 rad | Consolidated aggregate 97.17%/95.36%; narrow0.3–0.4 band remains unfinished |
 | Raised cold, pitch ±0.5 rad | Sharpened selected policy passed earlier-profile retention and beat control on fresh paired hard-band tests; band still unfinished |
 | Raised cold, pitch ±0.6 rad | Expansion complete: final fresh new-band 226/330 deterministic, 208/330 stochastic; bounded continuation running |
-| Belly-down pitch 0–0.7 rad, 500±150 m | Bridge preflight passed; queued behind continuation validation, not yet trained |
+| Belly-down pitch 0–0.7 rad, 500±150 m | Midpoint fresh new-band 278/301 deterministic, 256/301 stochastic; earlier retention passes; bounded run complete, final audit pending |
+| Belly-down pitch 0–0.8 rad, 600±150 m | Preflight passed; queued behind current final retention audit |
 | Original low-clearance cold starts | Reported stress set; not claimed solved |
 | Full belly-flop, randomized descent, catch | Not yet validated |
 
@@ -1888,3 +1889,55 @@ fresh stochastic critic errors will be reported for each selected snapshot.
 Artifacts and reproduction scripts are archived under `belly-down-bridge-screen`,
 `belly-down-recurrent` and `belly-down-bridge-plan` on the checkpoint volume.
 No dynamics, reward, termination or final randomized-ground/catch criteria change.
+
+
+### Belly-down bridge learns; next interval prepared (2026-11-16)
+
+`landing_belly_down_bridge_local/2026-11-16_06-53-07` trains from coherent selected
+iteration 2489, carrying completed 2524 accounting counters. On the matched fresh
+midpoint cohort, selected iteration 2624 improved stochastic landings in the new
+0.6–0.7-radian band from 198/301 to 256/301: 65 gains and seven losses, a
+19.27-percentage-point improvement (paired episode-bootstrap 95% interval
+13.95–24.25). Deterministic results changed 285→278/301, with 13 gains and
+20 losses; its difference interval spans zero (−5.98 to +1.66 points). These
+results establish a stochastic gain on this cohort, not training-seed robustness.
+Warm, raised-cold, ±0.3 and ±0.4 aggregate retention passed in both modes. The
+unfinished symmetric ±0.6 monitor scored 93.03%/91.93%; its 0.5–0.6 band scored
+195/266 and 194/266. Final randomized landing and end-to-end catch remain open.
+
+The new-band initial critic mean barely changed, 71.20→71.80, while observed
+stochastic returns improved 59.53→87.27. Bias moved from +11.67 (SE 3.46) to
+−15.46 (SE 2.58); RMSE improved 61.10→47.37. Thus the critic is lagging the
+controller's improvement, not fully calibrated despite lower squared error.
+
+Warm-start regressions remain guarded. A fresh matched deterministic probe of
+rejected iteration 2574 versus the starting policy scored 973/1024 versus
+999/1024, with five gains and 31 losses. Of those newly lost landings, 19 exceeded
+downward speed, nine horizontal speed, three angular rate and two pad miss; counts
+overlap. No lost case exceeded tilt. This identifies touchdown-speed degradation
+without attributing it to a specific action head. The rejected state was not adopted.
+
+A midpoint next-coverage screen sampled positive pitch 0.7–0.9 radians, with
+matched 500/600-metre mean heights and unchanged other sampled conditions:
+
+| Pitch band | 500 m deterministic / stochastic | 600 m deterministic / stochastic |
+| --- | --- | --- |
+| 0.7–0.8, 526 starts | 411 / 212 | 430 / 271 |
+| 0.8–0.9, 498 starts | 150 / 18 | 200 / 25 |
+
+This supports preparing one additional interval, not jumping to 0.9 radians.
+The next candidate uses pitch 0–0.8 at 600±150 m, retaining original warm/cold
+and symmetric checks and adding an explicit 0–0.7-at-500-metre monitor with its
+original fixed seeds. Midpoint-source preflight passed the environment-setting,
+retention and restoration checks. The actual run waits for the current final
+checkpoint's fresh retention audit. Training seed 917000, selection seeds
+917100/917501 and independent audit bases 918000/919000 are fixed. Matched
+baseline, control-success and critic-calibration comparisons are queued.
+
+Evidence and reproduction scripts are backed up under `belly-down-bridge`,
+`next-belly-down-screen` and `belly-down-eight-plan` on the checkpoint volume.
+
+The bounded bridge finished at accounting iteration 2724 with 6 retention
+rejections. Final selected iteration is 2714; selected and final checkpoints
+are separately backed up with verified hashes. Final independent validation remains
+pending before the next training block starts.
