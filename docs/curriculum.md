@@ -1398,7 +1398,7 @@ requirements are unchanged. No physics, actuator or terminal-success rule was re
 | Speed bridge, pitch 1.25±0.05 rad, 1000±150 m, −60±10 m/s | Selected4309: fresh83.11% deterministic/60.94% sampled; original retention passed; canonical belly-flop0/256 both |
 | Speed bridge, pitch 1.25±0.05 rad, 1000±150 m, −70±10 m/s | Accepted4524 preserves original skills and recovers speed60; fresh speed70 success80.86% deterministic /50.20% sampled. Endpoint4404 remains rejected |
 | Angle bridge, pitch1.30–1.40, −60±10 m/s | Accepted4524: fresh60.74% deterministic/37.40% sampled; original retention passed |
-| Angle extension, pitch1.35–1.50, −60±10 m/s | Accepted5064: fresh1.40–1.50 success60.45% deterministic/39.16% sampled; all original retention passes. Unchanged500-update continuation5224→5724 active |
+| Angle extension, pitch1.35–1.50, −60±10 m/s | Continuation midpoint selects5399: fresh1.40–1.50 success62.40% deterministic/39.94% sampled, paired gains4.10/2.15pp over5064; original retention passes. Unchanged500-update continuation5224→5724 remains active |
 | Original low-clearance cold starts | Reported stress set; not claimed solved |
 | Full belly-flop, randomized descent, catch | Not yet validated |
 
@@ -3110,3 +3110,53 @@ Artifacts: `angle-blended-long-next-screen`, `long-run-health`, and
 `angle-blended-long-continued-preparation` under the checkpoint archive.
 Full-speed belly-flop, randomized descent and policy-controlled catching remain
 outstanding. PR67 remains draft until end-to-end validation, LFS and merge.
+
+
+### Continued training midpoint: modest independently measured gains
+
+The unchanged 500-update continuation reaches snapshot5474 and selects actual5399
+(SHA256 `f2a06481d9abcd799af57b9759f414e0b00385b848c46cbb11b972abf919a2c6`).
+Fresh matched1005000-series episodes compare against the starting actual5064.
+On the target1.40–1.50rad range, deterministic success597→639/1024 improves
+4.10 percentage points (paired95% bootstrap1.86–6.45), and sampled387→409/1024
+improves2.15 points (0.59–3.81). These modest gains support continuing the
+user-requested longer run unchanged. Exploratory intervals are not adjusted
+for multiple comparisons; they do not establish that all angle bands improve.
+Upper-half deterministic294→324/547 improves5.48 points (2.56–8.41), while
+sampled164→175/547 improves2.01 points with an interval crossing zero
+(−0.18–4.39). Lower-half sampled gains also have an interval touching zero.
+
+All four original retention cohorts pass fresh tests in both modes:
+warm97.07%/99.12%, cold98.83%/99.41%, old tilt99.61%/99.22%, and old
+frontier98.76%/99.02%. Speed70 success is89.36%/75.78%, speed60 is89.16%/84.47%;
+paired changes in these speed cases remain uncertain. Previous-angle sampled
+success715→752/1024 improves3.61 points (1.66–5.57). Canonical stage2 remains
+unsolved at18/256 deterministic and10/256 sampled (7.03%/3.91%). This is an
+intermediate landing result, not permission to advance or merge the catch PR.
+
+Health at5419 shows actor/critic centered feature ranks88/51, no monitored
+dead hidden units, and nonzero continuous-distribution updates. Critic cell
+saturation is19%, versus41% in the earlier5293 snapshot; these batch-dependent
+measurements do not support a sustained collapse. Low engine entropy and
+small exploration-parameter updates remain warnings. There have been33
+retention rollbacks by5419. No actor/critic reset or normalization change.
+
+The preceding block's raw5224 endpoint did gain sampled target success over
+selected5064 (401→431/1024, +2.93 points, interval0.59–5.27), but lost warm
+retention (992→971/1024, −2.05 points, interval−3.13–−1.07), falling below95%.
+That supports investigating retention interference if it persists; it does
+not prove that changing scenario allocation will fix it. The existing Astra
+review proposes a conditional matched100-update comparison, only after the
+current500-update block: control176/16/32/16/16 versus160/16/32/32/16, doubling
+warm exposure at the expense of old-frontier samples. Both would start from
+the same final independently accepted coherent checkpoint with matched seeds
+and unchanged guards/replay. Primary evidence must be retained target progress,
+not fewer rollbacks alone. Reassess whether this experiment is needed after
+the current block's final results; no allocation experiment has been launched.
+
+Midpoint raw-candidate comparison and critic calibration remain pending at
+this recording. Evidence is in the run's `heldout-validation/iteration-5474`
+and archive `continued-midpoint-review/2026-11-16_16-10-41`. Candidate and selected
+snapshots are separately backed up with hashes in `continued-snapshots`.
+Full belly-flop, randomized descent, moving policy-controlled catching, final
+checkpoint LFS and PR67 merge remain outstanding.
