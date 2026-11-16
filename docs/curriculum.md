@@ -2365,3 +2365,26 @@ Artifacts are under `belly-down-eleven-mixture`, `eleven-mixture-fresh`, and
 Astra review also recommended unchanged continuation when independent retention
 and frontier gains replicate; it rejected blanket exploration changes from the
 warm-only decoder factorial.
+
+### Guarded dormant catch-input initialization
+
+`uv run python -m starship.train.catch_input_init SOURCE.pt NEW_OUTPUT_DIRECTORY`
+prepares an isolated32-input recurrent checkpoint. It requires a ground source with
+frozen normalization, matching loaded model/optimizer bindings, exactly zero
+normalizer moments for channels28–31, and zero Adam moments in those input columns.
+It refuses existing output directories and learned catch channels. Only actor and
+critic input columns28–31 are zeroed and their normalizer variance/std set to1;
+all other weights, normalization statistics, optimizer state and counters remain
+unchanged. The tool writes a checkpoint, normal policy export, config and provenance
+report. It does not enable catch physics or select a training checkpoint.
+
+On accepted mixed checkpoint3524, runner and export round trips matched the
+prepared state exactly. Actor and critic outputs remained bitwise identical across
+64 complete warm/cold first-episode histories (11,804 valid transitions), with
+terminal statuses and contiguous validity masks checked. The complete optimizer
+state was unchanged. Four32-episode short/cold catch rollouts, deterministic and
+sampled, completed with finite values/returns; all128 crashed. These establish
+runtime compatibility, not catch competence. The prepared copy is not adopted or
+trained. Guard tests cover learned moments, mismatched models/groups, ground-output
+preservation and nonzero gradients in newly activated input columns. Evidence and
+the isolated copy are archived under `catch-input-initialization/selected3524`.
