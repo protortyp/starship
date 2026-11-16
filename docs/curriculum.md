@@ -1155,3 +1155,41 @@ not center-of-mass position. Non-contact terminations are excluded from the coun
 The audit exports measurements and signed excesses for all episodes alongside the
 existing trajectories. Evidence: `landing-constraints-150`; six simulator tests cover
 successful touchdown and each failure limit with auto-reset enabled.
+
+#### Ground rebuild: stochastic/deterministic gap and critic uncertainty
+
+At update 200, a repeatability probe held 128 spawn states and initial values fixed
+across eight action seeds. Within-start return variance was 347.42; estimated
+between-start variance was 25.37. The estimated single-rollout EV ceiling was 0.068,
+versus the critic's 0.059; EV against eight-repeat mean returns was 0.319. This is a
+finite-repeat estimate with rare successes, not a proven ceiling or evidence that
+the critic is optimal. It does not justify increasing critic learning rate from low
+initial EV alone. Evidence: ground run `return-uncertainty-200`.
+
+Matched checkpoint-225 evaluations (512 starts, seed 832225) landed 0 episodes with
+deterministic actions and 71 with stochastic actions. Diagnostic hybrids sampled all
+heads before replacing selected outputs: binary-only sampling landed 101; continuous-only
+sampling landed 18. Both endpoint outcome arrays reproduced the original audits, and
+all initial observations matched. The deterministic third engine stayed off, while
+its stochastic duty was 0.122. This implicates binary switching in the mode gap for
+this checkpoint, not a unique causal explanation or a validated deployment fix.
+Evidence: `action-modes-225/hybrid`, including the reproduction script.
+
+At update 300, another matched-start comparison (seed 831299) landed 407/512
+stochastically and 22/512 deterministically. Ground-contact angular-rate violations
+were 12 versus 370. Deterministic attitude normalization exceeded magnitude 10 in
+17 episodes (9 crashes, 8 attitude terminations), with no initial outliers; 473
+failures occurred without this outlier. Thus it does not explain most failures.
+Deterministic evaluation subsequently reached 26.6% at update 325 and approximately
+37% at 350 without changing the recipe. Stage 0 remains unsolved. Keep reporting
+both action modes and keep the existing deterministic evaluation rule. Evidence:
+`action-modes-300.json` and `learning-audits/model_299-deterministic`.
+
+The bounded direct-catch baseline ended normally at update 7290: final independent
+stochastic audit 373/512 caught, but 0/92 above 0.9 rad initial tilt. The large-batch
+comparison ended at update 6720: 418/512 overall, 13/100 above 0.9 rad. These are
+separate evaluations, not an equal-data causal comparison. Both final models,
+configurations and reports are hash-verified on the separate checkpoint volume;
+neither is end-to-end validated. The queued direct-catch extension was cancelled
+to prioritize the ground-first rebuild. The ground audit watcher now automatically
+backs up each 100-update checkpoint and report, in addition to passed-stage backups.
