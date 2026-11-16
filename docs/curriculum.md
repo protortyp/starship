@@ -1389,8 +1389,8 @@ requirements are unchanged. No physics, actuator or terminal-success rule was re
 | Raised cold, pitch ±0.5 rad | Sharpened selected policy passed earlier-profile retention and beat control on fresh paired hard-band tests; band still unfinished |
 | Raised cold, pitch ±0.6 rad | Expansion complete: final fresh new-band 226/330 deterministic, 208/330 stochastic; bounded continuation running |
 | Belly-down pitch 0–0.7 rad, 500±150 m | Final fresh aggregate 97.95%/97.22%, hard band 288/306 and 267/306; retained during next expansion |
-| Belly-down pitch 0–0.8 rad, 600±150 m | Midpoint fresh hard band 224/246 deterministic, 213/246 stochastic; bounded run complete, final audit pending |
-| Belly-down pitch 0–0.9 rad, 600±150 m | Preflight passed; queued behind current final retention audit |
+| Belly-down pitch 0–0.8 rad, 600±150 m | Final fresh hard band 234/246 deterministic, 221/246 stochastic; earlier landing retained |
+| Belly-down pitch 0–0.9 rad, 600±150 m | Final fresh aggregate 96.83%/96.39%, hard band 209/220 and 174/220; three-arm retention experiment running |
 | Original low-clearance cold starts | Reported stress set; not claimed solved |
 | Full belly-flop, randomized descent, catch | Not yet validated |
 
@@ -1990,3 +1990,62 @@ Full randomized landing and end-to-end catch criteria remain unchanged and unmet
 The 0.8-radian block finished at accounting iteration 2924 with 4
 retention rejections. Final selected iteration is 2924; selected and raw final
 checkpoints are backed up separately with verified hashes. Final validation is pending.
+
+
+### 2026-11-16: 0.9-radian progress and coupled thrust retention
+
+Run `landing_belly_down_nine_local/2026-11-16_07-27-05` completed 200
+updates from accounting iteration 2924 to 3124. The selected 3124 checkpoint
+SHA256 is `69a763c8d080d99a3b6102a647f54dbfae5969403d0f2ae0d14fa963275ead2d`.
+Independent final validation (seed base 925000) retained warm landing at
+97.17%/97.27%, raised cold at 99.02%/98.34%, old ±0.3 at 99.12%/99.12%, and
+old ±0.4 at 98.70%/98.05% (deterministic/stochastic). Current frontier aggregate
+success was 96.83%/96.39% over 2,048 episodes per mode; the 0.8–0.9 band landed
+209/220 and 174/220. Initial stochastic critic error in that band had bias
+−9.63 (SE 3.14) and RMSE 47.41. This is neither full belly-flop nor catch mastery.
+The original 300-metre cold stress set still landed only 93.16%/91.41%.
+
+Matched midpoint evidence supports actual progress: on the same 221 new-band
+starts, source 2924 versus selected 3024 landed 187→205 deterministic and
+122→158 stochastic. The stochastic paired change was +16.29 percentage points
+(bootstrap 95% interval +10.41 to +22.17). A separate next-angle screen at
+0.9–1.0 rad landed only 160/500 stochastic at 600 m and 234/500 at 800 m;
+height alone does not establish readiness for the next expansion.
+
+Warm retention sometimes regressed despite small throttle replay error. On a
+fresh, paired 1,024-episode deterministic warm panel (seed 928000), source 2924
+landed 1,010 and rejected actor 2999 landed 974. Running both recurrent actors
+on each live observation and replacing only rejected throttle commands with
+source commands landed 989; replacing only its three engine commands landed
+994; replacing both landed 1,007. The combined intervention gained 39 episodes
+and lost 6 relative to rejected. These inference-only grafts support coupled
+thrust-command drift; they do not prove a rehearsal loss will fix it.
+
+A fresh teacher bank from validated 2924 uses new seeds 929000/929002 and the
+first 256 successful full histories from each warm/cold profile. Continuous
+teacher outputs replay exactly. Its SHA256 is
+`53b59425f5d5cb23e9a6399bdde02956821fd9e8327d9d540379388644b0bc67`.
+The old 744 bank remains unchanged. Both losses retain the original teacher's
+throttle scale so bank age is not confounded with rescaling.
+
+A prespecified three-arm experiment starts each arm from the same coherent
+selected 3124 actor, critic and optimizer for 100 updates at fixed 0–0.9 rad,
+600 m: old bank plus throttle rehearsal, fresh bank plus throttle rehearsal,
+and fresh bank plus throttle and mean three-engine teacher-to-student Bernoulli
+KL (coefficient 1). All use training seed 931000, the existing fixed selection
+panels, four actor-only shared-Adam rehearsal steps, balanced 16+16 complete
+histories, local replay seed 855500+iteration, frozen normalization, unchanged
+learning rates, physics and terminal rules. No critic targets come from replay.
+Zero engine weight reproduces the old loss and all actor gradients bitwise;
+Bernoulli KL matches the distribution reference including exact 0/1 targets,
+and the arm output row receives no rehearsal gradient.
+
+Fresh paired evaluations (base seed 932000) cover warm, raised cold, old ±0.3,
+old ±0.4 and the current frontier for both selected and raw final checkpoints.
+Bank loss or fewer rollbacks alone cannot select a winner. Diagnostics record
+component losses, clipping, output-row gradients, engine command disagreement
+by teacher margin, and before/after changes across complete and final-20-frame
+histories. Reproduction scripts, source endpoints and the trial plan are backed
+up under `rehearsal-trial`; per-arm endpoints and hashes are archived on finish.
+PR67 stays draft and receives full-episode GIFs in its description only.
+Full randomized landing and end-to-end catch validation remain outstanding.
