@@ -1398,7 +1398,7 @@ requirements are unchanged. No physics, actuator or terminal-success rule was re
 | Speed bridge, pitch 1.25±0.05 rad, 1000±150 m, −60±10 m/s | Selected4309: fresh83.11% deterministic/60.94% sampled; original retention passed; canonical belly-flop0/256 both |
 | Speed bridge, pitch 1.25±0.05 rad, 1000±150 m, −70±10 m/s | Accepted4524 preserves original skills and recovers speed60; fresh speed70 success80.86% deterministic /50.20% sampled. Endpoint4404 remains rejected |
 | Angle bridge, pitch1.30–1.40, −60±10 m/s | Accepted4524: fresh60.74% deterministic/37.40% sampled; original retention passed |
-| Angle extension, pitch1.35–1.50, −60±10 m/s | Five-profile run4524→4624 active; selection uses only1.40–1.50 with separate lower/upper bands |
+| Angle extension, pitch1.35–1.50, −60±10 m/s | Accepted4604: fresh1.40–1.50 success38.28% deterministic/19.63% sampled; original retention passes. Same-range continuation4624→4724 active |
 | Original low-clearance cold starts | Reported stress set; not claimed solved |
 | Full belly-flop, randomized descent, catch | Not yet validated |
 
@@ -2950,3 +2950,61 @@ Artifacts: `angle-thirtyfive-next-band-review/2026-11-16_12-55-15`,
 and `angle-blended-observability` under the checkpoint archive. PR67 now
 shows complete episodes from the earlier range and the actual mixture target;
 its GIF publisher preserves the short body and posts no comments.
+
+
+### Accepted 4604: retained sampled gains justify same-range continuation
+
+The blended-angle block completed accounting 4524–4624 and selected actual
+4604 (SHA256 `a1f9e213cbacc8875403accd3a36efa3258e7970acca4ffba329d312a0a25f0a`).
+Fresh paired GPU 996000-series tests on 1.40–1.50 rad show deterministic
+367→392/1024 (35.84%→38.28%; difference interval includes zero), and sampled
+124→201/1024 (12.11%→19.63%; +7.52 percentage points, 95% paired bootstrap
+5.27–9.77). Sampled gains reach both halves: lower 81→132/513, +9.94 points
+(6.63–13.26); upper 43→69/511, +5.09 points (2.15–8.02). This is progress
+within a difficult bridge, not mastery or a canonical-stage promotion.
+
+All four original retention cohorts pass both modes. Warm deterministic is
+974/1024 (95.12%), narrowly above the unchanged 95% gate; sampled is 98.05%.
+Cold and original tilt/frontier checks exceed 97% in both modes. The broader
+old frontier scores 96.09%/93.21%. Speed70 sampled improves 504→640/1024
+(+13.28 points, interval 10.55–15.92), and speed60 sampled improves
+710→791/1024 (+7.91 points, 4.98–10.84). Three fixed-panel candidates were
+rejected for warm deterministic retention, but later eligible candidates
+surpassed their sampled-angle scores. Evidence does not justify increasing
+warm allocation at this point.
+
+The sampled angle critic still overestimates returns at initialization:
+bias 45.89→29.23, RMSE 76.69→71.76, explained variance 0.051→0.081.
+Across valid transitions EV rises 0.505→0.560; these metrics weight long
+trajectories more heavily. Better average calibration is not reliable
+prediction of difficult starting states. No reset or normalization change.
+
+Frozen transfer panels (512 episodes, physical 997000/action 997001) at
+1000±150 m and common stage1 reward show sampled near-horizontal speed60
+success 33→70, and horizontal speed60 17→38. Paired gains are supported:
++7.23 points (4.30–10.16) and +4.10 points (1.76–6.45). Horizontal speed70
+lands only 8/512, versus 0 before training. The horizontal profile explicitly
+uses pitch pi/2±0.1; this reduced-speed, common-reward setup is not canonical
+stage2. In starts that crash under both policies, median paired downward
+impact-speed reductions are roughly 6 m/s, with smaller pad misses. These
+are descriptive outcome-selected subgroups, not a complete-population or
+causal estimate. Remaining crashes still have large speed and position errors.
+
+Run `landing_belly_down_angle_blended_continued_local/2026-11-16_13-57-27`
+continues 100 updates, accounting 4624–4724, from coherent actual4604 actor,
+critic and Adam state. Training range 1.35–1.50, ranking range 1.40–1.50,
+allocation 176/16/32/16/16, all retention guards, replay, physics, reward,
+normalization and optimizer settings remain unchanged. Training seed 998000;
+all fixed panels are unchanged. Preflight reproduces angle, both bands,
+previous angle, speed60, speed70, original retention and old-frontier scores
+exactly. Fresh paired audits use 999000 at 4674/4724, including raw-candidate
+comparisons and critic calibration. The launcher records its acceptance
+checks and source hash; no automatic expansion is permitted.
+
+Artifacts under the checkpoint archive: `angle-blended-next-screen`,
+`horizontal-paired-severity`, `angle-blended-selection-review`, and
+`angle-blended-continuation-launch`, each keyed by parent timestamp
+`2026-11-16_13-25-19`; preparation and observability scripts are also archived.
+Full belly-flop, randomized descent and subsequent chopstick catching remain
+unvalidated. PR67 remains draft, with checkpoint tracking in LFS and merge
+reserved for the requested end-to-end result.
