@@ -1287,3 +1287,15 @@ normalization verified. Initial evaluations were 93.75% cold deterministic and
 96.88%/98.83% retained stage 0. Promotion is disabled for this bounded experiment;
 fresh 2,048-episode evaluations must reach 95% in both modes on both stages before
 advancing. Belly-flop, randomized descent and catch success remain outstanding.
+
+The initial braking diagnostic had retained the catch-relative height reference
+when the catcher was disabled. Ground reports now use the fuel-dependent body base
+above ground and label the reference explicitly; catch reports retain the pin-center
+height above the support. Older ground braking-margin fields are superseded, while
+trajectory outcomes and terminal landing measurements are unaffected. Four simulator
+regression cases cover ground/catch targets, tilt and different header fills.
+With corrected heights, the cold-transfer deterministic failures started at median
+149.3 m and -57.9 m/s, versus 279.9 m and -48.9 m/s for landings. Failed trajectories
+already requested about 2.94 engines and 97.3% throttle during their first two seconds.
+These are observational associations, not a feasibility bound or proof of a controller
+fix. Evidence: the student's `cold-transfer/failure-analysis`.
