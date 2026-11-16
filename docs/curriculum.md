@@ -1396,8 +1396,9 @@ requirements are unchanged. No physics, actuator or terminal-success rule was re
 | Belly-down pitch 0–1.2 rad, 800±150 m | Retained by selected4099: fresh96.09% deterministic/93.95% sampled |
 | Belly-down pitch 0–1.3 rad, 800±150 m | Selected4099: fresh93.65%/90.43%; dedicated1.25–1.3 success62.99%/30.47% |
 | Speed bridge, pitch 1.25±0.05 rad, 1000±150 m, −60±10 m/s | Selected4309: fresh83.11% deterministic/60.94% sampled; original retention passed; canonical belly-flop0/256 both |
-| Speed bridge, pitch 1.25±0.05 rad, 1000±150 m, −70±10 m/s | Confirmed4359 retains original skills and improves sampled speed70; endpoint4404 rejected. Guarded angle1.35 training active |
-| Speed transition, pitch1.2–1.3, −60±10 m/s | Four-profile training running; transition at1000±150 m, old frontier stays800 m |
+| Speed bridge, pitch 1.25±0.05 rad, 1000±150 m, −70±10 m/s | Accepted4524 preserves original skills and recovers speed60; fresh speed70 success80.86% deterministic /50.20% sampled. Endpoint4404 remains rejected |
+| Angle bridge, pitch1.30–1.40, −60±10 m/s | Accepted4524: fresh60.74% deterministic/37.40% sampled; original retention passed |
+| Angle extension, pitch1.35–1.50, −60±10 m/s | Five-profile run4524→4624 active; selection uses only1.40–1.50 with separate lower/upper bands |
 | Original low-clearance cold starts | Reported stress set; not claimed solved |
 | Full belly-flop, randomized descent, catch | Not yet validated |
 
@@ -2898,3 +2899,54 @@ Artifacts: `speed70-midpoint-confirmation/2026-11-16_12-23-24`,
 `angle-thirtyfive-observability/2026-11-16_12-55-15`. The angle block is an
 intermediate bridge; canonical belly-flop, randomized descent and catch
 validation remain outstanding.
+
+
+### Accepted4524 advances to the blended angle range
+
+The 100-update angle1.35 block completed at actual4524. Fresh paired GPU
+991000-series evaluations retain warm96.00%/98.14%, cold99.22%/98.73%,
+old tilt99.02%/98.83%, and old frontier98.31%/98.83% (deterministic/sampled).
+At pitch1.35±0.05, altitude1000±150m and descent60±10m/s, source4359→4524
+lands448→622/1024 deterministic and306→383 sampled: gains16.99pp
+(95% paired bootstrap12.99–21.09pp) and7.52pp (4.39–10.74pp).
+Speed60 deterministic787→848 improves5.96pp (2.83–8.98pp), sampled701→732
+is uncertain. Speed70 deterministic789→828 improves3.81pp (0.59–7.03pp),
+sampled500→514 is uncertain. These panels support advancing the accepted
+policy; they do not establish mastery of the full task.
+
+Initial sampled angle critic bias decreases34.95→17.06 and RMSE79.96→68.21,
+but explained variance remains weak,0.133→0.119. Across valid transitions,
+EV improves0.573→0.616; this weights longer episodes more heavily. Speed60
+initial EV falls0.094→−0.009 despite better landing rates. Do not equate
+policy improvement or aggregate training EV with a solved critic. All recorded
+normalized observations are finite; magnitude alone does not establish gate
+saturation or justify changing normalization.
+
+A separate512-episode transfer screen at60±10m/s finds sampled success
+near1.4rad improving81→133 and near1.45rad34→71. In the wholly new
+1.40–1.50 range, the latter gain is7.23pp (4.49–10.16pp); above1.45rad,
+12→23/254 is4.33pp (0.79–7.87pp). Horizontal reduced-speed starts remain
+weak,7→17/512 sampled. Canonical stage2 is a different, faster setup:
+selected4524 lands2/256 deterministic and0/256 sampled. No stage2 promotion.
+
+Run `landing_belly_down_angle_blended_rehearsal_local/2026-11-16_13-25-19`
+starts100 updates4524→4624 from the accepted coherent state. Following the
+Astra review, training angle extends to1.35–1.50rad (center1.425±0.075),
+retaining overlap with the previous1.30–1.40 range. The five-profile allocation
+176/16/32/16/16, altitude, speed, reward, physics, normalization, optimizer
+and replay remain unchanged. Ranking uses only the new1.40–1.50 range,
+with separate1.40–1.45 and1.45–1.50 reporting; the previous angle profile
+remains monitored. Original95% retention gates and speed guards remain.
+Speed60 stays anchored to4309 to avoid cumulative forgetting; speed70 is
+relative to accepted4524. Preflight reproduces previous-angle and both speed
+scores exactly and verifies restoration before optimizer updates.
+
+Training seed995000; new-angle fixed panel995200/995601. Fresh paired
+GPU audits996000 run at4574 and4624, with both angle bands, previous angle,
+speed profiles and critic calibration. Initial new-range fixed success is
+36.52% deterministic/13.67% sampled; upper-half sampled success is8.23%.
+Artifacts: `angle-thirtyfive-next-band-review/2026-11-16_12-55-15`,
+`angle-blended-launch/2026-11-16_12-55-15`, `angle-blended-preparation`,
+and `angle-blended-observability` under the checkpoint archive. PR67 now
+shows complete episodes from the earlier range and the actual mixture target;
+its GIF publisher preserves the short body and posts no comments.
