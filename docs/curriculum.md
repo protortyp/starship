@@ -1388,8 +1388,9 @@ requirements are unchanged. No physics, actuator or terminal-success rule was re
 | Raised cold, pitch ±0.4 rad | Consolidated aggregate 97.17%/95.36%; narrow0.3–0.4 band remains unfinished |
 | Raised cold, pitch ±0.5 rad | Sharpened selected policy passed earlier-profile retention and beat control on fresh paired hard-band tests; band still unfinished |
 | Raised cold, pitch ±0.6 rad | Expansion complete: final fresh new-band 226/330 deterministic, 208/330 stochastic; bounded continuation running |
-| Belly-down pitch 0–0.7 rad, 500±150 m | Midpoint fresh new-band 278/301 deterministic, 256/301 stochastic; earlier retention passes; bounded run complete, final audit pending |
-| Belly-down pitch 0–0.8 rad, 600±150 m | Preflight passed; queued behind current final retention audit |
+| Belly-down pitch 0–0.7 rad, 500±150 m | Final fresh aggregate 97.95%/97.22%, hard band 288/306 and 267/306; retained during next expansion |
+| Belly-down pitch 0–0.8 rad, 600±150 m | Midpoint fresh hard band 224/246 deterministic, 213/246 stochastic; bounded run complete, final audit pending |
+| Belly-down pitch 0–0.9 rad, 600±150 m | Preflight passed; queued behind current final retention audit |
 | Original low-clearance cold starts | Reported stress set; not claimed solved |
 | Full belly-flop, randomized descent, catch | Not yet validated |
 
@@ -1941,3 +1942,51 @@ The bounded bridge finished at accounting iteration 2724 with 6 retention
 rejections. Final selected iteration is 2714; selected and final checkpoints
 are separately backed up with verified hashes. Final independent validation remains
 pending before the next training block starts.
+
+
+### Belly-down 0.8-radian results and height tradeoff (2026-11-16)
+
+The 0–0.7 bridge's final selected iteration 2714 passed fresh original retention
+checks. Its 500-metre belly-down profile scored 97.95% deterministic and 97.22%
+stochastic overall; the 0.6–0.7 band scored 288/306 and 267/306. Hard-band
+stochastic critic bias was −7.07 (SE 2.49), RMSE 44.09 on this new cohort.
+
+`landing_belly_down_eight_local/2026-11-16_07-08-53` then expanded positive pitch
+to 0–0.8 at 600±150 m, carrying completed 2724 counters. The selected midpoint
+2824 improved matched independent stochastic new-band landings from 151/246 to
+213/246: 72 gains and ten losses, +25.20 percentage points (paired bootstrap
+95% interval 18.29–31.30). Deterministic landings changed 222→224/246, with an
+interval spanning zero. Earlier warm/cold/±0.3/±0.4 retention passed. The separate
+0–0.7-at-500-metre monitor scored 98.11%/97.79% overall and 187/197, 186/197 in
+its hardest band. Symmetric ±0.6 and original low-clearance starts remain weaker
+stress sets, not solved tasks.
+
+New-band initial stochastic critic bias moved from +24.15 (SE 3.81) to −14.51
+(SE 2.62), while RMSE fell 64.40→43.53. Values changed 77.16→75.19 but observed
+returns improved 53.00→89.70: the critic again lagged improving behavior. Aggregate
+metrics do not replace this check of predictions in the new angle band.
+
+The next-coverage screen tested 0.8–1.0 radians at matched 600/700-metre heights:
+
+| Pitch band | 600 m deterministic / stochastic | 700 m deterministic / stochastic |
+| --- | --- | --- |
+| 0.8–0.9, 500 starts | 383 / 227 | 353 / 251 |
+| 0.9–1.0, 524 starts | 196 / 54 | 206 / 67 |
+
+In 0.8–0.9, extra height lost six deterministic percentage points (56 gains,
+86 losses; paired interval −10.8 to −1.6) while gaining 4.8 stochastic points
+(65 gains, 41 losses; interval +0.8 to +8.8). Critic overprediction increased
+from +18.15 to +26.55. This is a tradeoff, not a universal benefit from more
+height. The next bounded candidate therefore holds 600 m and expands only pitch
+to 0–0.9, retaining explicit 0–0.7-at-500-metre and 0–0.8-at-600-metre monitors.
+Preflight from selected 2824 passed all environment-setting and restoration checks.
+Actual training waits for final 2924 independent retention validation. Fixed seeds:
+training 923000, selection 923100/923501, independent audit bases 924000/925000.
+
+Matched comparisons, calibration, screen outcomes and reproduction scripts are
+backed up under `belly-down-eight`, `next-nine-screen` and `belly-down-nine-plan`.
+Full randomized landing and end-to-end catch criteria remain unchanged and unmet.
+
+The 0.8-radian block finished at accounting iteration 2924 with 4
+retention rejections. Final selected iteration is 2924; selected and raw final
+checkpoints are backed up separately with verified hashes. Final validation is pending.
