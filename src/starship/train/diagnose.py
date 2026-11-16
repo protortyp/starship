@@ -194,10 +194,18 @@ def plasticity_section(s: dict, report: dict) -> list[str]:
             warn = f"gradient norm fell to {end / first:.1%} of its start (vanishing)"
         elif "/update_ratio/" in name and end < RIGID_UPDATE_RATIO:
             warn = f"update ratio {end:.1e}: layer has stopped changing"
+        elif name.endswith("features/centered_effective_rank"):
+            width = last(s, tag.replace("centered_effective_rank", "width"), 0)
+            if width and end / width < RANK_MIN_FRACTION:
+                warn = f"centered feature rank {end:.0f}/{width:.0f}: limited feature variation"
         elif name.endswith("features/effective_rank"):
             width = last(s, tag.replace("effective_rank", "width"), 0)
-            if width and end / width < RANK_MIN_FRACTION:
-                warn = f"feature rank {end:.0f}/{width:.0f}: representation collapsed"
+            centered = tag.replace("effective_rank", "centered_effective_rank")
+            if width and end / width < RANK_MIN_FRACTION and not s.get(centered):
+                warn = (
+                    f"low uncentered feature rank {end:.0f}/{width:.0f}; "
+                    "centered rank unavailable, check feature offsets before inferring collapse"
+                )
         if name.endswith(("/mean_abs", "/width")):
             continue
         prefix = f"- WARN {name}: {warn} | " if warn else f"- {name}: "
