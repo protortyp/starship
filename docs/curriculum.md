@@ -1393,7 +1393,9 @@ requirements are unchanged. No physics, actuator or terminal-success rule was re
 | Belly-down pitch 0–0.9 rad, 600±150 m | Retained throttle-only source selected after three-arm comparison; paired hard band 207/226 deterministic, 188/226 stochastic |
 | Belly-down pitch 0–1.0 rad, 800±150 m | Continuation selected aggregate 90.43%/92.14%, hard band 173/207 and 163/207; original profiles retained |
 | Belly-down pitch 0–1.1 rad, 800±150 m | Continuation selected3594: aggregate92.43%/92.72%, hard149/173 and110/173; original retention passes |
-| Belly-down pitch 0–1.2 rad, 800±150 m | Selected4024 validated on0–1.25rad; dedicated1.2–1.25 success75.29%/41.99%; expanded0–1.3rad training running |
+| Belly-down pitch 0–1.2 rad, 800±150 m | Retained by selected4099: fresh96.09% deterministic/93.95% sampled |
+| Belly-down pitch 0–1.3 rad, 800±150 m | Selected4099: fresh93.65%/90.43%; dedicated1.25–1.3 success62.99%/30.47% |
+| Speed transition, pitch1.2–1.3, −60±10 m/s | Four-profile training running; transition at1000±150 m, old frontier stays800 m |
 | Original low-clearance cold starts | Reported stress set; not claimed solved |
 | Full belly-flop, randomized descent, catch | Not yet validated |
 
@@ -2621,3 +2623,70 @@ Artifacts: `belly-down-quarter-mixture`, `quarter-selected-comparison`,
 `thirteen-mixture-plan`, timestamp `2026-11-16_10-50-33`. The calibration
 worker continues through the raw final candidate. Full randomized descent
 and chopstick capture remain outstanding; PR67 stays draft.
+
+
+### Accepted 4099: speed transfer is a separate bottleneck
+
+The 0–1.3 block ended at accounting 4124 and selected actual 4099, SHA256
+`ef623e64c5c5eec3e55b89096917f1964943c44e322cd7525f34cb71b26a8662`.
+Fresh GPU audit 974000 retains original skills (warm96.48%/98.93%, other
+original profiles98–99%). Paired full-range sampled successes1814→1852/2048
+(+1.86pp,95% interval0.83–2.83); deterministic1915→1918 is inconclusive.
+Dedicated1.25–1.3 sampled229→312/1024 (+8.11pp,5.96–10.35), deterministic
+612→645 (+3.22pp,0.39–6.15). Prior-range point estimates are nonnegative;
+only the0–1.25 sampled gain has an interval excluding zero. Dedicated sampled
+critic bias32.16→20.92, RMSE66.85→65.51, initial EV0.109→0.125: useful
+progress with substantial remaining calibration error.
+
+Both source4024 and selected4099 land0/256 in each action mode on canonical
+stage2 (GPU976000). The audit explicitly restores pitch_noise0.1 because the
+custom stage1 range otherwise leaks into stage2 through cumulative overrides.
+An initial inherited-width diagnostic was stopped and marked NOT_CANONICAL;
+its results are not canonical task evidence. Canonical spawn/reward settings
+were verified, including1200±300 m,−90±10 m/s, pitch1.5708±0.1, offset100,
+engines off, deadline90s and tilt_height300.
+
+Frozen4024 factorial screen (256 starts/mode, GPU977000) separates two gaps:
+
+| Pitch | Height | Speed | Deterministic / sampled landed |
+| --- | --- | --- | --- |
+| 1.275±0.025 | 800 | −50 | 147 / 58 |
+| 1.275±0.025 | 800 | −90 | 0 / 0 |
+| 1.275±0.025 | 1200 | −50 | 97 / 57 |
+| 1.275±0.025 | 1200 | −90 | 1 / 0 |
+| 1.5708±0.025 | 800 | −50 or −90 | 0 / 0 |
+| 1.5708±0.025 | 1200 | −50 | 20 / 0 |
+| 1.5708±0.025 | 1200 | −90 | 0 / 0 |
+
+Other variation stays fixed at height±150, speed±15 and offset50; stage1
+reward remains. This is transfer evidence, not physical infeasibility or a
+canonical-stage audit. Pairing checks match initial physical scalar invariants
+and normalized factor draws; horizontal directions are not reconstructed.
+Normalized-up cross products avoid cancellation in horizontal magnitudes.
+
+The intermediate profile pitch1.25±0.05, speed−60±10 (512 starts/mode,
+GPU978000/action978001) gives selected4099 289/101 landings at800m and257/147
+at1000m. The higher profile's sampled gain is8.98pp (5.08–13.09), with a
+tradeoff in deterministic success. Both modes improve over source4024 at
+either height. Choose1000m for this profile only; leave old frontier at800m.
+
+Astra recommends a spawn-only four-profile bridge:192 old-frontier,
+32 transition,16 warm and16 cold environments, interleaved48/8/4/4 per64-env
+recurrent minibatch. CPU/GPU standalone parity, autoresets, recurrent memory
+and configuration restoration pass in PR153. Common stage1 reward and physics
+are required; the later tilt_height1000→300 shaping transition must be explicit.
+Advance speed, pitch and target representation toward canonical stage2 based
+on evidence; do not leave the actual target perpetually at negligible weight.
+
+Run `landing_belly_down_speed_sixty_mixture_local/2026-11-16_11-33-06` trains
+100 updates (4124→4224), seed979000, transition fixed panel979200/action979601,
+fresh GPU audit980000. It preserves actor/critic/Adam, normalization, replay,
+learning rates and contact criteria. Preflight transition success50.59%/29.30%;
+retention and restoration checks pass. Final audits separately test old range,
+transition and canonical belly-flop; mixture-average success is not sufficient.
+
+Artifacts under timestamp `2026-11-16_11-10-09`: `belly-down-thirteen-mixture`,
+`thirteen-selected-comparison`, `thirteen-band-calibration`,
+`low-belly-canonical-transfer`, `belly-transition-factors`,
+`speed-sixty-transition-screen`, `speed-transition-plan`, `speed-sixty-mixture-plan`.
+Full randomized descent and chopstick capture remain outstanding.
