@@ -2246,3 +2246,27 @@ warm regression and designing retention improvements. Other original retention
 profiles remained above97.9% in both modes. Full randomized landing and catch
 remain unvalidated. Artifacts: `belly-down-eleven/2026-11-16_08-52-06` and
 `audit-device-benchmark/2026-11-16_08-52-06` in the checkpoint archive.
+
+### On-policy retention mixture experiment
+
+A matched CPU audit confirmed the1.1 endpoint's warm regression: source984 versus
+endpoint964/1024 deterministic landings, with7 gains and27 losses (paired95%
+difference −3.125 to −0.879 percentage points). Stochastic997→996 was inconclusive.
+The accepted3409 checkpoint therefore remains the source. The next100-update
+experiment mixes224 frontier,16 warm and16 raised-cold environments, interleaved
+56/4/4 in each contiguous64-environment recurrent minibatch. The previous all-frontier
+run is the control: same source, training seed944000, total transitions, replay,
+optimizer settings, frozen normalization, evaluation panels and retention guards.
+The mixture has12.5% fewer frontier transitions; it tests this allocation tradeoff,
+not an equal-frontier-sample efficiency claim.
+
+`MixtureRocketEnv` preserves fixed profile membership through automatic resets and
+runner restoration. Only the first profile follows spawn curriculum changes;
+retention profiles retain their saved configurations. It rejects changes to shared
+physics or reward rules. CPU and GPU tests compare complete step outputs and
+terminal records against independent simulators through repeated autoresets,
+verify profile restoration and contiguous-block proportions, and check recurrent
+outputs plus exact preservation of neighboring memory when another slot ends.
+Per-profile transition/completion/landing counts are logged in
+`mixture-coverage.jsonl`. Experiment results are pending; this does not promote
+any checkpoint or validate full randomized landing or catch.
