@@ -38,20 +38,29 @@ def profiles(device, layout=None):
 
 
 @pytest.mark.parametrize("device", ["cpu", "cuda:0"])
-@pytest.mark.parametrize("four_profiles", [False, True])
-def test_mixture_matches_standalone_through_autoresets_and_config_restore(device, four_profiles):
+@pytest.mark.parametrize(
+    ("layout", "blocks"),
+    [
+        pytest.param([("frontier", 4), ("warm", 2), ("cold", 2)], (2, 1, 1), id="three_profiles"),
+        pytest.param(
+            [("frontier", 192), ("transition", 32), ("warm", 16), ("cold", 16)],
+            (48, 8, 4, 4),
+            id="speed_bridge",
+        ),
+        pytest.param(
+            [("frontier", 176), ("speed", 16), ("angle", 32), ("warm", 16), ("cold", 16)],
+            (44, 4, 8, 4, 4),
+            id="angle_with_speed_rehearsal",
+        ),
+    ],
+)
+def test_mixture_matches_standalone_through_autoresets_and_config_restore(device, layout, blocks):
     if device.startswith("cuda") and not torch.cuda.is_available():
         pytest.skip("CUDA unavailable")
-    layout = (
-        [("frontier", 192), ("transition", 32), ("warm", 16), ("cold", 16)]
-        if four_profiles
-        else [("frontier", 4), ("warm", 2), ("cold", 2)]
-    )
-    blocks = (48, 8, 4, 4) if four_profiles else (2, 1, 1)
     children, reference = profiles(device, layout), profiles(device, layout)
     mixed = MixtureRocketEnv(children, blocks)
     block_width = sum(blocks)
-    for block in range(4 if four_profiles else 2):
+    for block in range(mixed.num_envs // block_width):
         start = block * block_width
         for indices, width in zip(mixed.indices, blocks, strict=True):
             within = indices[
@@ -103,8 +112,7 @@ def test_mixture_matches_standalone_through_autoresets_and_config_restore(device
     assert children["frontier"].cfg.spawn.altitude == 777
     assert children["warm"].cfg == originals[-2]
     assert children["cold"].cfg == originals[-1]
-    if four_profiles:
-        assert children["transition"].cfg == originals[1]
+    assert [child.cfg for child in list(children.values())[1:]] == originals[1:]
     mixed.set_configs(originals[0], children["frontier"].env.reward_config)
     mixed.reset()
     assert [e.cfg for e in children.values()] == originals
