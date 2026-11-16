@@ -1391,7 +1391,7 @@ requirements are unchanged. No physics, actuator or terminal-success rule was re
 | Belly-down pitch 0–0.7 rad, 500±150 m | Final fresh aggregate 97.95%/97.22%, hard band 288/306 and 267/306; retained during next expansion |
 | Belly-down pitch 0–0.8 rad, 600±150 m | Final fresh hard band 234/246 deterministic, 221/246 stochastic; earlier landing retained |
 | Belly-down pitch 0–0.9 rad, 600±150 m | Retained throttle-only source selected after three-arm comparison; paired hard band 207/226 deterministic, 188/226 stochastic |
-| Belly-down pitch 0–1.0 rad, 800±150 m | Preflight passed; bounded 100-update expansion started, earlier profiles monitored |
+| Belly-down pitch 0–1.0 rad, 800±150 m | Fresh selected aggregate 85.89%/91.21%, hard band 162/198 and 133/198; retained source queued for unchanged 100-update continuation |
 | Original low-clearance cold starts | Reported stress set; not claimed solved |
 | Full belly-flop, randomized descent, catch | Not yet validated |
 
@@ -2122,3 +2122,45 @@ Astra's gate audit and the decision are archived under
 `rehearsal-trial/2026-11-16_07-47-42`; the actual-source coverage screen is under
 `next-one-chosen-screen/2026-11-16_07-47-44`. Full randomized landing and actual
 end-to-end catching remain unvalidated; PR67 stays draft with description-only GIFs.
+
+
+### 2026-11-16: retained 1.0-radian gain supports continuation
+
+Run `landing_belly_down_one_local/2026-11-16_08-18-11` completed100 updates
+with10 retention rejections. Selected checkpoint accounting3324 contains coherent
+iteration3309, SHA256
+`3080df270a587424fe4ffb60b8d033e38b491f771c6650c5eaf525453a657073`.
+Independent paired evaluation (base938000) improved aggregate deterministic
+landings1,710→1,759/2,048 (+2.39 points, paired bootstrap95% interval +0.93 to
++3.86) and stochastic1,814→1,868 (+2.64, +1.37 to +3.91).
+
+The new0.9–1.0 band improved156→162/198 deterministic and126→133 stochastic,
+but both narrow-band intervals include zero. Do not infer hard-band mastery from
+the aggregate result. Initial stochastic hard-band critic bias improved+21.47→
++11.38 and RMSE60.95→57.35; EV remained approximately0.10. Mean predictions
+fell79.25→74.08 while observed returns rose57.77→62.70. Better average calibration
+is not a claim of accurate per-episode value estimates.
+
+Selected3309 passed fresh warm99.12%/97.75%, raised-cold99.41%/98.83%,
+old±0.3 99.61%/98.24%, old±0.4 98.70%/98.05%, and previous0–0.9-at600m
+95.64%/96.55%. The explicitly saved pre-guard finalcandidate3324 instead failed
+warm at91.70%/92.58%, raised-cold stochastic94.63%, and old±0.3 stochastic94.82%.
+It is preserved for diagnosis and is not the continuation source.
+
+The initial automatic continuation gate required a positive lower confidence
+bound in the narrow stochastic band and correctly declined to launch. Its decision
+is preserved. A separate reviewed decision uses the supported aggregate gains in
+both modes, nonnegative narrow-band point estimates, and retained original/previous
+profiles to justify one unchanged100-update continuation. This is an explicit
+engineering review of broader evidence, not a claim that the stricter automatic
+gate passed, nor a relaxation of final randomized/catch acceptance. Train seed940000,
+selection panels unchanged937100/937501, fresh final audit base941000.
+
+Astra recommends keeping an on-policy mixture conditional on failure to replicate
+or retain further progress. A potential224frontier+16warm+16cold comparison must
+interleave56+4+4 slots in each recurrent64-environment minibatch, preserve per-profile
+configs through rollback, and verify autoreset/hidden-state isolation. No mixture
+has been implemented or launched. Current normalization, replay, learning rates,
+physics and terminal conditions remain unchanged. Endpoint backups and paired
+results are under `belly-down-one/2026-11-16_08-18-11`; health and continuation
+review records are also preserved under `belly-down-one-health`.
