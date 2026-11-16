@@ -1387,7 +1387,8 @@ requirements are unchanged. No physics, actuator or terminal-success rule was re
 | Raised cold, pitch ±0.3 rad | Aggregate retained; narrow 0.2–0.3 band passed one cohort but failed the next with identical weights |
 | Raised cold, pitch ±0.4 rad | Consolidated aggregate 97.17%/95.36%; narrow0.3–0.4 band remains unfinished |
 | Raised cold, pitch ±0.5 rad | Sharpened selected policy passed earlier-profile retention and beat control on fresh paired hard-band tests; band still unfinished |
-| Raised cold, pitch ±0.6 rad | Bounded 200-update expansion running from sharpened selected iteration 2104 |
+| Raised cold, pitch ±0.6 rad | Expansion complete: final fresh new-band 226/330 deterministic, 208/330 stochastic; bounded continuation running |
+| Belly-down pitch 0–0.7 rad, 500±150 m | Bridge preflight passed; queued behind continuation validation, not yet trained |
 | Original low-clearance cold starts | Reported stress set; not claimed solved |
 | Full belly-flop, randomized descent, catch | Not yet validated |
 
@@ -1841,3 +1842,49 @@ fixed, training seed is 905000, and fresh audit seed bases are 906000 and 907000
 No additional engine-logit scaling or physics/reward/termination changes are
 planned. Evidence, reproduction scripts and the continuation decision are backed
 up under `tilt-six-tenths` and `six-tenths-height-screen` on the checkpoint volume.
+
+
+### Belly-down bridge screen and critic audit (2026-11-16)
+
+The geometry review identifies positive spawn pitch as the path toward the
+intended belly-down entry. A 512-episode-per-mode screen of the immutable selected
+2324 checkpoint sampled positive pitch 0.6–0.8 radians at matched 400- and
+500-metre mean spawn heights. All other sampled controls/states stayed matched;
+altitude-dependent physics remained active.
+
+| Pitch band | 400 m deterministic / stochastic | 500 m deterministic / stochastic |
+| --- | --- | --- |
+| 0.6–0.7, 257 starts | 154 / 88 | 210 / 116 |
+| 0.7–0.8, 255 starts | 48 / 6 | 84 / 8 |
+
+The extra clearance helps the mission-facing branch but does not establish reliable
+control in the next 0.7–0.8 interval. Initial stochastic critic
+bias in the 0.6–0.7 band was +20.91 (SE 3.49) at 400 m and +28.10 (SE 3.90) at
+500 m; in the 0.7–0.8 band it was +46.94 (SE 1.74) and +65.78 (SE 1.81).
+These are observed full-episode discounted returns, not bootstrapped targets.
+The critic recognizes lower returns at larger angles but substantially overpredicts.
+
+A recurrence audit replayed the first 256 stochastic trajectories per height,
+without choosing outcomes. Actor means and critic outputs matched recorded
+outputs within 0.001. In the harder band, actor candidate saturation was about
+1.6–1.9%, critic candidate saturation 4.0–4.3%, and sigmoid-gate saturation stayed
+below 0.4%. These observations do not establish a widespread recurrent encoding
+failure or justify changing normalization. The 500-metre replay initially failed
+a strict manual/native recurrence tolerance with MKLDNN; disabling that backend
+passed the same tolerance and recorded-output checks without changing weights or
+inputs. Both the failed attempt and successful reproduction are preserved.
+
+The next bounded 200-update bridge uses positive pitch 0–0.7 radians at
+500±150 m. Earlier stage-1 retention environments explicitly keep mean pitch zero
+and mean height 400 m; the symmetric ±0.6 profile remains an unfinished monitor.
+Warm stage-0 settings also remain unchanged. The preflight passed all original
+retention gates and the actor restoration/counter-preservation checks without any
+optimizer updates. The actual run waits for the current continuation's selected
+2524 checkpoint and fresh retention validation. Training seed 910000, fixed
+selection seeds 910100/910501 and independent audit bases 911000/912000 are
+prespecified. A matched starting-policy audit will quantify training gains, and
+fresh stochastic critic errors will be reported for each selected snapshot.
+
+Artifacts and reproduction scripts are archived under `belly-down-bridge-screen`,
+`belly-down-recurrent` and `belly-down-bridge-plan` on the checkpoint volume.
+No dynamics, reward, termination or final randomized-ground/catch criteria change.
