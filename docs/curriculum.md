@@ -1385,7 +1385,8 @@ requirements are unchanged. No physics, actuator or terminal-success rule was re
 | Raised cold, 400±150 m, pitch ±0.1 rad | Unchanged ground student passed fresh 2,048-per-mode bridge validation |
 | Raised cold, pitch ±0.2 rad | Coherent calibrated source: 497/506 of 512; new band 246/252 of 257 |
 | Raised cold, pitch ±0.3 rad | Aggregate retained; narrow 0.2–0.3 band passed one cohort but failed the next with identical weights |
-| Raised cold, pitch ±0.4 rad | 200-update expansion complete; fresh new band 89.57%/84.36%; bounded consolidation with both-mode selection running |
+| Raised cold, pitch ±0.4 rad | Consolidated aggregate 97.17%/95.36%; narrow0.3–0.4 band remains unfinished |
+| Raised cold, pitch ±0.5 rad | 200-update expansion complete; matched engine-temperature training pilot running |
 | Original low-clearance cold starts | Reported stress set; not claimed solved |
 | Full belly-flop, randomized descent, catch | Not yet validated |
 
@@ -1681,3 +1682,71 @@ Independent validation and backups follow the block, with a matched source polic
 on identical fresh frontier starts. Evidence is archived under `tilt-expansion`,
 `tilt-half-radian-screen` and `tilt-consolidation` on the separate checkpoint volume.
 No intermediate-band result substitutes for final randomized-ground and catch tests.
+
+### Early engine sampling and finite-temperature pilot (2026-11-16)
+
+The ±0.4 consolidation selected iteration 1774. Fresh aggregate landing rates were
+97.17% deterministic and 95.36% stochastic; its 0.3–0.4 band scored 471/514 and
+446/514. A final retention failure restored the selected actor, critic and optimizer,
+all verified bitwise against the saved selection. Rejected and restored checkpoints
+were archived. A reused ±0.5 transfer screen improved its 0.4–0.5 band from 110/183
+to 131/183 deterministic and 44/183 to 72/183 stochastic versus the earlier selected
+1624 policy; this was diagnostic coverage, not independent promotion evidence.
+
+`landing_tilt_half_radian_local/2026-11-16_05-50-11` then completed 200 updates at
+±0.5 with both-mode selection and added ±0.4 retention checks. Its first 100-update
+selection, iteration 1909, improved fresh stochastic new-band landings from 174/426
+to 251/426 on identical starts (78 gains, one loss). Deterministic scores changed
+311/426 to 316/426, with a paired uncertainty interval spanning zero improvement.
+The final selection's separate cohort scored 280/393 deterministic and 231/393
+stochastic in the new band; neither mode is reliable enough to claim mastery.
+
+A matched inference probe on the expansion's starting actor, selected 1774, found
+that continuous-action noise was not the main source of its stochastic gap:
+
+| Intervention, same 231 new-band starts | Landed | Gains/losses versus sampled baseline |
+| --- | --- | --- |
+| All heads sampled | 86 | — |
+| All continuous actions at their means; switches sampled | 94 | 15/7 |
+| All three engine switches deterministic; continuous actions sampled | 181 | 95/0 |
+| All actions deterministic | 169 | 86/3 |
+| Engine switches deterministic only in first 5 s | 176 | 91/1 |
+| Engine switches deterministic only after 5 s | 98 | 22/10 |
+
+The phase probe used exact positive-logit decisions, one recurrent forward pass,
+common random draws and unchanged physics, contact and termination. These are
+inference interventions, not learned-policy results. Engine probabilities, commands
+and spool traces are in policy coordinates, including mirroring; numbered channels
+must not be mistaken for fixed physical engines. One trace field initially mislabeled
+as height was corrected to `velocity_body_1_observation`; values and outcomes were
+unchanged and altitude was not recorded in that probe.
+
+Spool-up takes 2 s and shutdown 0.3 s. Away from clamps, a 0.1 s off command can remove
+one-third spool and require about 0.67 s continuously on to restore it. In the first 5 s
+of hard starts, policy-frame engine 1's mean on probability was only 0.79 despite its
+very low aggregate entropy warning. The early deterministic intervention raised
+mean spool at 2 s from 0.19 to 0.54 for that channel and from 0.61 to 0.95 for channel 2.
+This supports an early interrupted-ignition mechanism; it does not prove every off
+command is harmful or justify eliminating useful shutdown decisions.
+
+A prespecified temperature 0.5 retained stochastic engine sampling while sharpening
+both on and off probabilities. On the diagnostic cohort it scored 150/231 throughout
+the episode, or 151/231 when applied only during the first 5 s. On the newer selected 1909
+checkpoint, doubling only the three engine output weight/bias rows reproduced this
+distribution with the ordinary decoder. Over 128 replayed complete histories,
+deterministic outputs and Gaussian means/stds matched bitwise, with zero engine-logit
+scaling error. Fresh stochastic new-band success improved 251/426 to 301/426 (65 gains,
+15 losses). Retention remained above 95%, but old ±0.3 aggregate performance dropped
+from 1008/1024 to 993/1024. This is a useful intervention with a measured tradeoff.
+
+A matched 100-update training pilot now compares control and sharpened policies from
+selected 1909. Both clear Adam first/second moments for the three affected engine
+output rows while preserving shared step counters; other optimizer state and the
+initial critic match bitwise. Only the sharpened arm doubles those rows. Standard
+sampling, PPO likelihoods, entropy and KL therefore describe the same actual policy.
+The critic initially reflects the source policy and requires on-policy monitoring.
+Both arms passed initial retention/restoration checks. Selected and final checkpoints
+will receive separate fresh paired audits. Archives are under `half-radian-action-noise`,
+`half-radian-engine-noise`, `half-radian-engine-phase`, `half-radian-engine-temperature`,
+`engine-temperature-checkpoint`, `engine-temperature-training-preflight` and
+`engine-temperature-pair`. Final randomized landing and end-to-end catch remain open.
