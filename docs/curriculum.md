@@ -1398,7 +1398,7 @@ requirements are unchanged. No physics, actuator or terminal-success rule was re
 | Speed bridge, pitch 1.25±0.05 rad, 1000±150 m, −60±10 m/s | Selected4309: fresh83.11% deterministic/60.94% sampled; original retention passed; canonical belly-flop0/256 both |
 | Speed bridge, pitch 1.25±0.05 rad, 1000±150 m, −70±10 m/s | Accepted4524 preserves original skills and recovers speed60; fresh speed70 success80.86% deterministic /50.20% sampled. Endpoint4404 remains rejected |
 | Angle bridge, pitch1.30–1.40, −60±10 m/s | Accepted4524: fresh60.74% deterministic/37.40% sampled; original retention passed |
-| Angle extension, pitch1.35–1.50, −60±10 m/s | Accepted4709: fresh1.40–1.50 success44.73% deterministic/24.90% sampled. Longer4724→5224 run active; midpoint gains but warm retention fails, so midpoint not adopted |
+| Angle extension, pitch1.35–1.50, −60±10 m/s | Accepted5064: fresh1.40–1.50 success60.45% deterministic/39.16% sampled; all original retention passes. Unchanged500-update continuation5224→5724 active |
 | Original low-clearance cold starts | Reported stress set; not claimed solved |
 | Full belly-flop, randomized descent, catch | Not yet validated |
 
@@ -3060,3 +3060,53 @@ current-target episodes. At iteration5155 both fixed GIF examples land, but
 those two rollouts are not a reliability estimate. Final randomized descent
 and policy-controlled chopstick catch validation, checkpoint LFS and merge
 remain outstanding.
+
+
+### Accepted 5064 confirms the benefit of longer training
+
+The 500-update block completed accounting4724–5224, selecting actual5064
+(SHA256 `17ee91e127af2f8dd30d5ec99506fa41b1a98554f75313b42299fe7f85bfcbef`).
+Fresh paired1002000-series tests improve target-angle deterministic success
+464→619/1024, +15.14 percentage points (95% bootstrap11.52–18.75), and
+sampled261→401/1024, +13.67 points (10.74–16.60). Upper-half sampled98→163/516
+improves12.60 points (8.53–16.67). Final rates are60.45%/39.16% on1.40–1.50rad.
+These independently evaluated gains support the user's choice to train longer.
+
+Unlike the rejected midpoint, actual5064 passes fresh original retention.
+Warm success96.88% deterministic/98.44% sampled; original cold/tilt/frontier
+cohorts also pass both modes. The broader earlier range is97.71%/96.73%.
+Speed70 bridge success is89.65%/78.32%, speed60 is86.33%/85.74%. All recorded
+handoff checks pass. The fixed selection panel had62.50%/42.97% target-angle
+success; use the fresh results above for performance claims.
+
+Frozen horizontal transfer at1000±150m, common stage1 reward and512 episodes
+per mode also improves on paired1003000/1003001 panels. At60m/s, deterministic
+horizontal success128→222 (25.0%→43.36%), sampled49→95 (9.57%→18.55%). At70m/s,
+deterministic88→158 and sampled12→33 (6.45% final sampled). All four paired
+intervals exclude zero. Canonical stage2 is still poor:19/256 deterministic
+and6/256 sampled (7.42%/2.34%). Reduced-speed transfer is not a stage2 pass.
+
+Sampled target-angle initial critic bias24.08→15.11 and RMSE70.50→67.98
+improve, but EV0.118→0.135 remains weak. Late-run telemetry shows no monitored
+dead/dormant hidden units or sustained feature-rank collapse. All eight
+continuous exploration parameters differ from the source; their largest
+log-std change is0.000338, so the small-update warning is not literal freezing.
+Low engine entropy, elevated critic cell saturation and59 rollbacks by5203
+remain limitations. Rollback frequency indicates substantial retention
+interference; it does not negate the independently confirmed net gains.
+
+Run `landing_belly_down_angle_blended_long_continued_local/2026-11-16_16-10-41`
+continues500 updates, accounting5224–5724, from coherent actual5064 weights,
+critic and Adam state. Training seed1004000, fresh audit seed1005000 at5474
+and5724. Model, encodings, normalization, reward, physics, learning rates,
+replay, scenario mix, fixed panels and retention guards remain unchanged.
+Preflight reproduces both angle bands, previous angle, speed60/70, original
+retention and old-frontier scores exactly. Checkpoint provenance and acceptance
+checks are archived; flat short-term target scores alone do not prevent this
+user-requested longer continuation. No curriculum promotion or threshold change.
+
+Artifacts: `angle-blended-long-next-screen`, `long-run-health`, and
+`angle-blended-long-continued-launch` keyed by `2026-11-16_14-29-19`, plus
+`angle-blended-long-continued-preparation` under the checkpoint archive.
+Full-speed belly-flop, randomized descent and policy-controlled catching remain
+outstanding. PR67 remains draft until end-to-end validation, LFS and merge.
