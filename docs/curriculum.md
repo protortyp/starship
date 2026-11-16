@@ -1398,7 +1398,7 @@ requirements are unchanged. No physics, actuator or terminal-success rule was re
 | Speed bridge, pitch 1.25±0.05 rad, 1000±150 m, −60±10 m/s | Selected4309: fresh83.11% deterministic/60.94% sampled; original retention passed; canonical belly-flop0/256 both |
 | Speed bridge, pitch 1.25±0.05 rad, 1000±150 m, −70±10 m/s | Accepted4524 preserves original skills and recovers speed60; fresh speed70 success80.86% deterministic /50.20% sampled. Endpoint4404 remains rejected |
 | Angle bridge, pitch1.30–1.40, −60±10 m/s | Accepted4524: fresh60.74% deterministic/37.40% sampled; original retention passed |
-| Angle extension, pitch1.35–1.50, −60±10 m/s | Completed500-update continuation retains5399: fresh target62.40% deterministic/39.94% sampled, original retention passes. Matched100-update control versus doubled-warm allocation experiment active |
+| Angle extension, pitch1.35–1.50, −60±10 m/s | Checkpoint5399 retained after matched100-update allocation trial; control endpoint regresses fresh bridge panels, doubled-warm arm retains source weights. Original allocation now training500 more updates; remaining trial audits continue |
 | Original low-clearance cold starts | Reported stress set; not claimed solved |
 | Full belly-flop, randomized descent, catch | Not yet validated |
 
@@ -3197,9 +3197,9 @@ learning rates, replay, guards and selection rules are identical. Both preflight
 pass exact fixed-panel parity and restoration checks, and their complete
 prepared checkpoint states—including optimizer—are equal.
 
-Control training is active in
-`landing_belly_down_angle_allocation_control_local/2026-11-16_18-00-00`;
-the controller launches the warm arm after the control finishes100 updates.
+Both100-update training arms completed: control in
+`landing_belly_down_angle_allocation_control_local/2026-11-16_18-00-00` and warm in
+`landing_belly_down_angle_allocation_warm_local/2026-11-16_18-20-16`.
 Each preserves raw/selected snapshots and audits at5774/5824. Cross-arm tests
 assert identical initial observations and compare retained target performance;
 no arm selection occurs at midpoint. Fewer rollbacks alone are insufficient.
@@ -3210,3 +3210,59 @@ Plans, scripts, launch decision and preflight proof are archived under
 `retention-allocation-pair-preparation`; endpoint evidence remains in the
 completed run's `heldout-validation/iteration-5724`. The full end-to-end catch,
 validated checkpoint LFS and training PR merge remain outstanding.
+
+
+### Original allocation continued after the matched diagnostic (2026-11-16)
+
+Neither short arm produced a retained improvement worth adopting. Control selected
+iteration 5824, but fresh paired evaluation against source 5399 found target-angle
+landings 634→616/1,024 deterministic (−1.76 percentage points, paired 95% bootstrap
+interval −5.18 to 1.66), and 428→434 sampled (+0.59, −1.76 to 2.93). The harder
+half stayed at 167/493 sampled. These exploratory intervals are not adjusted for
+multiple comparisons. Passing the fixed selection panel did not establish a gain.
+
+Control's fresh deterministic speed70 results fell 914→857/1,024 (−5.57 points,
+−7.62 to −3.52), speed60 fell 930→891 (−3.81, −5.66 to −2.05), and previous-angle
+landings fell 830→793 (−3.61, −6.35 to −0.88). The speed70 point loss exceeds the
+5-point budget; its interval crosses that boundary. This is disagreement between
+fixed-panel selection and fresh evaluation, not evidence of a broken guard.
+All four original retention profiles still exceeded 95% in both modes, but warm
+deterministic landings fell 995→974/1,024 (−2.05 points, −3.13 to −0.98).
+Matched initial observations, action seeds and evaluation devices were verified.
+The existing Astra reviewer also recommends retaining 5399 over control5824.
+
+The doubled-warm arm finished without selecting new weights. Its endpoint is
+byte-for-byte equal to the control's retained midpoint; actor, critic and Adam
+state recursively match original5399 exactly. Warm deterministic retention failed
+16/20 training evaluations versus control19/20, but fewer failures did not produce
+retained target progress. The warm raw endpoint failed its fixed warm gate at
+92.77%, with target55.27% deterministic/41.99% sampled. Its fresh raw-policy and
+critic audits remain active; these pending results are not claimed as completed.
+Allocation performance and checkpoint quality are separate decisions: beating a
+regressed control would not by itself establish improvement over the source.
+
+Control's target-angle initial critic explained variance changed 0.1315→0.1237;
+RMSE changed 66.23→66.01. All-transition explained variance changed 0.6230→0.6271.
+Speed60/70 initial RMSE worsened despite reduced bias. Both arms' health checks
+flag engine1 entropy near0.02, small but nonzero distribution updates, and endpoint
+critic cell saturation around30–32%. These threshold warnings alone do not prove
+irreversible plasticity loss or justify a reset. Compare subsequent trends before
+changing exploration, normalization or critic training.
+
+Following the user's preference for longer training and the agreed fallback,
+`landing_belly_down_angle_original_long_local/2026-11-16_18-52-16` starts another
+500 updates from coherent5399 with the original176/16/32/16/16 allocation. Accounting
+advances5824→6324 using completed warm-run counters; source weights and optimizer
+come from the validated earlier checkpoint, not control5824. Training seed is
+1009000; independent audits at6074/6324 use1010000-series seeds. Fixed panels,
+physics, rewards, frozen normalization, learning rates, replay and guards stay
+unchanged. Preflight exactly reproduces source panels and passes restoration
+checks. The remaining allocation audits continue alongside this run; no new
+curriculum stage is claimed. PR67 GIF publishing follows the active continuation.
+
+Scripts, plan, source-state proof and preflight are archived under
+`angle-original-long-preparation`; paired findings and critic/health summaries
+under `retention-allocation-control-{midpoint,endpoint}-review`. Both arms' midpoint
+and endpoint snapshots have separate hash-verified backups. Full belly-flop,
+randomized descent, moving policy-controlled catching, final checkpoint LFS and
+PR67 merge remain outstanding.
