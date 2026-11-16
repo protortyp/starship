@@ -1398,7 +1398,7 @@ requirements are unchanged. No physics, actuator or terminal-success rule was re
 | Speed bridge, pitch 1.25±0.05 rad, 1000±150 m, −60±10 m/s | Selected4309: fresh83.11% deterministic/60.94% sampled; original retention passed; canonical belly-flop0/256 both |
 | Speed bridge, pitch 1.25±0.05 rad, 1000±150 m, −70±10 m/s | Accepted4524 preserves original skills and recovers speed60; fresh speed70 success80.86% deterministic /50.20% sampled. Endpoint4404 remains rejected |
 | Angle bridge, pitch1.30–1.40, −60±10 m/s | Accepted4524: fresh60.74% deterministic/37.40% sampled; original retention passed |
-| Angle extension, pitch1.35–1.50, −60±10 m/s | Accepted4604: fresh1.40–1.50 success38.28% deterministic/19.63% sampled; original retention passes. Same-range continuation4624→4724 active |
+| Angle extension, pitch1.35–1.50, −60±10 m/s | Accepted4709: fresh1.40–1.50 success44.73% deterministic/24.90% sampled. Longer4724→5224 run active; midpoint gains but warm retention fails, so midpoint not adopted |
 | Original low-clearance cold starts | Reported stress set; not claimed solved |
 | Full belly-flop, randomized descent, catch | Not yet validated |
 
@@ -3008,3 +3008,55 @@ Artifacts under the checkpoint archive: `angle-blended-next-screen`,
 Full belly-flop, randomized descent and subsequent chopstick catching remain
 unvalidated. PR67 remains draft, with checkpoint tracking in LFS and merge
 reserved for the requested end-to-end result.
+
+
+### Longer training improves the angle task; midpoint retention remains unresolved
+
+The 4624–4724 continuation selected actual4709 (snapshot4724, SHA256
+`fabd343e561bf3d594e01628d12a05e33006c8ec9effa07fd65f403d4270dd80`).
+Fresh tests show 44.73% deterministic/24.90% sampled success on1.40–1.50 rad,
+with warm retention96.19%/97.85% and the other original checks passing.
+Speed70 success is89.26%/69.53%, speed60 is89.94%/82.13%. This accepted
+checkpoint passed the handoff checks and exact fixed-panel preflight.
+
+The user explicitly requested longer training with the existing setup.
+Run `landing_belly_down_angle_blended_long_local/2026-11-16_14-29-19`
+therefore trains500 updates, accounting4724–5224, with training seed1001000.
+Model, encodings, frozen normalization, rewards, physics, learning rates,
+scenario allocation, replay and fixed retention guards are unchanged.
+Fresh audits at4974/5224 use1002000-series seeds; snapshots are saved every50
+updates and fixed evaluations run every5. No automatic curriculum expansion.
+
+Midpoint snapshot4974 selects actual4889. On the fresh paired angle panel,
+source→selected deterministic success464→564/1024 improves9.77 percentage
+points (95% bootstrap6.25–13.38); sampled261→375 improves11.13 points
+(8.30–13.87). Upper-half sampled98→150/516 improves10.08 points
+(6.40–13.76). The sampled critic's initial bias decreases24.08→16.26,
+RMSE70.50→69.08, EV0.118→0.136. This supports useful continued learning,
+not exhausted plasticity, while difficult-state prediction remains weak.
+
+However, fresh warm deterministic retention is969/1024=94.63%, below the
+unchanged95% gate. The midpoint is not accepted for advancement. Its55 warm
+crashes include21 violating only downward speed and27 only horizontal speed;
+other constraints rarely fail. Raw midpoint retention972/1024 also misses
+95%. These terminal measurements do not identify the causal control errors,
+and do not justify relaxing landing thresholds. The final selected policy
+must pass its own audit. Canonical stage2 remains poor:16/256 deterministic
+and4/256 sampled at the midpoint; this is not end-to-end competence.
+
+A fixed source/final horizontal transfer screen uses physical1003000 and
+sampled-action1003001,512 episodes per mode, with near-horizontal and
+horizontal profiles at60/70m/s. It uses common stage1 reward and1000m starts,
+so it is distinct from canonical stage2. Another500-update continuation is
+queued behind the fresh5224 retention checks and exact preflight, as the user
+requested. Its training seed is1004000, audits5474/5724 use1005000. Flat target
+scores alone do not block that handoff; original retention and existing point
+loss budgets still apply. No source checkpoint is chosen using GIF outcomes.
+
+Artifacts: `angle-blended-long-preparation`, `long-midpoint-warm-failure-review`
+(keyed by `2026-11-16_14-29-19`), and `angle-blended-long-continued-preparation`
+under the checkpoint archive. PR67 continues to show full earlier-range and
+current-target episodes. At iteration5155 both fixed GIF examples land, but
+those two rollouts are not a reliability estimate. Final randomized descent
+and policy-controlled chopstick catch validation, checkpoint LFS and merge
+remain outstanding.
