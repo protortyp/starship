@@ -1,0 +1,30 @@
+{
+  "iteration": 0,
+  "checkpoint": "policy_-1.pt",
+  "run": "2026-11-15_14-16-37/holdout",
+  "moving_arms": true,
+  "policy_controlled": true,
+  "crash_penalty": 200.0,
+  "tumble_penalty": 200.0,
+  "contact_penalty": 100.0,
+  "observation_channels": 32,
+  "stage": 0,
+  "stage_name": "0 short upright catch approach",
+  "updated": "2026-11-15T13:26:03.694355+00:00",
+  "episodes": [
+    {
+      "seed": 0,
+      "duration_s": 19.51,
+      "outcome": "caught",
+      "arm_open_min_deg": 0.0,
+      "arm_open_max_deg": 30.0
+    },
+    {
+      "seed": 1,
+      "duration_s": 23.53,
+      "outcome": "caught",
+      "arm_open_min_deg": 0.0,
+      "arm_open_max_deg": 30.0
+    }
+  ]
+}
