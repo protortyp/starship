@@ -1395,7 +1395,7 @@ requirements are unchanged. No physics, actuator or terminal-success rule was re
 | Belly-down pitch 0–1.1 rad, 800±150 m | Continuation selected3594: aggregate92.43%/92.72%, hard149/173 and110/173; original retention passes |
 | Belly-down pitch 0–1.2 rad, 800±150 m | Retained by selected4099: fresh96.09% deterministic/93.95% sampled |
 | Belly-down pitch 0–1.3 rad, 800±150 m | Selected4099: fresh93.65%/90.43%; dedicated1.25–1.3 success62.99%/30.47% |
-| Speed bridge, pitch 1.25±0.05 rad, 1000±150 m, −60±10 m/s | Selected4224: fresh71.78% deterministic/47.07% sampled; original retention passed; canonical belly-flop0/256 both |
+| Speed bridge, pitch 1.25±0.05 rad, 1000±150 m, −60±10 m/s | Selected4309: fresh83.11% deterministic/60.94% sampled; original retention passed; canonical belly-flop0/256 both |
 | Speed transition, pitch1.2–1.3, −60±10 m/s | Four-profile training running; transition at1000±150 m, old frontier stays800 m |
 | Original low-clearance cold starts | Reported stress set; not claimed solved |
 | Full belly-flop, randomized descent, catch | Not yet validated |
@@ -2742,3 +2742,61 @@ The near-horizontal gap persists even at reduced speed. Speed70 has the
 stronger measured sampled foothold for the next bounded experiment; angle
 expansion must follow rather than treating speed progress as belly-flop mastery.
 Reproduction and full episodes: `speed-sixty-angle-screen` at the same timestamp.
+
+
+### Accepted 4309: advance to the speed70 bridge
+
+Run `landing_belly_down_speed_sixty_continued_local/2026-11-16_11-58-39`
+completed accounting4224→4324 and selected actual4309, SHA256
+`4ea47023eaa788fc7c100705b7ccc1e8d24956c05d6ae88c2f62e5fde91d615e`.
+Fresh paired GPU983000 audits compare source4224→4309 on1024 speed60 starts:
+deterministic750→851 (73.24→83.11%, paired95% gain6.93–12.79pp),
+sampled514→624 (50.20→60.94%, gain8.11–13.38pp).
+Warm retention97.46%/98.83%, cold98.05%/99.22%, old±0.3
+99.02%/99.22%, old±0.4 98.96%/98.76%; previous0–0.9 also passes95%.
+Broader0–1.3 gains6/2048 in both modes, with intervals crossing zero.
+Dedicated1.25–1.3 sampled393→491/1024 gains9.57pp (interval7.03–12.11pp).
+Earlier0–1.25 sampled changes−2/2048, interval−0.93 to+0.73pp; no claim
+of strict equality. Canonical belly-flop still0/256 in both modes.
+
+Sampled speed60 initial critic bias4.99→0.33 and RMSE61.84→60.89;
+explained variance0.104→0.113 remains weak despite improved average calibration.
+Training EV around0.84–0.87 is a different, batch-dependent measurement.
+Health warnings flag low engine entropy and small distribution updates;
+accepted log-std changed, so this is not a literally frozen layer. Previous
+matched decoder evidence does not justify a blanket exploration reset.
+
+Astra's speed70 screen breakdown confirms extrapolation: in the new70–80m/s
+half, source4099→4224 improves deterministic34→138/262 and sampled8→29/262.
+Sampled11.1% in this new half is similar to the angle1.35 screen's11.3%;
+whole-profile success must not exaggerate readiness. Speed70 is selected
+for its stronger deterministic footing and supported transfer. After this
+bounded block, screen its accepted endpoint at angle1.35 and speeds60/70
+and make the next decision about angle advancement, not automatic70→80→90.
+
+The next100-update block changes only the32-environment transition profile
+from−60±10 to−70±10m/s at1000±150m, pitch1.25±0.05. Keep192 old-frontier,
+16warm,16cold environments and common reward/physics, optimizer, frozen
+normalization and replay. Separate monitors retain speed60 and report the
+new70–80m/s half. Export selected/raw candidates and run independent paired
+audits at50 and100updates. Training seed986000, fixed speed70 physical986200/
+action986601, heldout987000; no automatic curriculum promotion.
+
+Code preflight on4224 exactly reproduces old speed60, frontier and original
+retention metrics and passes restoration checks without optimizer updates.
+New-panel success64.65%/23.44%, with55.91%/11.42% on254 new-speed starts.
+The actual launch is gated on4309's independent retention and supported
+speed60 gains, then repeats preflight using that exact source. Those audit
+gates passed. This is preparation for full belly-flop, not a solved catch.
+
+Artifacts under `2026-11-16_11-58-39`: `speed-selected-comparison`,
+`speed-transition-calibration`, `speed-sixty-continuation-health`,
+`speed-seventy-preparation`, `speed-seventy-plan`. Initial code preflight is
+archived as `speed-seventy-code-preflight/2026-11-16_12-04-04`.
+
+Selected4309 still has173/1024 deterministic and400/1024 sampled speed60
+failures. Contact violations overlap:89/171 deterministic failed contacts
+exceed angular rate and83 miss the pad; sampled210/362 exceed downward
+speed and291 angular rate. Median sampled failed-contact descent is2.37m/s.
+See `selected-speed-failure-review/2026-11-16_11-58-39`; contact limits remain
+unchanged and near-threshold cases are not reclassified as successes.
