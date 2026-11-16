@@ -1398,7 +1398,7 @@ requirements are unchanged. No physics, actuator or terminal-success rule was re
 | Speed bridge, pitch 1.25±0.05 rad, 1000±150 m, −60±10 m/s | Selected4309: fresh83.11% deterministic/60.94% sampled; original retention passed; canonical belly-flop0/256 both |
 | Speed bridge, pitch 1.25±0.05 rad, 1000±150 m, −70±10 m/s | Accepted4524 preserves original skills and recovers speed60; fresh speed70 success80.86% deterministic /50.20% sampled. Endpoint4404 remains rejected |
 | Angle bridge, pitch1.30–1.40, −60±10 m/s | Accepted4524: fresh60.74% deterministic/37.40% sampled; original retention passed |
-| Angle extension, pitch1.35–1.50, −60±10 m/s | Checkpoint5399 retained after matched100-update allocation trial; control endpoint regresses fresh bridge panels, doubled-warm arm retains source weights. Original allocation completed500 more updates without a new retained checkpoint;96 rollbacks limited uninterrupted stretches to5–10 updates. Endpoint audits running; matched rollback-horizon experiment passes preflight but has not started |
+| Angle extension, pitch1.35–1.50, −60±10 m/s | Checkpoint5399 retained after matched100-update allocation trial; control endpoint regresses fresh bridge panels, doubled-warm arm retains source weights. Original allocation completed500 more updates without a new retained checkpoint;96 rollbacks limited uninterrupted stretches to5–10 updates. Endpoint audits complete; matched rollback control was interrupted after selecting6369 on fixed panels; fresh validation incomplete and shadow not started. Training currently paused |
 | Original low-clearance cold starts | Reported stress set; not claimed solved |
 | Full belly-flop, randomized descent, catch | Not yet validated |
 
@@ -3325,3 +3325,15 @@ No training updates have started. Plans, scripts and proofs are archived under
 `original-long-{midpoint,endpoint}-review`. PR67 contains the final full-episode
 GIFs, published by amending the progress commit without CI. End-to-end landing,
 policy-controlled catching, checkpoint LFS and final PR67 merge remain outstanding.
+
+### Historical landing comparison
+
+The [historical investigation](landing-regression-investigation.md) compares PR52's
+successful belly-flop setup with the current bridge lineage and replays64,000 matched
+CPU/GPU transitions. It finds matching terminal behavior and no substantial ground
+physics/reward difference in those probes, while identifying major differences in
+batch size, target allocation, learning rate, normalization and restore frequency.
+An inactive arm still contributes to PPO's joint distribution; its actual importance
+remains unmeasured. Training is currently interrupted, not actively continuing;
+no new run was launched during this investigation. Reproduce a clean historical
+baseline before attributing the gap to plasticity or layering further interventions.
