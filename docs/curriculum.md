@@ -1523,7 +1523,7 @@ boundaries and bootstraps the critic. Increasing lambda alone cannot bridge that
 boundary; conditional critic overprediction on failed episodes is not by itself
 proof of miscalibration.
 
-Run `landing_long_rollout_local/2026-11-16_04-41-12` changes 512 environments ×128 steps
+Run `landing_long_rollout_local/2026-11-16_04-41-14` changes 512 environments ×128 steps
 to 256×256, keeping 65,536 transitions/update, 50 updates, lambda 0.98, rewards, learning
 rates, throttle replay, source checkpoint, seed and retention guards unchanged. This
 changes temporal context, recurrent backpropagation length and environment diversity
@@ -1532,3 +1532,33 @@ arm on the same evaluation cohorts; promotion would still require fresh validati
 Evidence: the throttle replay run's `paired-comparison` and `final-paired-comparison`,
 archived under `throttle-retention-pair`; credit diagnostics under the continued tilt
 run's `frontier-failure-breakdown`. PR 67 follows the longer-rollout run and remains draft.
+
+
+#### Longer rollout result and trace extension
+
+The matched 256-step rollout result was mixed. Selected-checkpoint harder-band
+success was 609/676 deterministic and 630/676 stochastic, versus 591/676 and 632/676
+for 128-step throttle replay. The deterministic comparison gained 19 episodes and
+lost one. At the equal 50-update endpoint, however, 256 steps scored 286/335 and
+307/335 versus 295/335 and 310/335; deterministic gains/losses were two/eleven.
+Both modes retained warm and raised-cold skills, but neither checkpoint passed the
+frontier gate. Longer rollouts alone are therefore not established as an improvement.
+These are single-seed, paired policy comparisons, not independent training replications.
+
+A fresh 512-start gimbal-response screen tested the earlier expected-actuator-endpoint
+method against the selected longer-rollout actor. Baseline landed 488, the diagnostic
+wrapper 489 (four gains, three losses); the harder band changed from 148/167 to 149/167.
+Actuator execution error was below 6.4e-8 rad and 256/512-node quadrature discrepancy
+below 2.6e-5 rad. The endpoint match does not also match the actuator filter state or
+integrated angle, and the wrapper uses privileged filtered state. It offers no useful
+new teacher on this cohort and was not adopted. Evidence is in the long-rollout run's
+`actuator-response-screen`, archived under `frontier-actuator-response`.
+
+The next bounded run, `landing_long_trace_local`, keeps 256 environments ×256 steps,
+throttle replay, the original comparison source/seed, 50 updates and all retention
+guards fixed, changing only GAE lambda from 0.98 to 0.995. This tests trace attenuation
+within the longer rollout; it does not claim that lambda extends GAE across rollout
+boundaries. Selected and final checkpoints use paired evaluation cohorts, with
+initial-direction subsets. Fresh validation is still required before promotion.
+The existing `long-rollout-comparison` archive contains the completed comparison;
+PR 67 now follows the trace-extension run.
