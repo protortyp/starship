@@ -13,11 +13,12 @@ from starship.train.mixture_env import MixtureRocketEnv
 from starship.train.rsl_env import RslRocketEnv
 
 
-def profiles(device):
+def profiles(device, layout=None):
     with initialize_config_module("starship.train.conf", version_base=None):
         cfg = compose("train", overrides=["curriculum=none"])
     result = {}
-    for i, (name, n) in enumerate([("frontier", 4), ("warm", 2), ("cold", 2)]):
+    layout = layout or [("frontier", 4), ("warm", 2), ("cold", 2)]
+    for i, (name, n) in enumerate(layout):
         sim = OmegaConf.to_object(cfg.sim)
         sim.spawn.altitude = 100 + i * 100
         sim.spawn.pitch = 0
@@ -37,21 +38,36 @@ def profiles(device):
 
 
 @pytest.mark.parametrize("device", ["cpu", "cuda:0"])
-def test_mixture_matches_standalone_through_autoresets_and_config_restore(device):
+@pytest.mark.parametrize("four_profiles", [False, True])
+def test_mixture_matches_standalone_through_autoresets_and_config_restore(device, four_profiles):
     if device.startswith("cuda") and not torch.cuda.is_available():
         pytest.skip("CUDA unavailable")
-    children, reference = profiles(device), profiles(device)
-    mixed = MixtureRocketEnv(children, (2, 1, 1))
-    assert [indices.cpu().tolist() for indices in mixed.indices] == [[0, 1, 4, 5], [2, 6], [3, 7]]
+    layout = (
+        [("frontier", 192), ("transition", 32), ("warm", 16), ("cold", 16)]
+        if four_profiles
+        else [("frontier", 4), ("warm", 2), ("cold", 2)]
+    )
+    blocks = (48, 8, 4, 4) if four_profiles else (2, 1, 1)
+    children, reference = profiles(device, layout), profiles(device, layout)
+    mixed = MixtureRocketEnv(children, blocks)
+    block_width = sum(blocks)
+    for block in range(4 if four_profiles else 2):
+        start = block * block_width
+        for indices, width in zip(mixed.indices, blocks, strict=True):
+            within = indices[
+                (indices >= block * block_width) & (indices < (block + 1) * block_width)
+            ]
+            assert within.cpu().tolist() == list(range(start, start + width))
+            start += width
     tracker = EpisodeTracker(mixed)
     memory = RNN(32, hidden_dim=8).to(device)
     separate_memories = [deepcopy(memory) for _ in mixed.children]
     for separate in separate_memories:
         separate.rnn.flatten_parameters()
-    seen = torch.zeros(8, device=device, dtype=torch.bool)
+    seen = torch.zeros(mixed.num_envs, device=device, dtype=torch.bool)
     for t in range(30):
-        actions = torch.zeros((8, ACTION_DIM), device=device)
-        actions[:, 3] = torch.arange(8, device=device) / 8 + t / 100
+        actions = torch.zeros((mixed.num_envs, ACTION_DIM), device=device)
+        actions[:, 3] = torch.arange(mixed.num_envs, device=device) / mixed.num_envs + t / 100
         with torch.no_grad():
             before_obs = mixed.get_observations()["policy"]
             output = memory(before_obs)
@@ -78,15 +94,17 @@ def test_mixture_matches_standalone_through_autoresets_and_config_restore(device
                 assert torch.equal(getattr(mixed, name)[indices], getattr(child, name))
         assert not extras["time_outs"].any()
     assert seen.all()
-    assert tracker.total_episodes > 8
-    assert mixed.profile_metrics()["warm"]["transitions"] == 60
+    assert tracker.total_episodes > mixed.num_envs
+    assert mixed.profile_metrics()["warm"]["transitions"] == children["warm"].num_envs * 30
     originals = [deepcopy(e.cfg) for e in children.values()]
     changed = deepcopy(originals[0])
     changed.spawn.altitude = 777
     mixed.set_configs(changed, children["frontier"].env.reward_config)
     assert children["frontier"].cfg.spawn.altitude == 777
-    assert children["warm"].cfg == originals[1]
-    assert children["cold"].cfg == originals[2]
+    assert children["warm"].cfg == originals[-2]
+    assert children["cold"].cfg == originals[-1]
+    if four_profiles:
+        assert children["transition"].cfg == originals[1]
     mixed.set_configs(originals[0], children["frontier"].env.reward_config)
     mixed.reset()
     assert [e.cfg for e in children.values()] == originals
