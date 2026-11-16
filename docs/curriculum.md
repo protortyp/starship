@@ -1142,3 +1142,16 @@ Evidence lives in this run's `early-audit-{25,50}`, `learning-audits/model_99`, 
 reports were copied with verified hashes to the separate checkpoint volume. PR 67
 now follows this ground run every 100 updates, using full diagnostic episodes with
 ground-specific outcome labels; the retired catch publisher cannot overwrite it.
+
+At update 150, the same audit seed as update 100 produced the first landing
+(1/512); median downward impact speed fell to 6.96 m/s. Initial critic EV was
+0.135 (RMSE 9.17) as episode returns became more variable; this is not evidence
+that the earlier good critic fit transfers automatically into the new outcome range.
+New ground-landing diagnostics sample terminal physics buffers and report each
+contact limit separately. Among these 512 contacts, 491 exceeded downward speed,
+415 horizontal speed, 55 tilt, 261 angular rate and 405 pad radius (overlapping
+counts). Pad miss uses the body base and terminal fuel-dependent center of mass,
+not center-of-mass position. Non-contact terminations are excluded from the counts.
+The audit exports measurements and signed excesses for all episodes alongside the
+existing trajectories. Evidence: `landing-constraints-150`; six simulator tests cover
+successful touchdown and each failure limit with auto-reset enabled.

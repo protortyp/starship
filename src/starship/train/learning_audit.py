@@ -25,6 +25,7 @@ from starship.train.catch_pretrain import make_runner
 from starship.train.conf import load_run_config
 from starship.train.diagnose import load_scalars
 from starship.train.encoding import OBSERVATION_NAMES
+from starship.train.landing_metrics import LANDING_METRICS, LandingMetrics
 
 
 @wp.kernel
@@ -218,6 +219,8 @@ def audit(checkpoint, episodes, seed, output, stage=None, stochastic=False, acti
     torch.manual_seed(seed if action_seed is None else action_seed)
     capture_meter = CaptureMetrics(env.env.sim) if env.env.config.catch.enabled else None
     capture_measurements = np.full((episodes, len(CAPTURE_METRICS)), np.nan)
+    landing_meter = LandingMetrics(env.env.sim) if not env.env.config.catch.enabled else None
+    landing_measurements = np.full((episodes, len(LANDING_METRICS)), np.nan)
     with torch.inference_mode():
         for _ in range(env.max_episode_length + 2):
             masks.append(pending.numpy().copy())
@@ -237,6 +240,8 @@ def audit(checkpoint, episodes, seed, output, stage=None, stochastic=False, acti
                 data[ended.numpy()] = getattr(env, "final_" + name)[ended].numpy()
             if capture_meter is not None and ended.any():
                 capture_measurements[ended.numpy()] = capture_meter.sample()[ended.numpy()]
+            if landing_meter is not None and ended.any():
+                landing_measurements[ended.numpy()] = landing_meter.sample()[ended.numpy()]
             pending &= ~done.bool()
             actor.reset(done)
             critic.reset(done)
@@ -344,6 +349,25 @@ def audit(checkpoint, episodes, seed, output, stage=None, stochastic=False, acti
             "terminal_capture_measurements": capture_measurements,
             "terminal_capture_residuals": capture_residuals,
         }
+    if landing_meter is not None:
+        excess = landing_meter.excess(landing_measurements)
+        contact = np.isin(status.numpy(), [1, 2])
+        report["landing_constraints"] = {
+            "names": LANDING_METRICS,
+            "units": ["m/s", "m/s", "rad", "rad/s", "m"],
+            "limits": landing_meter.limits.tolist(),
+            "contact_episodes": int(contact.sum()),
+            "note": "Counts overlap; only ground-contact episodes are counted. "
+            "Pad miss uses the body base with terminal fuel-dependent center of mass.",
+            "violated_contact_episodes": {
+                name: int(np.sum(contact & (excess[:, i] > 0)))
+                for i, name in enumerate(LANDING_METRICS)
+            },
+        }
+        capture_arrays.update(
+            terminal_landing_measurements=landing_measurements,
+            terminal_landing_excess=excess,
+        )
     np.savez_compressed(
         output / "trajectories.npz",
         obs=raw,
