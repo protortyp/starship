@@ -1390,7 +1390,8 @@ requirements are unchanged. No physics, actuator or terminal-success rule was re
 | Raised cold, pitch ±0.6 rad | Expansion complete: final fresh new-band 226/330 deterministic, 208/330 stochastic; bounded continuation running |
 | Belly-down pitch 0–0.7 rad, 500±150 m | Final fresh aggregate 97.95%/97.22%, hard band 288/306 and 267/306; retained during next expansion |
 | Belly-down pitch 0–0.8 rad, 600±150 m | Final fresh hard band 234/246 deterministic, 221/246 stochastic; earlier landing retained |
-| Belly-down pitch 0–0.9 rad, 600±150 m | Final fresh aggregate 96.83%/96.39%, hard band 209/220 and 174/220; three-arm retention experiment running |
+| Belly-down pitch 0–0.9 rad, 600±150 m | Retained throttle-only source selected after three-arm comparison; paired hard band 207/226 deterministic, 188/226 stochastic |
+| Belly-down pitch 0–1.0 rad, 800±150 m | Preflight passed; bounded 100-update expansion started, earlier profiles monitored |
 | Original low-clearance cold starts | Reported stress set; not claimed solved |
 | Full belly-flop, randomized descent, catch | Not yet validated |
 
@@ -2049,3 +2050,75 @@ histories. Reproduction scripts, source endpoints and the trial plan are backed
 up under `rehearsal-trial`; per-arm endpoints and hashes are archived on finish.
 PR67 stays draft and receives full-episode GIFs in its description only.
 Full randomized landing and end-to-end catch validation remain outstanding.
+
+
+### 2026-11-16: replay comparison complete; resume angle expansion
+
+The three 100-update runs used bitwise-identical initial actor, critic, optimizer,
+iteration and metadata states. Independent paired evaluations used seed base
+932000 and identical initial observations across source and trained endpoints.
+On the 226 starts in the 0.8–0.9 band, selected policies landed:
+
+| Policy | Deterministic | Stochastic | Warm deterministic/stochastic |
+| --- | --- | --- | --- |
+| Starting 3124 | 216 | 174 | Source validation retained |
+| Old744 throttle bank | 207 | 188 | 991/983 of 1,024 |
+| Fresh2924 throttle bank | 205 | 185 | 983/999 of 1,024 |
+| Fresh2924 throttle + engine KL | 208 | 181 | 985/996 of 1,024 |
+
+Fresh-minus-old selected differences were −0.88 percentage points deterministic
+(95% paired bootstrap interval −4.42 to +2.65) and −1.33 stochastic (−4.87 to
++1.77). Coupled-minus-old was +0.44 deterministic (−2.65 to +3.54) and −3.10
+stochastic (−6.19 to 0). Neither intervention earned adoption. Retention rejections
+were 4/2/1 respectively; fewer rejections did not establish better landing outcomes.
+
+The final raw candidates landed 216/186, 209/187 and 213/184 in that same hard
+band. The old-bank final candidate failed independent warm deterministic retention
+at 969/1,024 (94.63%); it is not the continuation source. The ordinary `model_N.pt`
+is saved **after** rollback guards. Its original audit therefore measured the
+restored policy, not the rejected candidate. That audit was preserved under
+`saved_after_guards`, and the raw evaluation was rerun from
+`model_retention_rejected_3224.pt` before comparison. New expansion trainers save
+`model_candidate_N.pt` before either selection or rollback.
+
+Continue the established throttle-only method from
+`landing_rehearsal_old_local/2026-11-16_07-47-44/model_selected_3224.pt`, actual
+selected iteration 3209, SHA256
+`c9650c697bb671d7f9b6be0ab6e9026ec578dc2ae84405acd5b2fac282be949a`.
+Relative to source3124, its paired hard-band stochastic gain is +6.19 points
+(interval +1.33 to +11.06), while deterministic change is −3.98 points
+(−8.41 to +0.44). This is a retained continuation choice with a mode tradeoff,
+not a uniform improvement or a solved band. All original independent retention
+profiles passed in both modes.
+
+Astra's first-step audit used that earlier source3124's actual normalizer and LSTM
+weights on saved paired observations. In the 0.8–0.9 band, actor output-gate
+saturation was 0.30% at absolute preactivation >8; candidate saturation was 3.64%
+at >4. Warm actor saturation was zero; native-output parity error was <=2.4e−7.
+Large normalized input p99 values near 25–30 do not by themselves establish
+widespread gate saturation. This audit covers spawn states only, not whole-flight
+plasticity. Initial held-out critic EV around 0.24 and training EV around 0.7
+cover different distributions and do not justify a critic reset.
+
+The exact chosen3209 checkpoint was screened on positive pitch0.9–1.0 with
+1,024 paired episodes per mode (physical936000/action936001). Raising mean
+altitude600→800m changed deterministic landings863→752, a −10.84-point change
+(interval −14.16 to −7.52), and stochastic534→690, +15.23 points (+11.82 to
++18.65). Non-height sampled state matched; altitude-dependent physics remained
+natural. The 800m profile offers a stronger stochastic foothold but is not
+uniformly easier. No expansion to1.1 is justified yet.
+
+A bounded100-update block now trains positive pitch0–1.0 at800±150m, seed937000,
+fixed selection937100/937501. Preflight passed original warm/cold/0.3/0.4 retention
+and coherent restore checks. The previous0–0.9-at600m profile is explicitly
+monitored alongside older bridges. Actor/critic learning rates, frozen normalizers,
+old744 throttle replay, physics, rewards and termination rules remain unchanged.
+Final audits use independent seed base938000, compare selected and pre-rollback
+candidate endpoints, and pair source/trained frontier outcomes. No intermediate
+narrow-band95% gate replaces final randomized-ground/catch requirements.
+
+Scripts, paired comparisons, true candidate hashes, all-arm source-state parity,
+Astra's gate audit and the decision are archived under
+`rehearsal-trial/2026-11-16_07-47-42`; the actual-source coverage screen is under
+`next-one-chosen-screen/2026-11-16_07-47-44`. Full randomized landing and actual
+end-to-end catching remain unvalidated; PR67 stays draft with description-only GIFs.
