@@ -1799,3 +1799,45 @@ were around 13–14. These measurements do not justify a normalization change by
 themselves, and do not prove every untested state is well encoded. The audit and
 reproduction script are archived under `six-tenths-recurrent-encoding`; trial audits,
 paired outcomes and critic reports are under `engine-temperature-pair`.
+
+### ±0.6 learning and directional height probe (2026-11-16)
+
+The 200-update ±0.6 run finished. Its first selected snapshot (actual iteration
+2209, saved as `model_selected_2224.pt`) improved stochastic new-band success from
+152/353 to 193/353 on matched independent starts: 46 gains and five losses, a
+paired episode-bootstrap improvement interval of 7.92–15.30 percentage points.
+Deterministic success changed from 219/353 to 225/353, with an interval spanning
+zero. Earlier warm, raised-cold, ±0.3 and ±0.4 aggregate panels remained above 95%
+in both modes. Neither the wider landing task nor the catch is solved.
+
+Direction matters: stochastic success in the new band was 122/173 for negative
+initial policy-frame up-body component 3, versus 71/180 for positive. Initial
+critic means were 55.88 and 18.55, versus sampled returns 64.68 and 16.01. The
+critic recognizes this difference in expected return; this does not establish
+accurate values throughout the trajectory. Positive-direction failures included
+93 pad misses and 87 angular-rate violations, which overlap. These directions
+are in the policy frame and must not be treated as physical engine identities.
+Code inspection clarifies that the mirror flips up-body component 2, not 3.
+`orientation()` gives component 3 as minus sine of spawn pitch: the stronger
+negative-component branch leads toward positive-pitch belly-down entry. The
+opposite tilt is not a physical left/right symmetry. Equal performance on both
+branches is therefore not a prerequisite for exploring the intended belly-flop.
+
+A separate matched 1024-episode-per-mode probe changed only mean spawn altitude
+from 400 to 500 metres, retaining natural altitude-dependent physics. In its
+177 new-band starts, deterministic landings rose from 117 to 133 and stochastic
+landings from 102 to 116. Splitting by initial policy-frame direction exposes
+the limit of that aggregate gain: negative-direction stochastic landings rose
+62→78/91, whereas positive-direction landings changed 40→38/86 (nine gains,
+eleven losses). Positive-direction pad misses changed 42→41 and angular-rate
+violations stayed at 35. Extra height alone therefore did not resolve the weaker
+direction in this exploratory cohort; this is not a proof of physical infeasibility.
+
+A further bounded 200 updates at unchanged 400-metre altitude and ±0.6 tilt are
+starting after the final independent retention audit passed. Its new-band results
+were 226/330 deterministic and 208/330 stochastic on a distinct cohort; the warm,
+raised-cold, ±0.3 and ±0.4 aggregate panels remained above 97% in both modes. Selection panels remain
+fixed, training seed is 905000, and fresh audit seed bases are 906000 and 907000.
+No additional engine-logit scaling or physics/reward/termination changes are
+planned. Evidence, reproduction scripts and the continuation decision are backed
+up under `tilt-six-tenths` and `six-tenths-height-screen` on the checkpoint volume.
