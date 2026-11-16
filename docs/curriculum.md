@@ -1384,7 +1384,8 @@ requirements are unchanged. No physics, actuator or terminal-success rule was re
 | Warm upright starts | Reliable retained source; checked throughout adaptation |
 | Raised cold, 400±150 m, pitch ±0.1 rad | Unchanged ground student passed fresh 2,048-per-mode bridge validation |
 | Raised cold, pitch ±0.2 rad | Coherent calibrated source: 497/506 of 512; new band 246/252 of 257 |
-| Raised cold, pitch ±0.3 rad | Training frontier; source new band only 151/154 of 178 |
+| Raised cold, pitch ±0.3 rad | Aggregate retained; narrow 0.2–0.3 band passed one cohort but failed the next with identical weights |
+| Raised cold, pitch ±0.4 rad | Bounded 200-update expansion running; initial new-band deterministic success 78.68% |
 | Original low-clearance cold starts | Reported stress set; not claimed solved |
 | Full belly-flop, randomized descent, catch | Not yet validated |
 
@@ -1588,3 +1589,47 @@ the missing check rather than asserting collapse. Zero features have rank zero, 
 nonzero rank remains invariant to feature scale. Low centered rank still warrants
 investigation, but neither a high rank nor a large rank increase proves good value
 calibration. The probe is archived under `critic-feature-rank` on the checkpoint volume.
+
+### Sustained tilt results and the next expansion (2026-11-16)
+
+The 500-update sustained run finished. Its selected iteration 1349 passed one fresh
+cohort in the 0.2–0.3 rad band (656/690 deterministic, 657/690 stochastic), but the
+**same checkpoint** scored 631/672 and 630/672 on the next cohort. This is not robust
+mastery. The original broad rebuild also finished: its final stage-2 policy landed
+0/512 episodes in either mode. Neither run is automatically extended.
+
+A matched 100-update pilot compared throttle-only retention with throttle retention
+plus the other seven continuous action means. Both began from coherent selected
+iteration 1074, with the same training seed and fixed evaluation panels; the replay
+teacher remained the older warm/cold policy. Both used four shared-Adam replay steps
+per PPO update. Adding losses preserves the throttle loss coefficient, not its exact
+optimizer update. The broader anchor's selected actor remained bitwise identical to
+its starting actor; throttle-only selected an updated actor.
+
+On fresh paired starts, selected policies scored 657/696 versus 647/696 deterministic
+hard-band landings (throttle-only versus broader retention); stochastic scores were
+653/696 versus 654/696. At the final checkpoint, deterministic hard-band scores tied
+at 316/344, while stochastic scores were 318/344 versus 320/344. Broader retention did
+improve final deterministic raised-cold landings, 509/512 versus 501/512; warm scores
+were 492/512 versus 490/512. Thus this single-seed pilot suggests a retention benefit
+on cold starts but does not establish better frontier learning. Selected and final
+paired reports, checkpoint hashes, scripts and configs are backed up under
+`control-retention-pair`. A variable shadowing bug interrupted audit backup after the
+first completed audit; it was fixed, that backup was hash-verified, and all remaining
+audits completed without changing their prescribed seeds.
+
+The next bounded run, `landing_tilt_expansion_local/2026-11-16_05-31-25`, uses
+throttle-only replay and expands pitch noise from ±0.3 to ±0.4 rad. It starts from
+coherent sustained selected iteration 1284 (`model_selected_1324.pt`), chosen for its
+warm retention margin; only accounting counters carry forward from completed 1524.
+Preflight on the fixed panels scored 78.68% deterministic in the new 0.3–0.4 band,
+with warm 98.05%/98.44%, raised-cold 99.41%/98.44%, and old-tilt aggregate
+96.78%/97.85%. Initial retention and exact actor/counter restoration checks passed.
+
+The run is limited to 200 updates, with independent audits and checkpoint backups at
+100 and 200 updates. Warm, raised-cold and old ±0.3 aggregate retention must each
+remain at least 95% in both modes. Audits separately report the unfinished old
+0.2–0.3 band and the new 0.3–0.4 band. Requiring 95% in every narrow intermediate
+band was an experimental gate, not a final task requirement; expanding coverage does
+not declare the old band solved. Physics, contact success and termination rules are
+unchanged. Randomized ground landing and end-to-end catch validation remain required.
