@@ -1247,3 +1247,43 @@ PPO continuation. A matched noise probe changes only the two gimbal standard
 deviations to 1, 0.5 or 0.25 times their inherited values; deterministic outputs
 remain unchanged. These results concern only upright stage 0; cold starts,
 belly-flops, randomized descents and catch transfer remain unvalidated.
+
+#### Ground student: validated upright landings and guarded cold-start handoff
+
+The matched gimbal-noise sweep landed 440/512 at inherited noise, 498/512 at half
+noise, and 510/512 at quarter noise. A subsequent fresh 2,048-start audit of the
+quarter-noise student landed 1,983 deterministically (96.83%) and 2,028 stochastically
+(99.02%). These are normal neural-policy actions, without the actuator wrapper.
+Actor-frozen critic calibration selected update 600 on episode-disjoint validation;
+on the fresh stochastic audit, initial EV improved from 0.010 to 0.064 and bias from
+-3.79 to -0.63. The improvement is modest, not evidence of an accurate critic on
+every trajectory. Actor/normalizer weights and matched rollout observations, returns
+and statuses remained bitwise unchanged. Evidence: the student's `quarter-heldout-200`
+and `quarter-calibrated/heldout`; validated weights and reports are hash-archived in
+`ground-response-student-20261116` on the separate checkpoint volume.
+
+Run `landing_response_ppo_smoke/2026-11-16_02-56-24` then performed 50 fixed-stage-0
+PPO updates: 512 environments, actor LR 1e-6, critic LR 1e-5, frozen observation
+normalization, evaluation every five updates, and rollback after a 5% relative
+deterministic regression. Two evaluations fell to about 92% and triggered rollback.
+The final checkpoint therefore restores the earlier best actor (iteration 634),
+not the uninterrupted result of 50 updates. A fresh matched 2,048-start comparison
+landed 2,002/2,029 for the source and 1,999/2,026 for the restored candidate
+(deterministic/stochastic). The candidate lost seven and gained four deterministic
+landings, and lost eight/gained five stochastic landings. Both normalizers remained
+bitwise unchanged; actual gimbal standard deviations stayed about 0.1066/0.1063.
+This demonstrates recoverability through rollback, not stable PPO improvement.
+Evidence: the smoke run's `retention/summary.json` and separate-volume backup.
+
+The source already transfers to cold engines at spawn with 476/512 deterministic
+and 464/512 stochastic landings. Run `landing_cold_retained_local/2026-11-16_03-04-53`
+starts from the validated smoke candidate and fixes training at stage 1 for 100
+updates. Every five updates it evaluates cold-start deterministic performance and
+both action modes on stage 0; a stage-0 rate below 95% saves the rejected checkpoint
+and restores the accepted best. Thus current-stage best selection cannot silently
+discard earlier flight skills. The restoration path was exercised before training:
+actor weights restored bitwise, counters preserved, correct stage/rates/frozen
+normalization verified. Initial evaluations were 93.75% cold deterministic and
+96.88%/98.83% retained stage 0. Promotion is disabled for this bounded experiment;
+fresh 2,048-episode evaluations must reach 95% in both modes on both stages before
+advancing. Belly-flop, randomized descent and catch success remain outstanding.
