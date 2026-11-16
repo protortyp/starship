@@ -1393,7 +1393,7 @@ requirements are unchanged. No physics, actuator or terminal-success rule was re
 | Belly-down pitch 0–0.9 rad, 600±150 m | Retained throttle-only source selected after three-arm comparison; paired hard band 207/226 deterministic, 188/226 stochastic |
 | Belly-down pitch 0–1.0 rad, 800±150 m | Continuation selected aggregate 90.43%/92.14%, hard band 173/207 and 163/207; original profiles retained |
 | Belly-down pitch 0–1.1 rad, 800±150 m | Continuation selected3594: aggregate92.43%/92.72%, hard149/173 and110/173; original retention passes |
-| Belly-down pitch 0–1.2 rad, 800±150 m | Selected3689 retained earlier landings; fresh hard band106/155 deterministic,59/155 stochastic; unchanged100-update continuation running |
+| Belly-down pitch 0–1.2 rad, 800±150 m | Selected3809 retained earlier landings; fresh hard band118/163 deterministic,69/163 stochastic; another100-update consolidation running |
 | Original low-clearance cold starts | Reported stress set; not claimed solved |
 | Full belly-flop, randomized descent, catch | Not yet validated |
 
@@ -2484,3 +2484,41 @@ Artifacts: `belly-down-twelve-mixture` and `twelve-mixture-continuation-plan`,
 timestamp `2026-11-16_09-56-48`; diagnostic `hard-twelve-decoder-factorial`,
 `warm3594-decoder-factorial`, `decoder-context-comparison`, timestamp
 `2026-11-16_09-37-05`. Full randomized descent and chopstick capture remain outstanding.
+
+
+### Accepted3809: continued gains without increasing difficulty
+
+The100-update continuation finished accounting3824; selected actual3809 has
+SHA256 `3a0515b78d78267d15e6fccd5def08b65b29c62df6bd267d3fe5530ed480e605`.
+Fresh paired GPU audit964000 compared source3689 and selected3809 on2048
+identical starts. Deterministic success increased1849→1894 (90.28→92.48%),
+paired95% interval for the gain1.03–3.37 percentage points. Sampled success
+increased1802→1827 (87.99→89.21%), gain interval0.15–2.25 points.
+Within1.1–1.2rad, deterministic success108→118/163 and sampled58→69/163;
+both paired gain intervals exclude zero. Sampled hard-band critic bias
+9.23→8.46, RMSE56.61→59.95 and initial explained variance0.214→0.235:
+improved landings do not imply uniformly improved value calibration.
+
+Fresh retained warm/cold/old0.3/old0.4/previous0.9 profiles pass95% in both
+modes. Warm deterministic is only95.21%, so retention remains a constraint.
+The raw final candidate also passes these profiles, but is not substituted
+for the policy selected on fixed panels using the independent audit results.
+
+An independent1024-start screen of1.2–1.3rad (physical965000/action965001)
+shows selected3809 extrapolates better than3689 at both800 and900m, with
+positive paired gain intervals in both modes. Absolute sampled success is
+still70/1024 at800m and127/1024 at900m. The narrower1.2–1.25rad portion is
+62/489 and94/489, respectively. These remain weak footholds; narrow-band
+height benefits alone cannot justify a full-distribution height change.
+
+Continue the same224/16/16 mixture and0–1.2rad at800m for100updates,
+accounting3824→3924, training seed966000, fresh final GPU audit967000.
+Source actor, critic and Adam state are retained; fixed panels, frozen
+normalization, replay, decoding and success rules are unchanged.
+The run is `landing_belly_down_twelve_mixture_consolidation_local/2026-11-16_10-33-21`.
+Preflight and source-hash checks passed; the PR67 GIF publisher follows it.
+
+Artifacts: `belly-down-twelve-mixture-continued`, `next-thirteen-screen` and
+`twelve-mixture-consolidation-plan`, timestamp `2026-11-16_10-14-50`, under
+the checkpoint archive. Full randomized belly-flop landing and policy-controlled
+chopstick capture remain unvalidated; PR67 stays draft.
