@@ -1393,7 +1393,7 @@ requirements are unchanged. No physics, actuator or terminal-success rule was re
 | Belly-down pitch 0–0.9 rad, 600±150 m | Retained throttle-only source selected after three-arm comparison; paired hard band 207/226 deterministic, 188/226 stochastic |
 | Belly-down pitch 0–1.0 rad, 800±150 m | Continuation selected aggregate 90.43%/92.14%, hard band 173/207 and 163/207; original profiles retained |
 | Belly-down pitch 0–1.1 rad, 800±150 m | Continuation selected3594: aggregate92.43%/92.72%, hard149/173 and110/173; original retention passes |
-| Belly-down pitch 0–1.2 rad, 800±150 m | Selected3909 retained earlier landings; fresh hard band143/182 deterministic,103/182 stochastic; expanded0–1.25rad training running |
+| Belly-down pitch 0–1.2 rad, 800±150 m | Selected4024 validated on0–1.25rad; dedicated1.2–1.25 success75.29%/41.99%; expanded0–1.3rad training running |
 | Original low-clearance cold starts | Reported stress set; not claimed solved |
 | Full belly-flop, randomized descent, catch | Not yet validated |
 
@@ -2574,3 +2574,50 @@ Artifacts: `belly-down-twelve-mixture-consolidation`, `next-quarter-full-screen`
 `quarter-mixture-plan` and `quarter-mixture-preparation`, timestamp
 `2026-11-16_10-33-21`; `paired-failure-review`, timestamp10-14-50.
 Full randomized belly-flop landing and chopstick capture remain outstanding.
+
+
+### Accepted 4024: paired gains across old and new angles
+
+The 0–1.25 rad block selected its final update, 4024, after two earlier
+retention rollbacks. SHA256:
+`323d24dcd0e25b10c792b7a91ad4ba09603888028e0a3e1ab230edfea717df5a`.
+Fresh GPU audit 970000 paired source 3909 with selected 4024:
+
+| Distribution | Deterministic source → selected | Sampled source → selected |
+| --- | --- | --- |
+| Full 0–1.25, 2048 starts | 1890 → 1945 | 1785 → 1852 |
+| Prior 0–1.2, 2048 starts | 1942 → 1974 | 1881 → 1926 |
+| Dedicated 1.2–1.25, 1024 starts | 635 → 771 | 271 → 430 |
+
+All six paired gain intervals exclude zero. Dedicated sampled gain is
+15.53 percentage points (95% interval 12.89–18.16); full-range sampled gain
+is 3.27 points (2.20–4.39). Original warm/cold/0.3/0.4 profiles pass 98–99%
+in both modes; previous 0.9 also passes. The prior 0–1.2 sampled rate is
+94.04%, improved but not declared mastered.
+
+Dedicated sampled critic bias falls 26.89 → 12.13 return units, RMSE
+63.45 → 61.07, initial explained variance 0.146 → 0.163. Calibration remains
+imperfect. These estimates use sampled-policy returns, not deterministic
+outcomes. Full-trajectory normalization summaries are archived separately.
+
+Fresh full 0–1.3 screen (GPU 972000/action 972001) gives selected 4024
+1905/1795 deterministic/sampled landings at 800 m versus 1798/1769 at 900 m,
+out of 2048. Higher altitude significantly harms deterministic performance;
+its sampled difference is inconclusive. In the 91 new 1.25–1.3 starts at
+800 m, source → selected is 35 → 47 deterministic and 11 → 19 sampled.
+Keep 800 m and expand angle only; 96.15% of frontier starts remain in the
+previous range. No 95% mastery gate is imposed on each narrow band.
+
+Run `landing_belly_down_thirteen_mixture_local/2026-11-16_11-10-09` trains
+100 updates, accounting 4024 → 4124, seed 973000. Full fixed panel 973100/
+action 973501 and dedicated 512-start panel 973200/action 973601 accompany
+fresh GPU audit 974000 with 1024 dedicated starts. It adds an explicit prior
+0–1.25 monitor and paired audit. Source weights/Adam, 224/16/16 mixture,
+frozen normalization, replay, learning rates and physical criteria remain.
+Preflight restoration and metric-separation assertions passed.
+
+Artifacts: `belly-down-quarter-mixture`, `quarter-selected-comparison`,
+`quarter-band-calibration`, `next-thirteen-full-screen`, and
+`thirteen-mixture-plan`, timestamp `2026-11-16_10-50-33`. The calibration
+worker continues through the raw final candidate. Full randomized descent
+and chopstick capture remain outstanding; PR67 stays draft.
