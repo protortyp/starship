@@ -1398,7 +1398,7 @@ requirements are unchanged. No physics, actuator or terminal-success rule was re
 | Speed bridge, pitch 1.25±0.05 rad, 1000±150 m, −60±10 m/s | Selected4309: fresh83.11% deterministic/60.94% sampled; original retention passed; canonical belly-flop0/256 both |
 | Speed bridge, pitch 1.25±0.05 rad, 1000±150 m, −70±10 m/s | Accepted4524 preserves original skills and recovers speed60; fresh speed70 success80.86% deterministic /50.20% sampled. Endpoint4404 remains rejected |
 | Angle bridge, pitch1.30–1.40, −60±10 m/s | Accepted4524: fresh60.74% deterministic/37.40% sampled; original retention passed |
-| Angle extension, pitch1.35–1.50, −60±10 m/s | Continuation midpoint selects5399: fresh1.40–1.50 success62.40% deterministic/39.94% sampled, paired gains4.10/2.15pp over5064; original retention passes. Unchanged500-update continuation5224→5724 remains active |
+| Angle extension, pitch1.35–1.50, −60±10 m/s | Completed500-update continuation retains5399: fresh target62.40% deterministic/39.94% sampled, original retention passes. Matched100-update control versus doubled-warm allocation experiment active |
 | Original low-clearance cold starts | Reported stress set; not claimed solved |
 | Full belly-flop, randomized descent, catch | Not yet validated |
 
@@ -3160,3 +3160,53 @@ and archive `continued-midpoint-review/2026-11-16_16-10-41`. Candidate and selec
 snapshots are separately backed up with hashes in `continued-snapshots`.
 Full belly-flop, randomized descent, moving policy-controlled catching, final
 checkpoint LFS and PR67 merge remain outstanding.
+
+
+### Completed continuation and matched warm-allocation diagnostic
+
+The unchanged5224–5724 block completed all500 updates and retained actual5399.
+Its final selected checkpoint is byte-for-byte identical to selected5474;
+repeating the same1005000-series audit reproduces the selected summary exactly.
+This is reproducibility evidence, not a new independent sample. No better
+checkpoint was selected over the final325 updates. There were91 retention
+rollbacks; warm deterministic retention failed61 of65 evaluations after5399.
+
+Raw5724 is not adopted. Against selected5399 on matched episodes, it loses
+warm success994→969/1024 (−2.44 points, paired95% bootstrap−3.61–−1.37), and
+angle deterministic639→589/1024 (−4.88 points, −7.91–−1.76). Sampled target
+409→400/1024 has no clear difference (−0.88 points, −3.13–1.27). Raw5474 also
+lost warm and deterministic target performance without a sampled target gain.
+The guard is correctly rejecting some generally worse candidates; the earlier
+raw5224 result additionally showed useful target learning with a retention cost.
+
+Fresh horizontal transfer uses512 episodes per mode, physical1006000/action
+1006001, at1000±150m under the common stage1 reward. At60m/s, horizontal sampled
+success86→98 improves2.34 points (0.39–4.30); at70m/s,29→43 improves2.73 points
+(1.17–4.49). Horizontal70 deterministic170→187 improves3.32 points (0.59–6.05).
+Near-horizontal60 deterministic238→267 improves5.66 points (2.93–8.59); the
+other aggregate mode/case intervals cross zero. These exploratory intervals
+are not multiplicity-adjusted. Absolute rates remain low, not a curriculum pass.
+
+The existing Astra reviewer recommends a matched100-update allocation diagnostic
+before another long continuation. Both arms start from coherent5399, with
+accounting5724, training seed1007000 and fresh paired audit seed1008000. Control
+uses176/16/32/16/16 environments; the experimental arm160/16/32/32/16, doubling
+warm samples by reducing old-frontier samples9.09%. Recurrent blocks are
+44/4/8/4/4 versus40/4/8/8/4. Physics, rewards, model, frozen normalization,
+learning rates, replay, guards and selection rules are identical. Both preflights
+pass exact fixed-panel parity and restoration checks, and their complete
+prepared checkpoint states—including optimizer—are equal.
+
+Control training is active in
+`landing_belly_down_angle_allocation_control_local/2026-11-16_18-00-00`;
+the controller launches the warm arm after the control finishes100 updates.
+Each preserves raw/selected snapshots and audits at5774/5824. Cross-arm tests
+assert identical initial observations and compare retained target performance;
+no arm selection occurs at midpoint. Fewer rollbacks alone are insufficient.
+If inconclusive, retain the original allocation; extend a supported winning
+configuration for longer training. PR67 GIFs follow the active arm without CI.
+
+Plans, scripts, launch decision and preflight proof are archived under
+`retention-allocation-pair-preparation`; endpoint evidence remains in the
+completed run's `heldout-validation/iteration-5724`. The full end-to-end catch,
+validated checkpoint LFS and training PR merge remain outstanding.
