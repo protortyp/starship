@@ -1395,6 +1395,7 @@ requirements are unchanged. No physics, actuator or terminal-success rule was re
 | Belly-down pitch 0–1.1 rad, 800±150 m | Continuation selected3594: aggregate92.43%/92.72%, hard149/173 and110/173; original retention passes |
 | Belly-down pitch 0–1.2 rad, 800±150 m | Retained by selected4099: fresh96.09% deterministic/93.95% sampled |
 | Belly-down pitch 0–1.3 rad, 800±150 m | Selected4099: fresh93.65%/90.43%; dedicated1.25–1.3 success62.99%/30.47% |
+| Speed bridge, pitch 1.25±0.05 rad, 1000±150 m, −60±10 m/s | Selected4224: fresh71.78% deterministic/47.07% sampled; original retention passed; canonical belly-flop0/256 both |
 | Speed transition, pitch1.2–1.3, −60±10 m/s | Four-profile training running; transition at1000±150 m, old frontier stays800 m |
 | Original low-clearance cold starts | Reported stress set; not claimed solved |
 | Full belly-flop, randomized descent, catch | Not yet validated |
@@ -2690,3 +2691,54 @@ Artifacts under timestamp `2026-11-16_11-10-09`: `belly-down-thirteen-mixture`,
 `low-belly-canonical-transfer`, `belly-transition-factors`,
 `speed-sixty-transition-screen`, `speed-transition-plan`, `speed-sixty-mixture-plan`.
 Full randomized descent and chopstick capture remain outstanding.
+
+
+### Accepted 4224: faster descent improves with retained landing skills
+
+The first four-profile speed block selected actual4224, SHA256
+`bbaaa576c5de017fe21d6c7830fa89d75345cd62c40666a3320a272da9dcabdf`.
+Fresh paired GPU980000 validation (1024 transition starts/mode) improves
+source4099→4224 deterministic537→735 and sampled306→482. Paired bootstrap
+95% intervals for gains are15.82–22.85pp and14.16–20.21pp. Original warm,
+cold, ±0.3, ±0.4 and previous0–0.9 retention remain above95% in both modes.
+Broader0–1.3 success is1948/2048 deterministic and1869/2048 sampled.
+Canonical stage2 remains0/256 in each mode: this is not end-to-end mastery.
+
+The automatic continuation gate initially declined because the earlier0–1.2
+panel lost9/2048 deterministic successes (−0.44pp, paired95% interval
+−1.32 to+0.44pp). Review permits a bounded unchanged continuation; this is
+not proof of equivalence. The initial decision is retained, and original
+95% retention checks remain intact. Continuation4224→4324 uses seed982000,
+fresh audit983000, identical192/32/16/16 allocation and transition profile.
+Preflight validates retention and coherent rollback before optimizer updates.
+
+Sampled transition critic initial bias falls41.10→9.48, RMSE75.58→64.23,
+explained variance0.078→0.091; all-valid-transition EV rises0.542→0.628.
+The initial critic is still weak. Normalized observations remain finite;
+large individual channels alone do not establish recurrent gate saturation.
+Among selected transition failures, deterministic contact failures most often
+violate angular rate (175/277) or pad position (133/277). Sampled contact
+failures remain substantial:339/496 exceed downward-speed limits, with
+median impact descent8.13m/s. Do not loosen contact limits to hide failures.
+
+A frozen-policy70m/s screen (512 starts/mode, physical984000/action984001,
+pitch1.25±0.05, shared stage1 reward) improves source4099→4224 at1000m:
+deterministic139→327, sampled53→119. At1200m the corresponding counts are
+85→262 and63→127. Raising height reduces selected deterministic success
+by12.70pp (95% interval−17.19 to−8.20pp); sampled+1.56pp is inconclusive
+(interval−2.73 to+5.66pp). Keep1000m as the supported next-speed candidate;
+this screen does not automatically promote the curriculum.
+
+Artifacts under `2026-11-16_11-33-06`: `speed-selected-comparison`,
+`speed-transition-calibration`, `selected-speed-failure-review`,
+`speed-seventy-transition-screen`, and `speed-continuation-plan`.
+Full belly-flop, randomized descent and policy-controlled capture remain open.
+
+
+Frozen4224 angle screen at60m/s and1000m (256/mode,
+physical985000/action985001, ±0.05rad) gives deterministic/sampled counts:
+center1.25:189/118;1.35:86/29;1.45:18/3;1.5708:1/0.
+The near-horizontal gap persists even at reduced speed. Speed70 has the
+stronger measured sampled foothold for the next bounded experiment; angle
+expansion must follow rather than treating speed progress as belly-flop mastery.
+Reproduction and full episodes: `speed-sixty-angle-screen` at the same timestamp.
