@@ -1396,7 +1396,7 @@ requirements are unchanged. No physics, actuator or terminal-success rule was re
 | Belly-down pitch 0–1.2 rad, 800±150 m | Retained by selected4099: fresh96.09% deterministic/93.95% sampled |
 | Belly-down pitch 0–1.3 rad, 800±150 m | Selected4099: fresh93.65%/90.43%; dedicated1.25–1.3 success62.99%/30.47% |
 | Speed bridge, pitch 1.25±0.05 rad, 1000±150 m, −60±10 m/s | Selected4309: fresh83.11% deterministic/60.94% sampled; original retention passed; canonical belly-flop0/256 both |
-| Speed bridge, pitch 1.25±0.05 rad, 1000±150 m, −70±10 m/s | Midpoint4359 shows fresh sampled gains; endpoint4404 fails warm retention. Independent midpoint confirmation required before angle training |
+| Speed bridge, pitch 1.25±0.05 rad, 1000±150 m, −70±10 m/s | Confirmed4359 retains original skills and improves sampled speed70; endpoint4404 rejected. Guarded angle1.35 training active |
 | Speed transition, pitch1.2–1.3, −60±10 m/s | Four-profile training running; transition at1000±150 m, old frontier stays800 m |
 | Original low-clearance cold starts | Reported stress set; not claimed solved |
 | Full belly-flop, randomized descent, catch | Not yet validated |
@@ -2856,3 +2856,45 @@ Artifacts at the speed70 timestamp: `speed70-midpoint-review`,
 `speed70-endpoint-warm-review`, `speed70-midpoint-confirmation`,
 `speed-seventy-next-angle`, `next-angle-mixture-review`,
 `angle-thirtyfive-preparation`. Full belly-flop and capture remain unsolved.
+
+
+### Confirmed4359 starts the guarded angle1.35 block
+
+The sole midpoint fallback passed the new993000-series confirmation panel.
+Warm success1971/2048 deterministic and2001/2048 sampled (96.24%/97.71%);
+all original cold/tilt and previous-bridge retention cohorts also exceed95%.
+Paired source4309→4359 speed70 sampled336→470/1024 gains13.09pp
+(95%10.45–15.72pp), deterministic782→806 is uncertain. Speed60 sampled
+573→681 improves10.55pp; deterministic793→770 changes−2.25pp, interval
+−5.37 to+0.88pp. This does not erase the prior panel's supported4.10pp loss
+or prove the population loss is below5pp. Old-frontier deterministic−7/2048
+is uncertain, sampled+21/2048 has a small positive interval.
+
+The fallback's own angle1.35/speed60 confirmation lands434/1024 deterministic
+and278/1024 sampled (42.38%/27.15%). Sampled source4309→4359 improves
+198→278 (gain7.81pp, interval5.57–10.16pp). These results justify the bounded
+angle experiment while retaining the explicit cumulative speed60 guard.
+No other checkpoint was selected against the confirmation panel.
+
+Run `landing_belly_down_angle_thirtyfive_rehearsal_local/2026-11-16_12-55-15`
+trains100 updates, accounting4424→4524, from coherent actual4359 actor,
+critic and Adam state (validation snapshot4374). Preflight verifies source
+hash, confirmed retention, configuration restoration and accounting provenance.
+The source fixed angle panel starts44.34%/28.91%; original retention,
+speed70 and anchored speed60 guards pass. Training seed990000;
+angle fixed physical990200/action990601, paired audits991000 at4474/4524.
+
+Five profiles allocate176old-frontier,16speed70,32angle1.35±0.05 at60±10m/s,
+16warm and16cold; angle altitude1000±150m. Select for angle progress only
+when original retention>=95% and both speed guards pass. Speed70's5pp
+budget is relative to4359, speed60's5pp budget remains anchored to4309.
+Archive `speed-retention-guards.jsonl` and `speed-retention-reference.json`.
+Per-profile stochastic critic calibration covers angle, speed70 and speed60;
+mixture EV alone cannot establish hard-profile calibration. No changes to
+physics, reward, frozen normalization, optimizer settings or replay were made.
+
+Artifacts: `speed70-midpoint-confirmation/2026-11-16_12-23-24`,
+`angle-thirtyfive-launch/2026-11-16_12-23-24`, and
+`angle-thirtyfive-observability/2026-11-16_12-55-15`. The angle block is an
+intermediate bridge; canonical belly-flop, randomized descent and catch
+validation remain outstanding.
