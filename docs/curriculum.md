@@ -1391,7 +1391,8 @@ requirements are unchanged. No physics, actuator or terminal-success rule was re
 | Belly-down pitch 0–0.7 rad, 500±150 m | Final fresh aggregate 97.95%/97.22%, hard band 288/306 and 267/306; retained during next expansion |
 | Belly-down pitch 0–0.8 rad, 600±150 m | Final fresh hard band 234/246 deterministic, 221/246 stochastic; earlier landing retained |
 | Belly-down pitch 0–0.9 rad, 600±150 m | Retained throttle-only source selected after three-arm comparison; paired hard band 207/226 deterministic, 188/226 stochastic |
-| Belly-down pitch 0–1.0 rad, 800±150 m | Fresh selected aggregate 85.89%/91.21%, hard band 162/198 and 133/198; retained source queued for unchanged 100-update continuation |
+| Belly-down pitch 0–1.0 rad, 800±150 m | Continuation selected aggregate 90.43%/92.14%, hard band 173/207 and 163/207; original profiles retained |
+| Belly-down pitch 0–1.1 rad, 800±150 m | Exact-source screen and initial guards passed; bounded100-update expansion running |
 | Original low-clearance cold starts | Reported stress set; not claimed solved |
 | Full belly-flop, randomized descent, catch | Not yet validated |
 
@@ -2164,3 +2165,58 @@ has been implemented or launched. Current normalization, replay, learning rates,
 physics and terminal conditions remain unchanged. Endpoint backups and paired
 results are under `belly-down-one/2026-11-16_08-18-11`; health and continuation
 review records are also preserved under `belly-down-one-health`.
+
+
+### 2026-11-16: continuation transfers to 1.1 radians; keep altitude fixed
+
+`landing_belly_down_one_continued_local/2026-11-16_08-35-35` finished100updates
+with6 retention rejections. Selected accounting3424 contains actual iteration3409,
+SHA256 `ff1db43cb3eec46e64c7f911abd7d8f142931e694663384eaa295cbe779f9a37`.
+Paired independent evaluation (base941000) improved aggregate deterministic
+1,758→1,852/2,048 (+4.59 points, bootstrap95% interval +3.37 to +5.81).
+Stochastic1,867→1,887 (+0.98 points, −0.05 to +2.05) remains statistically
+uncertain. Hard0.9–1.0 band results were162→173/207 deterministic (+5.31 points,
++0.48 to +10.14) and156→163 stochastic (+3.38, −1.45 to +8.21).
+
+Selected warm retention was95.90%/97.07%, raised cold99.12%/97.27%,
+old±0.3 99.02%/97.85%, old±0.4 98.83%/98.44%, and previous0–0.9-at600m
+97.85%/96.55%. The final pre-guard candidate failed warm deterministic at94.24%
+and is not used. Initial stochastic hard-band critic bias changed+3.79→−2.21,
+RMSE52.14→48.36; EV remained low at approximately0.08–0.09.
+
+A paired screen of source3309 and selected3409 on unseen positive1.0–1.1 starts
+(seed943000/action943001,1,024 episodes per mode) showed stochastic transfer:
+at800m377→432 (+5.37 points, +3.32 to +7.42), and at1000m402→478
+(+7.42, +5.18 to +9.77). At800m deterministic780→778 was inconclusive.
+For the selected policy, raising800→1000m lost121 deterministic landings
+(−11.82 points, −15.43 to −8.11) while gaining46 stochastic (+4.49,+1.27 to
++7.71). Keep altitude800m for the next bounded angle-only expansion; do not
+interpret more altitude as uniformly easier. Most screen failures reached ground
+contact, rather than being rotation cutoffs or timeouts.
+
+The0–1.1 block uses100updates, training944000, fixed panels944100/944501,
+and fresh final audit945000. Original retention guards remain; previous0–1.0
+at800m is explicitly monitored alongside0–0.9 at600m and older bridges.
+Preflight passed source-hash, profile and restoration checks. Full randomized
+landing and actual catch remain unvalidated. Results, scripts and decision are
+under `belly-down-one-continued`, `next-eleven-screen` and `next-eleven-plan`.
+
+A separate catch-transfer audit found an actual dormant-input hazard: ground
+channels28–31 have zero mean/std/variance, but nonzero recurrent input columns;
+normalizer epsilon0.01 turns a unit catch input into100. Same-width checkpoint
+loading does not initialize these channels. Their Adam moment slices are exactly
+zero, so they contain no optimizer history to retain. On isolated model copies,
+setting only their mean0/std1/variance1 and LSTM input columns0 preserved actor
+and critic outputs bitwise on64 complete warm/cold histories (11,343 valid
+transitions), preserved the entire optimizer state, and allowed finite nonzero
+gradients in every new column on real catch observations.
+
+On actual short/cold catch spawns, actor sigmoid-gate saturation fell from roughly
+26–36% to0%, and candidate saturation from about52% to0%; critic saturation also
+fell to0%. Full belly-flop still had about42% candidate saturation from the other
+channels, so this does not solve the broader mission shift. No policy was saved,
+adopted or trained. Before future catch transfer, use an explicit isolated-copy
+operation and verify runner/export round trips and complete rollouts. The existing
+`catch_pretrain` changes more state and is not equivalent to this preserving
+operation. Reproduction, real observations and reports are archived under
+`catch-transfer-preflight/landing_belly_down_one_continued_local-2026-11-16_08-35-35`.
