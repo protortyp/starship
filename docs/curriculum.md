@@ -1412,3 +1412,63 @@ Evidence: ground student's `cold-early-burn`, `cold-clearance-probe` and
 `clearance-next-stage`; the retained cold run's `tilt-frontier-screen` and
 `tilt-frontier-next`. The burn/clearance experiments and explicit reference assumptions
 are archived on the separate checkpoint volume. PR 67 now follows the tilt frontier.
+
+#### Tilt retention and throttle regression
+
+The first 100-update frontier run selected iteration 924. Fresh validation retained
+warm landings at 97.36%/99.22% and raised-cold landings at 99.02%/99.41%
+(deterministic/stochastic, 1,024 each). Aggregate frontier success was 95.21%/97.95%
+on 2,048 episodes, but the new 0.2–0.3 rad band reached only 609/643 of 677
+(89.96%/94.98%). It therefore did not pass. The original low-clearance stress set
+scored 92.97%/90.63%. A bounded 200-update continuation starts from this accepted
+checkpoint, retaining the same guards and frozen normalization; final validation
+uses fresh seeds. It is not a promotion to belly-flop or catch training.
+
+A matched 512-start audit compares the pre-frontier source, accepted iteration 924,
+and rejected continuation iteration 1029, with identical initial observations and
+stochastic action seeds. In the new tilt band, accepted success changed from
+160/174 to 163/177 of 188: five gains and two losses in each action mode. This is
+small evidence of improvement, not convincing mastery. Warm deterministic success
+was 501/512 before frontier training, 498/512 accepted, and 409/512 rejected;
+rejected stochastic success remained 495/512. Normalizer state matched exactly and
+continuous action standard deviations changed by less than 0.0001 in absolute units.
+The regression was not a changed observation scale or a large exploration-noise jump.
+
+The rejected warm policy exceeded touchdown downward-speed limits in 82 episodes,
+versus zero accepted; median terminal vertical velocity changed from -1.397 to
+-1.716 m/s. Neither had tilt or angular-rate violations. Initial critic bias on
+stochastic trajectories stayed modest (-2.68 accepted, -2.08 rejected), while on
+deterministic trajectories it changed from -7.06 to +14.22. Training explained
+variance alone therefore does not establish deterministic-controller reliability.
+
+A diagnostic command intervention ran both actors on the same complete recurrent
+observation history, keeping all physics and terminal rules fixed:
+
+| Deterministic warm controller, 512 matched starts | Landed | Downward-speed violations |
+| --- | ---: | ---: |
+| Rejected actor, reproduced baseline | 409 | 82 |
+| Rejected actor with accepted throttle command only | 497 | 0 |
+| Rejected actor with accepted engine switches and throttle | 498 | 0 |
+| Accepted actor with rejected throttle command only | 431 | 58 |
+
+Replacing throttle alone rescued 90 episodes and lost two against the rejected
+baseline; the reverse intervention lost 67 against the accepted baseline. This
+isolates throttle behavior as a major contributor on this cohort, without claiming
+that only final-layer throttle weights caused it. These two-actor interventions are
+diagnostics, not deployed policies. The continuation remains bounded; repeated
+regression motivates actor-only retention on complete successful warm/raised-cold
+histories, with special attention to throttle behavior. The prepared demonstration
+bank is not on-policy PPO data and has not yet been enabled as a training loss.
+
+A separate belly-flop counterfactual disabled attitude-limit termination for the
+unchanged ground source. Both modes still landed 0/512; all episodes eventually
+crashed, and trajectories matched exactly before the original cutoff. Removing the
+cutoff alone does not rescue this source, so no termination-rule change was adopted.
+
+Evidence: `landing_tilt_frontier_continued_local/2026-11-16_04-08-53/` contains
+`matched-regression-audit` and `throttle-regression-probe`, including source hashes,
+reproduction scripts, complete trajectories and paired outcomes. Both are archived
+under the corresponding `tilt-matched-regression` and `tilt-throttle-probe` directories
+on the checkpoint volume. The belly-flop counterfactual is archived under
+`flip-recovery-probe/2026-11-16_02-50-51`. PR 67 follows the continuation with complete
+first-episode GIFs; it remains draft pending end-to-end validation.
