@@ -1393,7 +1393,7 @@ requirements are unchanged. No physics, actuator or terminal-success rule was re
 | Belly-down pitch 0–0.9 rad, 600±150 m | Retained throttle-only source selected after three-arm comparison; paired hard band 207/226 deterministic, 188/226 stochastic |
 | Belly-down pitch 0–1.0 rad, 800±150 m | Continuation selected aggregate 90.43%/92.14%, hard band 173/207 and 163/207; original profiles retained |
 | Belly-down pitch 0–1.1 rad, 800±150 m | Continuation selected3594: aggregate92.43%/92.72%, hard149/173 and110/173; original retention passes |
-| Belly-down pitch 0–1.2 rad, 800±150 m | Selected3809 retained earlier landings; fresh hard band118/163 deterministic,69/163 stochastic; another100-update consolidation running |
+| Belly-down pitch 0–1.2 rad, 800±150 m | Selected3909 retained earlier landings; fresh hard band143/182 deterministic,103/182 stochastic; expanded0–1.25rad training running |
 | Original low-clearance cold starts | Reported stress set; not claimed solved |
 | Full belly-flop, randomized descent, catch | Not yet validated |
 
@@ -2522,3 +2522,55 @@ Artifacts: `belly-down-twelve-mixture-continued`, `next-thirteen-screen` and
 `twelve-mixture-consolidation-plan`, timestamp `2026-11-16_10-14-50`, under
 the checkpoint archive. Full randomized belly-flop landing and policy-controlled
 chopstick capture remain unvalidated; PR67 stays draft.
+
+
+### Accepted3909 and a small angle expansion
+
+Consolidation accounting3824→3924 selected actual3909, SHA256
+`6085bb5c866b3d6d140330395e9638eddda3922d4923e2b706e9b1ca7e3d445b`.
+Fresh GPU audit967000 paired3809→3909: frontier deterministic93.02→93.75%
+(+0.73pp,95% paired interval−0.34–1.86pp), sampled89.36→91.26%
+(+1.90pp, interval0.88–2.93pp). Hard1.1–1.2rad deterministic remained143/182;
+sampled78→103/182 (+13.74pp, interval7.69–20.33pp). Thus sampled gains are
+supported; deterministic gains are inconclusive. Hard sampled critic bias
+12.11→0.20, RMSE62.75→57.60, initial explained variance0.191→0.224.
+Original warm/cold/old0.3/old0.4 and previous0.9 profiles retain≥95% both modes.
+The separate0–1.1 monitor is94.86% deterministic/95.18% sampled; no claim that
+all intermediate distributions are mastered. Warm passes96.78%/97.27%.
+
+A paired full0–1.25rad screen (2048starts, GPU968000/action968001) favors800m.
+Selected3909 achieves1908 deterministic/1806 sampled landings there, versus
+1792/1739 at900m. Raising height loses5.66pp deterministic and3.27pp sampled,
+with both paired intervals excluding zero. At800m, source→selected old-range
+successes1839→1852 deterministic and1756→1781 sampled (1964starts).
+The new1.2–1.25 portion improves42→56 and15→25 (84starts). Preserve800m.
+
+The Astra review recommends bounded angle expansion:96% of uniform0–1.25
+frontier starts still lie within0–1.2, allowing consolidation to continue.
+Do not wait for95% on every narrow band. Add a dedicated new-band cohort
+because the uniform panel contains too few steep starts for stable ranking.
+The100-update run `landing_belly_down_quarter_mixture_local/2026-11-16_10-50-33`
+therefore uses0–1.25rad at800m, accounting3924→4024, train seed969000,
+full fixed panel969100/action969501, dedicated512-start band969200/action969601,
+and fresh final GPU audit970000 with1024 dedicated starts and paired old-range
+comparison. Same224/16/16 mixture, actor/critic/Adam state, frozen normalization,
+replay, learning rates, retention gates and physical criteria are preserved.
+
+Dedicated preflight starts give64.84% deterministic/23.44% sampled success.
+A reporting bug initially reused global full-range band keys for the dedicated
+cohort. The new worker was stopped during initial evaluation before optimizer
+updates (no numbered checkpoints); the abandoned run is timestamp10-48-45.
+The corrected rollout uses its own metric prefix and asserts full-range band
+metrics remain unchanged. Repeated preflight passed with55 full-range band
+starts and512 dedicated starts correctly separated. Training then began from
+the same validated source; no contaminated trained checkpoint was adopted.
+
+The prior3809 paired-failure review also cautions against changing touchdown
+criteria: all7 newly lost deterministic hard-band cases violate angular rate
+only, but94 remaining sampled failures have median downward speed37.1m/s
+and pad miss124m. This is not solely a threshold-margin problem.
+
+Artifacts: `belly-down-twelve-mixture-consolidation`, `next-quarter-full-screen`,
+`quarter-mixture-plan` and `quarter-mixture-preparation`, timestamp
+`2026-11-16_10-33-21`; `paired-failure-review`, timestamp10-14-50.
+Full randomized belly-flop landing and chopstick capture remain outstanding.
