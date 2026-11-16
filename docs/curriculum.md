@@ -1398,7 +1398,7 @@ requirements are unchanged. No physics, actuator or terminal-success rule was re
 | Speed bridge, pitch 1.25±0.05 rad, 1000±150 m, −60±10 m/s | Selected4309: fresh83.11% deterministic/60.94% sampled; original retention passed; canonical belly-flop0/256 both |
 | Speed bridge, pitch 1.25±0.05 rad, 1000±150 m, −70±10 m/s | Accepted4524 preserves original skills and recovers speed60; fresh speed70 success80.86% deterministic /50.20% sampled. Endpoint4404 remains rejected |
 | Angle bridge, pitch1.30–1.40, −60±10 m/s | Accepted4524: fresh60.74% deterministic/37.40% sampled; original retention passed |
-| Angle extension, pitch1.35–1.50, −60±10 m/s | Checkpoint5399 retained after matched100-update allocation trial; control endpoint regresses fresh bridge panels, doubled-warm arm retains source weights. Original allocation now training500 more updates; all trial audits complete |
+| Angle extension, pitch1.35–1.50, −60±10 m/s | Checkpoint5399 retained after matched100-update allocation trial; control endpoint regresses fresh bridge panels, doubled-warm arm retains source weights. Original allocation completed500 more updates without a new retained checkpoint;96 rollbacks limited uninterrupted stretches to5–10 updates. Endpoint audits running; matched rollback-horizon experiment passes preflight but has not started |
 | Original low-clearance cold starts | Reported stress set; not claimed solved |
 | Full belly-flop, randomized descent, catch | Not yet validated |
 
@@ -3281,3 +3281,47 @@ archived under `retention-allocation-pair-comparison` and
 `retention-allocation-warm-{midpoint,endpoint}-review`. The active longer run also
 backs up every 50-update raw/selected snapshot with verified SHA-256 hashes under
 `original-long-snapshots`; these backups do not replace fresh validation.
+
+
+### Original-allocation continuation: rollback horizon (2026-11-16)
+
+The5824–6324 block completed500 updates successfully and retained actual5399.
+All ten50-update raw/selected snapshots are archived with verified hashes under
+`original-long-snapshots/2026-11-16_18-52-16`. Final selected hash remains
+`79420095d8de546651477cbfc8013aa2a7070b818163bd260baac92f653e1a08`;
+its accounting counter differs from the original5399 serialization. Final raw
+candidate6324 fails the fixed warm deterministic gate at94.14%. Endpoint
+independent policy and critic audits are still running; no raw checkpoint is adopted.
+
+This was not500 uninterrupted updates of adaptation:96 coherent restores occurred,
+92 after five updates and four after ten. Fresh midpoint6074 confirms that the
+retention guard protects a real skill: warm deterministic success falls974→949/1,024,
+a loss of2.44 percentage points (paired95% bootstrap interval −3.61 to−1.27).
+Target deterministic639→624 and sampled428→418 differences remain inconclusive.
+Initial target critic explained variance improves0.1396→0.1461, without a behavioral
+gain. These observations do not establish irreversible plasticity loss.
+
+Exclusive terminal diagnostics clarify the target failures. Of1,024 deterministic
+source episodes,639 land,380 crash and five end otherwise;109 fail angular rate
+alone and98 miss the pad alone. Only29 angular-only failures are within0.5°/s of
+the unchanged5°/s limit. With sampled actions,206 crashes violate all five landing
+constraints. The final target GIF's near miss is therefore not representative of
+all failures: its only failed condition is5.23°/s touchdown rotation.
+
+Astra recommends a matched100-update control versus uninterrupted shadow trial,
+conditional on the completed endpoint review. Both inherit the same source actor,
+critic, Adam, original mixture, replay, frozen normalization and learning rates.
+The shadow continues through failed gates but cannot adopt ineligible checkpoints;
+both retention and performance-triggered restore paths are disabled. Success
+requires independently verified retained target improvement with original retention
+and speed budgets intact, not fewer rollbacks or better raw target rates alone.
+Disabling restores also removes restore-induced rollout resets, so this tests the
+whole interruption mechanism rather than optimizer restoration alone.
+
+Both preflights pass actual actor/critic/Adam transition checks, exact source-state
+and fixed-panel parity, and identical explicitly reseeded initial observations.
+No training updates have started. Plans, scripts and proofs are archived under
+`rollback-horizon-pair-preparation`; midpoint and completion evidence is under
+`original-long-{midpoint,endpoint}-review`. PR67 contains the final full-episode
+GIFs, published by amending the progress commit without CI. End-to-end landing,
+policy-controlled catching, checkpoint LFS and final PR67 merge remain outstanding.
