@@ -51,9 +51,6 @@
               pkgs.lib.optionalString pkgs.stdenv.hostPlatform.isLinux ''
                 # /run/opengl-driver/lib provides libcuda.so on NixOS; other distros find it already.
                 export LD_LIBRARY_PATH="${pkgs.lib.makeLibraryPath linuxRuntimeLibs}:/run/opengl-driver/lib''${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
-              ''
-              + ''
-                uv sync --quiet
               '';
           };
         }
